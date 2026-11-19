@@ -26,10 +26,38 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Configure app.json
+      - name: Fix assets and app.json
         run: |
-          node -e '
+          node << 'EOF'
           const fs = require("fs");
+          const path = require("path");
+          const renames = {};
+          for (const f of fs.readdirSync(".")) {
+            if (/^[0-9].*\.png$/i.test(f)) {
+              const next = "img_" + f;
+              fs.renameSync(f, next);
+              renames[f] = next;
+            }
+          }
+          function walk(dir) {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              if (entry.name === "node_modules" || entry.name === ".git") continue;
+              const full = path.join(dir, entry.name);
+              if (entry.isDirectory()) walk(full);
+              else if (/\.(js|jsx|ts|tsx|json)$/i.test(entry.name)) {
+                let txt = fs.readFileSync(full, "utf8");
+                let changed = false;
+                for (const [oldName, newName] of Object.entries(renames)) {
+                  if (txt.includes(oldName)) {
+                    txt = txt.split(oldName).join(newName);
+                    changed = true;
+                  }
+                }
+                if (changed) fs.writeFileSync(full, txt);
+              }
+            }
+          }
+          walk(".");
           let cfg = fs.existsSync("app.json")
             ? JSON.parse(fs.readFileSync("app.json", "utf8"))
             : { expo: {} };
@@ -42,7 +70,7 @@ jobs:
           delete cfg.expo.splash;
           delete cfg.expo.android.adaptiveIcon;
           fs.writeFileSync("app.json", JSON.stringify(cfg, null, 2));
-          '
+          EOF
 
       - name: Prebuild Android
         run: npx expo prebuild --platform android --no-install
