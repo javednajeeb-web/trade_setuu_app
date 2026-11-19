@@ -9,54 +9,63 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Fix assets and app.json
+      - name: Install packages
+        env:
+          CI: true
+          npm_config_legacy_peer_deps: true
         run: |
-          node << 'EOF'
-          const fs = require("fs");
-          const path = require("path");
-          const renames = {};
-          for (const f of fs.readdirSync(".")) {
-            if (/^[0-9].*\.png$/i.test(f)) {
-              const next = "img_" + f;
-              fs.renameSync(f, next);
-              renames[f] = next;
-            }
-          }
-          function walk(dir) {
-            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-              if (entry.name === "node_modules" || entry.name === ".git") continue;
-              const full = path.join(dir, entry.name);
-              if (entry.isDirectory()) walk(full);
-              else if (/\.(js|jsx|ts|tsx|json)$/i.test(entry.name)) {
-                let txt = fs.readFileSync(full, "utf8");
-                let changed = false;
-                for (const [oldName, newName] of Object.entries(renames)) {
-                  if (txt.includes(oldName)) {
-                    txt = txt.split(oldName).join(newName);
-                    changed = true;
-                  }
-                }
-                if (changed) fs.writeFileSync(full, txt);
+          npm install
+          npx expo install --fix
+
+      - name: Fix image names
+        run: |
+          for f in [0-9]*.png; do
+            [ -e "$f" ] || continue
+            mv "$f" "img_$f"
+            grep -rl "$f" App.js src 2>/dev/null | xargs -r sed -i "s/$f/img_$f/g"
+          done
+
+      - name: Set app config
+        run: |
+          cat << 'EOF' > app.json
+          {
+            "expo": {
+              "name": "Trade SETUU",
+              "slug": "trade-setuu",
+              "version": "1.0.0",
+              "android": {
+                "package": "com.tradesetuu.app"
               }
             }
           }
-          walk(".");
-          let cfg =utputs/apk/release/*.apk
+          EOF
+
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trade-SETUU-APK
+          path: android/app/build/outputs/apk/release/*.apk
+
+          node << 'EOF'
+          const fs = require("fapk
           
