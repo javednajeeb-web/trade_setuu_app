@@ -13,6 +13,7 @@ import {
   Modal,
   RefreshControl,
   Share,
+  Platform,
 } from 'react-native';
 import SplashScreen from './src/screens/SplashScreen';
 import { supabase } from './src/lib/supabase';
@@ -23,39 +24,51 @@ import ServiceHubScreen from './src/ServiceHubScreen';
 const INITIAL_FEED = [
   {
     id: 'seed-1',
-    post_type: 'Export',
-    scope: 'International',
-    title: 'Indian Non-Basmati Parboiled Rice (5% Broken) — 2,500 MT',
+    post_type: 'Sell Offer',
+    scope: 'Export',
+    title: 'Indian Non-Basmati Parboiled Rice (5% Broken)',
+    qty_label: '2,500 MT • 50 Kg PP Bag',
     route_port: 'FOB JNPT / Vizag -> Jebel Ali & West Africa',
     price: 'USD 465 / MT',
-    verified_by: 'Global Agro Exports • Verified Exporter',
+    verified_by: 'Global Agro Exports • Verified',
+    likes: 42,
+    isMine: false,
   },
   {
     id: 'seed-2',
-    post_type: 'Buy',
+    post_type: 'Buy Requirement',
     scope: 'Import',
-    title: 'Urgent Requirement: Yellow Maize Feed Grade — 1,000 MT',
+    title: 'Urgent Requirement: Yellow Maize Feed Grade',
+    qty_label: '1,000 MT • Bulk / Jumbo Bags',
     route_port: 'CIF Cat Lai Port, Vietnam',
     price: 'USD 268 / MT',
-    verified_by: 'Mekong Agri Trading • Verified Buyer',
+    verified_by: 'Mekong Agri Trading • Verified',
+    likes: 29,
+    isMine: false,
   },
   {
     id: 'seed-3',
-    post_type: 'Sell',
+    post_type: 'Sell Offer',
     scope: 'Domestic',
-    title: 'Fresh Green Cavendish Banana (G9 Export Quality) — 150 MT',
-    route_port: 'Ex-Farm Maharashtra / MP -> Mundra / JNPT',
+    title: 'Fresh Green Cavendish Banana (G9 Export Grade)',
+    qty_label: '150 MT • 13 Kg Corrugated Box',
+    route_port: 'Ex-Farm MH / MP -> Mundra / JNPT',
     price: 'INR 1,850 / Quintal',
     verified_by: 'Sahyadri Fresh Farms • Verified',
+    likes: 35,
+    isMine: false,
   },
   {
     id: 'seed-4',
-    post_type: 'Sell',
-    scope: 'Domestic',
-    title: 'HMT & Swarna Steam Rice (Silky Sortex) — 500 MT Ready',
-    route_port: 'Raipur / Dhamtari Mill Delivery',
+    post_type: 'Sell Offer',
+    scope: 'International',
+    title: 'HMT & Swarna Steam Rice (Silky Sortex)',
+    qty_label: '500 MT • 25 Kg / 50 Kg Bags',
+    route_port: 'Raipur Mill -> Export / Domestic',
     price: 'INR 3,580 / Quintal',
     verified_by: 'Chhattisgarh Rice Mills • Verified',
+    likes: 51,
+    isMine: false,
   },
 ];
 
@@ -98,6 +111,8 @@ const MANDI_DATA = [
   { id: 'm12', marketType: 'International', category: 'Pulses', commodity: 'Red Lentils (Masoor)', mandi: 'FOB Mersin, Turkey', rate: 'USD 740 / MT', change_pct: '+0.5%', is_up: true },
 ];
 
+const TOP_PAD = Platform.OS === 'android' ? (StatusBar.currentHeight || 26) : 0;
+
 export default function App() {
   const [booting, setBooting] = useState(true);
   const [loggedIn, setLoggedIn] = useState(true);
@@ -105,36 +120,51 @@ export default function App() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
 
-  // Navigation & Overlays
+  // Navigation & Drawer Overlays
   const [tab, setTab] = useState('feed');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [overlayScreen, setOverlayScreen] = useState(null); // 'logistics' | 'blindroom' | 'wallet'
+  // overlayScreen: null | 'logistics' | 'blindroom' | 'wallet' | 'profile' | 'dashboard' | 'myposts' | 'saved' | 'plans' | 'settings' | 'support'
+  const [overlayScreen, setOverlayScreen] = useState(null);
   const [walletBalance] = useState(500);
 
+  // User Profile State
+  const [userName, setUserName] = useState('Najeeb Javed');
+  const [companyName, setCompanyName] = useState('Trade SETUU Overseas');
+  const [userRole, setUserRole] = useState('Exporter & Importer');
+  const [userIec, setUserIec] = useState('AAACT1234F');
+  const [userGst, setUserGst] = useState('22AAACT1234F1Z5');
+  const [activePlan, setActivePlan] = useState('Free Ecosystem Plan');
+  const [prefCurrency, setPrefCurrency] = useState('USD / INR');
+  const [prefUnit, setPrefUnit] = useState('Metric Ton (MT)');
+
   // Feed States
-  const [feedSubTab, setFeedSubTab] = useState('Post Feed'); // 'Post Feed' | 'Market' | 'Exim News'
-  const [feedFilter, setFeedFilter] = useState('All'); // 'All' | 'Import' | 'Export' | 'Domestic' | 'International'
+  const [feedSubTab, setFeedSubTab] = useState('Post Feed');
+  const [feedFilter, setFeedFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [feed, setFeed] = useState(INITIAL_FEED);
+  const [likedIds, setLikedIds] = useState({});
+  const [savedIds, setSavedIds] = useState({ 'seed-1': true });
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Mandi States
-  const [mandiScope, setMandiScope] = useState('Domestic'); // 'Domestic' | 'International'
+  const [mandiScope, setMandiScope] = useState('Domestic');
   const [mandiCat, setMandiCat] = useState('All');
   const [mandiList, setMandiList] = useState(MANDI_DATA);
 
-  // Create Post Modal
+  // Create Post Modal (+ Button)
   const [postModal, setPostModal] = useState(false);
-  const [postType, setPostType] = useState('Export Offer');
-  const [postScope, setPostScope] = useState('Export');
+  const [postIntent, setPostIntent] = useState('Sell Offer'); // 'Buy Requirement' | 'Sell Offer'
+  const [postScope, setPostScope] = useState('Export'); // 'Export' | 'Import' | 'Domestic' | 'International'
   const [postTitle, setPostTitle] = useState('');
+  const [postQty, setPostQty] = useState('');
+  const [postUnit, setPostUnit] = useState('MT');
   const [postPort, setPostPort] = useState('');
   const [postPrice, setPostPrice] = useState('');
-  const [postCompany, setPostCompany] = useState('');
+  const [postDesc, setPostDesc] = useState('');
 
   useEffect(() => {
-    const t = setTimeout(() => setBooting(false), 2400);
+    const t = setTimeout(() => setBooting(false), 2200);
     return () => clearTimeout(t);
   }, []);
 
@@ -153,6 +183,8 @@ export default function App() {
         const normalized = fRes.data.map((d) => ({
           ...d,
           scope: d.scope || (d.post_type === 'Buy' ? 'Import' : 'Export'),
+          qty_label: d.qty_label || 'Verified Lot',
+          likes: d.likes || 14,
         }));
         setFeed([...normalized, ...INITIAL_FEED]);
       }
@@ -163,12 +195,18 @@ export default function App() {
         }));
         setMandiList([...normMandi, ...MANDI_DATA]);
       }
-    } catch (e) {
-      // Fallback to built-in feed & mandi rates silently
-    }
+    } catch (e) {}
     setLoading(false);
     setRefreshing(false);
   }
+
+  const toggleLike = (id) => {
+    setLikedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleSave = (id) => {
+    setSavedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   async function handleCreatePost() {
     if (!postTitle || !postPort || !postPrice) {
@@ -177,18 +215,23 @@ export default function App() {
     }
     const newItem = {
       id: 'local-' + Date.now(),
-      post_type: postScope,
+      post_type: postIntent,
       scope: postScope,
-      title: postTitle,
+      title: postTitle + (postDesc ? ' — ' + postDesc : ''),
+      qty_label: (postQty || 'Open') + ' ' + postUnit,
       route_port: postPort,
       price: postPrice,
-      verified_by: (postCompany || 'Trade SETUU Member') + ' • Verified',
+      verified_by: companyName + ' • Verified',
+      likes: 1,
+      isMine: true,
     };
     setFeed([newItem, ...feed]);
     setPostModal(false);
     setPostTitle('');
+    setPostQty('');
     setPostPort('');
     setPostPrice('');
+    setPostDesc('');
     setTab('feed');
     setFeedSubTab('Post Feed');
 
@@ -207,10 +250,9 @@ export default function App() {
 
   if (booting) return <SplashScreen />;
 
-  // Login Screen (Accessed via Logout; full login + Surprise Box in final phase)
   if (!loggedIn) {
     return (
-      <SafeAreaView style={s.root}>
+      <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
         <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
         <View style={s.loginBox}>
           <Text style={s.goldBadge}>TRADE SETUU • B2B ECOSYSTEM</Text>
@@ -268,119 +310,323 @@ export default function App() {
     );
   }
 
-  // --- OVERLAY 1: GLOBAL LOGISTICS HUB (From Sidebar or Services) ---
-  if (overlayScreen === 'logistics') {
-    return (
-      <SafeAreaView style={s.root}>
-        <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
-        <View style={s.overlayBar}>
-          <TouchableOpacity onPress={() => setOverlayScreen(null)} style={s.backPill}>
-            <Text style={s.backPillTxt}>← Back to App</Text>
-          </TouchableOpacity>
-          <Text style={s.overlayBarTitle}>Logistics Hub</Text>
-        </View>
-        <LogisticsHubScreen />
-      </SafeAreaView>
+  // --- DRAWER OVERLAY SCREENS ---
+  if (overlayScreen) {
+    const renderOverlayHeader = (title) => (
+      <View style={s.overlayBar}>
+        <TouchableOpacity onPress={() => setOverlayScreen(null)} style={s.backPill}>
+          <Text style={s.backPillTxt}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={s.overlayBarTitle}>{title}</Text>
+      </View>
     );
-  }
 
-  // --- OVERLAY 2: LOCKED BLIND DEAL ROOM (Vault with ONLY Jugaad Shield & The Neutral Lock) ---
-  if (overlayScreen === 'blindroom') {
-    const triggerLockPopup = (featureName) => {
-      Alert.alert(
-        '🔒 ' + featureName + ' — Locked Vault',
-        'Blind Deal Room abhi restricted mode mein hai. ' +
-          featureName +
-          ' sirf verified escrow & KYC approval ke baad agle phase mein unlock hoga.'
+    if (overlayScreen === 'logistics') {
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('Global Logistics Hub')}
+          <LogisticsHubScreen />
+        </SafeAreaView>
       );
-    };
+    }
 
-    return (
-      <SafeAreaView style={s.root}>
-        <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
-        <View style={s.overlayBar}>
-          <TouchableOpacity onPress={() => setOverlayScreen(null)} style={s.backPill}>
-            <Text style={s.backPillTxt}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={s.overlayBarTitle}>BLIND DEAL ROOM 🔒</Text>
-        </View>
-
-        <View style={s.vaultContainer}>
-          <View style={s.vaultHeaderCard}>
-            <Text style={s.vaultLockIcon}>🔒</Text>
-            <Text style={s.vaultTitle}>RESTRICTED DEAL VAULT</Text>
-            <Text style={s.vaultSub}>
-              Zero-Leakage Anonymous Trade Execution. Inner deal rooms are sealed.
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={s.shieldCard}
-            onPress={() => triggerLockPopup('Jugaad Shield')}
-          >
-            <View style={s.rowBetween}>
-              <Text style={s.shieldTitle}>🛡️ Jugaad Shield</Text>
-              <Text style={s.lockBadge}>LOCKED</Text>
+    // STRICTLY LOCKED BLIND DEAL ROOM: ONLY Jugaad Shield & The Neutral Lock + Lock Popup
+    if (overlayScreen === 'blindroom') {
+      const openVaultAlert = (optName) => {
+        Alert.alert(
+          '🔒 ' + optName + ' — Locked',
+          'Blind Deal Room is strictly sealed. Access unlocks only after escrow & compliance verification.'
+        );
+      };
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('BLIND DEAL ROOM 🔒')}
+          <View style={s.vaultContainer}>
+            <View style={s.vaultHeaderCard}>
+              <Text style={s.vaultLockIcon}>🔒</Text>
+              <Text style={s.vaultTitle}>BLIND DEAL ROOM</Text>
             </View>
-            <Text style={s.shieldDesc}>
-              Anti-Bypass & Commission Protection Layer for Intermediaries & Traders.
-            </Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={s.shieldCard}
-            onPress={() => triggerLockPopup('The Neutral Lock')}
-          >
-            <View style={s.rowBetween}>
-              <Text style={s.shieldTitle}>🔐 The Neutral Lock</Text>
+            <TouchableOpacity
+              style={s.shieldCard}
+              onPress={() => openVaultAlert('Jugaad Shield')}
+            >
+              <Text style={s.shieldTitle}>🛡️  Jugaad Shield</Text>
               <Text style={s.lockBadge}>LOCKED</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.shieldCard}
+              onPress={() => openVaultAlert('The Neutral Lock')}
+            >
+              <Text style={s.shieldTitle}>🔐  The Neutral Lock</Text>
+              <Text style={s.lockBadge}>LOCKED</Text>
+            </TouchableOpacity>
+
+            <Text style={s.footerBrand}>Powered by Apex Sync Technologies</Text>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
+    if (overlayScreen === 'wallet') {
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('Wallet & Credits')}
+          <ScrollView style={{ padding: 16 }}>
+            <View style={s.walletBigCard}>
+              <Text style={s.goldBadge}>AVAILABLE TRADE CREDITS</Text>
+              <Text style={s.walletAmt}>₹ {walletBalance}.00</Text>
+              <Text style={s.cardRoute}>
+                Surprise Box (₹500 / ₹1,500) bonus reward unlocks after final KYC setup.
+              </Text>
             </View>
-            <Text style={s.shieldDesc}>
-              Continuous Identity & Document Custody Control Until Deal Settlement.
-            </Text>
-          </TouchableOpacity>
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Ledger Summary</Text>
+              <Text style={s.cardRoute}>• Ecosystem Onboarding Credit: +₹500.00</Text>
+              <Text style={s.cardRoute}>• Trade Document Generator: Unlimited Free</Text>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
 
-          <Text style={s.footerBrand}>Powered by Apex Sync Technologies</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+    if (overlayScreen === 'profile') {
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('My Profile & KYC')}
+          <ScrollView style={{ padding: 16 }}>
+            <View style={s.card}>
+              <Text style={s.label}>FULL NAME</Text>
+              <TextInput style={s.input} value={userName} onChangeText={setUserName} />
+              <Text style={s.label}>COMPANY / FIRM NAME</Text>
+              <TextInput style={s.input} value={companyName} onChangeText={setCompanyName} />
+              <Text style={s.label}>TRADE ROLE</Text>
+              <TextInput style={s.input} value={userRole} onChangeText={setUserRole} />
+              <Text style={s.label}>IEC NUMBER</Text>
+              <TextInput style={s.input} value={userIec} onChangeText={setUserIec} />
+              <Text style={s.label}>GSTIN</Text>
+              <TextInput style={s.input} value={userGst} onChangeText={setUserGst} />
+              <TouchableOpacity
+                style={s.primaryBtn}
+                onPress={() => Alert.alert('Profile Saved', 'Business KYC details updated.')}
+              >
+                <Text style={s.primaryBtnText}>Save Profile & KYC</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
 
-  // --- OVERLAY 3: TRADE WALLET & CREDITS ---
-  if (overlayScreen === 'wallet') {
-    return (
-      <SafeAreaView style={s.root}>
-        <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
-        <View style={s.overlayBar}>
-          <TouchableOpacity onPress={() => setOverlayScreen(null)} style={s.backPill}>
-            <Text style={s.backPillTxt}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={s.overlayBarTitle}>WALLET & CREDITS</Text>
-        </View>
-        <View style={{ padding: 18 }}>
-          <View style={s.walletBigCard}>
-            <Text style={s.goldBadge}>AVAILABLE TRADE CREDITS</Text>
-            <Text style={s.walletAmt}>₹ {walletBalance}.00</Text>
-            <Text style={s.cardRoute}>
-              Welcome Bonus Active • Surprise Box (₹500 / ₹1,500) unlocks at final KYC verification.
-            </Text>
-          </View>
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Recent Wallet Activity</Text>
-            <Text style={s.cardRoute}>• Ecosystem Onboarding Credit: +₹500.00</Text>
-            <Text style={s.cardRoute}>• Lead Unlock & Doc Generator: Free Tier Active</Text>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
+    if (overlayScreen === 'dashboard') {
+      const myCount = feed.filter((x) => x.isMine).length;
+      const savedCount = Object.values(savedIds).filter(Boolean).length;
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('Business Dashboard')}
+          <ScrollView style={{ padding: 16 }}>
+            <View style={s.dashGrid}>
+              <View style={s.dashBox}>
+                <Text style={s.dashNum}>{feed.length}</Text>
+                <Text style={s.dashLbl}>Live Market Leads</Text>
+              </View>
+              <View style={s.dashBox}>
+                <Text style={s.dashNum}>{myCount}</Text>
+                <Text style={s.dashLbl}>My Active Posts</Text>
+              </View>
+              <View style={s.dashBox}>
+                <Text style={s.dashNum}>{savedCount}</Text>
+                <Text style={s.dashLbl}>Saved Shortlist</Text>
+              </View>
+              <View style={s.dashBox}>
+                <Text style={s.dashNum}>₹{walletBalance}</Text>
+                <Text style={s.dashLbl}>Wallet Credits</Text>
+              </View>
+            </View>
+            <View style={s.card}>
+              <Text style={s.cardTitle}>{companyName}</Text>
+              <Text style={s.cardRoute}>Role: {userRole} • IEC: {userIec}</Text>
+              <Text style={s.verifiedText}>Active Tier: {activePlan}</Text>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+
+    if (overlayScreen === 'myposts') {
+      const myItems = feed.filter((x) => x.isMine);
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('My Posts & Listings')}
+          <ScrollView style={{ padding: 16 }}>
+            {myItems.length === 0 ? (
+              <View style={s.card}>
+                <Text style={s.cardTitle}>No Posts Published Yet</Text>
+                <Text style={s.cardRoute}>
+                  Tap the center (+) button on the bottom bar to publish your Buy Requirement or Sell Offer.
+                </Text>
+              </View>
+            ) : (
+              myItems.map((item) => (
+                <View key={item.id} style={s.card}>
+                  <Text style={s.goldBadge}>{item.post_type} • {item.scope}</Text>
+                  <Text style={s.cardTitle}>{item.title}</Text>
+                  <Text style={s.cardRoute}>{item.route_port} • {item.price}</Text>
+                  <TouchableOpacity
+                    style={[s.inquireBtn, { alignSelf: 'flex-start' }]}
+                    onPress={() => setFeed(feed.filter((f) => f.id !== item.id))}
+                  >
+                    <Text style={{ color: '#EF4444', fontSize: 12, fontWeight: '700' }}>Delete Post</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+
+    if (overlayScreen === 'saved') {
+      const savedList = feed.filter((x) => savedIds[x.id]);
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('Saved / Shortlist')}
+          <ScrollView style={{ padding: 16 }}>
+            {savedList.length === 0 ? (
+              <View style={s.card}>
+                <Text style={s.cardTitle}>No Shortlisted Deals</Text>
+                <Text style={s.cardRoute}>Tap ☆ Save on any feed post to bookmark it here.</Text>
+              </View>
+            ) : (
+              savedList.map((item) => (
+                <View key={item.id} style={s.card}>
+                  <Text style={s.cardTitle}>{item.title}</Text>
+                  <Text style={s.cardRoute}>{item.route_port} • {item.price}</Text>
+                  <TouchableOpacity onPress={() => toggleSave(item.id)}>
+                    <Text style={{ color: '#C9B89A', fontSize: 12, fontWeight: '700' }}>Remove from Shortlist</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+
+    if (overlayScreen === 'plans') {
+      const plans = [
+        { name: 'Free Ecosystem Plan', price: '₹ 0 / Forever', desc: 'Feed, Mandi Live, 7-in-1 Calculator & Trade Doc Maker' },
+        { name: 'Domestic Gold Exporter', price: '₹ 1,499 / Month', desc: 'Priority RFQs, Verified Badge & Direct Buyer Contacts' },
+        { name: 'International Global Pro', price: '$ 29 / Month', desc: 'Global Importer Leads, Logistics Priority & Multi-Currency Desk' },
+      ];
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('Membership Plans')}
+          <ScrollView style={{ padding: 16 }}>
+            {plans.map((p) => (
+              <View key={p.name} style={s.card}>
+                <View style={s.rowBetween}>
+                  <Text style={s.cardTitle}>{p.name}</Text>
+                  <Text style={s.priceText}>{p.price}</Text>
+                </View>
+                <Text style={s.cardRoute}>{p.desc}</Text>
+                <TouchableOpacity
+                  style={s.primaryBtn}
+                  onPress={() => {
+                    setActivePlan(p.name);
+                    Alert.alert('Plan Selected', p.name + ' activated on your profile.');
+                  }}
+                >
+                  <Text style={s.primaryBtnText}>
+                    {activePlan === p.name ? '✓ Active Plan' : 'Select Plan'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+
+    if (overlayScreen === 'settings') {
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('App Settings')}
+          <ScrollView style={{ padding: 16 }}>
+            <View style={s.card}>
+              <Text style={s.label}>DEFAULT CURRENCY PAIR</Text>
+              <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+                {['USD / INR', 'AED / INR', 'EUR / USD'].map((c) => (
+                  <TouchableOpacity
+                    key={c}
+                    style={[s.chip, prefCurrency === c && s.chipActive]}
+                    onPress={() => setPrefCurrency(c)}
+                  >
+                    <Text style={[s.chipText, prefCurrency === c && s.chipTextActive]}>{c}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={s.label}>DEFAULT WEIGHT UNIT</Text>
+              <View style={{ flexDirection: 'row' }}>
+                {['Metric Ton (MT)', 'Quintal (100 Kg)'].map((u) => (
+                  <TouchableOpacity
+                    key={u}
+                    style={[s.chip, prefUnit === u && s.chipActive]}
+                    onPress={() => setPrefUnit(u)}
+                  >
+                    <Text style={[s.chipText, prefUnit === u && s.chipTextActive]}>{u}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+
+    if (overlayScreen === 'support') {
+      return (
+        <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+          {renderOverlayHeader('Help & Support')}
+          <ScrollView style={{ padding: 16 }}>
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Trade SETUU Support Desk</Text>
+              <Text style={s.cardRoute}>
+                Need assistance with Export Documentation, CHA Clearance, Freight Quotes, or Account KYC?
+              </Text>
+              <TouchableOpacity
+                style={s.primaryBtn}
+                onPress={() =>
+                  Share.share({
+                    message: 'Hello Trade SETUU Support Team, I need trade assistance for ' + companyName,
+                  })
+                }
+              >
+                <Text style={s.primaryBtnText}>Connect with Trade Support</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
   }
 
   // Filtered Feed
   const visibleFeed = feed.filter((item) => {
     const matchesFilter =
       feedFilter === 'All' ||
-      (item.scope && item.scope.toLowerCase() === feedFilter.toLowerCase()) ||
-      (item.post_type && item.post_type.toLowerCase() === feedFilter.toLowerCase());
+      (item.scope && item.scope.toLowerCase() === feedFilter.toLowerCase());
     const matchesSearch =
       !searchQuery ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -396,20 +642,27 @@ export default function App() {
   });
 
   return (
-    <SafeAreaView style={s.root}>
+    <SafeAreaView style={[s.root, { paddingTop: TOP_PAD }]}>
       <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
 
-      {/* Top Header with Side Drawer Button */}
+      {/* UNIFIED TOP HEADER WITH CIRCULAR 'TS' LOGO */}
       <View style={s.header}>
         <TouchableOpacity style={s.menuBtn} onPress={() => setDrawerOpen(true)}>
           <Text style={s.menuIcon}>☰</Text>
         </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={s.headerTitle}>
-            Trade <Text style={s.teal}>SETUU</Text>
-          </Text>
-          <Text style={s.headerSub}>Global Trade & Logistics Ecosystem</Text>
+
+        <View style={s.brandCenter}>
+          <View style={s.tsOrbit}>
+            <Text style={s.tsLogoTxt}>TS</Text>
+          </View>
+          <View>
+            <Text style={s.headerTitle}>
+              Trade <Text style={s.teal}>SETUU</Text>
+            </Text>
+            <Text style={s.headerSub}>Global Trade & Logistics Ecosystem</Text>
+          </View>
         </View>
+
         <TouchableOpacity
           style={s.walletPill}
           onPress={() => setOverlayScreen('wallet')}
@@ -431,7 +684,6 @@ export default function App() {
             />
           </View>
 
-          {/* Top 3 Segment Toggles */}
           <View style={s.segBar}>
             {['Post Feed', 'Market', 'Exim News'].map((st) => (
               <TouchableOpacity
@@ -489,68 +741,111 @@ export default function App() {
                 {loading && !refreshing ? (
                   <ActivityIndicator color="#0D9488" style={{ marginTop: 20 }} />
                 ) : (
-                  visibleFeed.map((item) => (
-                    <View key={item.id} style={s.card}>
-                      <View style={s.rowBetween}>
-                        <View style={s.tag}>
-                          <Text style={s.tagText}>
-                            {(item.scope || item.post_type).toUpperCase()}
-                          </Text>
+                  visibleFeed.map((item) => {
+                    const isLiked = !!likedIds[item.id];
+                    const isSaved = !!savedIds[item.id];
+                    return (
+                      <View key={item.id} style={s.card}>
+                        <View style={s.rowBetween}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <View style={s.tag}>
+                              <Text style={s.tagText}>{item.scope.toUpperCase()}</Text>
+                            </View>
+                            <Text style={s.intentTag}>  • {item.post_type}</Text>
+                          </View>
+                          <Text style={s.priceText}>{item.price}</Text>
                         </View>
-                        <Text style={s.priceText}>{item.price}</Text>
-                      </View>
-                      <Text style={s.cardTitle}>{item.title}</Text>
-                      <Text style={s.cardRoute}>Port / Route: {item.route_port}</Text>
-                      <View style={s.rowBetween}>
+
+                        <Text style={s.cardTitle}>{item.title}</Text>
+
+                        <View style={s.specStrip}>
+                          <Text style={s.specStripTxt}>📦 {item.qty_label}</Text>
+                          <Text style={s.specStripTxt}>🚢 {item.route_port}</Text>
+                        </View>
+
                         <Text style={s.verifiedText}>{item.verified_by}</Text>
-                        <TouchableOpacity
-                          style={s.inquireBtn}
-                          onPress={() =>
-                            Share.share({
-                              message:
-                                'TRADE SETUU DEAL INQUIRY:\n' +
-                                item.title +
-                                '\nRoute: ' +
-                                item.route_port +
-                                '\nRate: ' +
-                                item.price,
-                            })
-                          }
-                        >
-                          <Text style={s.inquireText}>Request Quote →</Text>
-                        </TouchableOpacity>
+
+                        <View style={s.actionBar}>
+                          <TouchableOpacity
+                            style={s.miniAction}
+                            onPress={() => toggleLike(item.id)}
+                          >
+                            <Text style={[s.miniActionTxt, isLiked && { color: '#EF4444' }]}>
+                              {isLiked ? '♥' : '♡'} {(item.likes || 12) + (isLiked ? 1 : 0)}
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={s.miniAction}
+                            onPress={() => toggleSave(item.id)}
+                          >
+                            <Text style={[s.miniActionTxt, isSaved && { color: '#C9B89A' }]}>
+                              {isSaved ? '★ Saved' : '☆ Save'}
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={s.inquireBtn}
+                            onPress={() =>
+                              Share.share({
+                                message:
+                                  'TRADE SETUU DEAL INQUIRY:\n' +
+                                  item.title +
+                                  '\nSpec: ' +
+                                  item.qty_label +
+                                  '\nRoute: ' +
+                                  item.route_port +
+                                  '\nTarget: ' +
+                                  item.price,
+                              })
+                            }
+                          >
+                            <Text style={s.inquireText}>Request Quote →</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                    </View>
-                  ))
+                    );
+                  })
                 )}
               </View>
             )}
 
             {feedSubTab === 'Market' && (
               <View>
-                <Text style={s.secTitle}>QUICK MARKET & FX PULSE</Text>
+                <Text style={s.secTitle}>LIVE COMMODITY & CURRENCY BENCHMARKS</Text>
                 <View style={s.card}>
-                  <Text style={s.cardTitle}>USD / INR Reference Rate: ₹ 84.50</Text>
+                  <View style={s.rowBetween}>
+                    <Text style={s.cardTitle}>USD / INR Spot Reference</Text>
+                    <Text style={s.priceText}>₹ 84.50</Text>
+                  </View>
                   <Text style={s.cardRoute}>
-                    AED/INR: ₹23.01 • EUR/INR: ₹91.85 • VND/USD: 25,400
+                    AED: ₹23.01  |  EUR: ₹91.85  |  SAR: ₹22.53  |  VND: 25,400/$
                   </Text>
                 </View>
-                {MANDI_DATA.slice(0, 4).map((m) => (
+
+                {mandiList.slice(0, 5).map((m) => (
                   <View key={m.id} style={s.card}>
                     <View style={s.rowBetween}>
-                      <View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.goldBadge}>{m.marketType.toUpperCase()} • {m.category}</Text>
                         <Text style={s.cardTitle}>{m.commodity}</Text>
                         <Text style={s.cardRoute}>{m.mandi}</Text>
                       </View>
-                      <Text style={s.priceText}>{m.rate}</Text>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={s.priceText}>{m.rate}</Text>
+                        <Text style={[s.pctText, { color: m.is_up ? '#10B981' : '#EF4444' }]}>
+                          {m.change_pct}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 ))}
+
                 <TouchableOpacity
                   style={s.primaryBtn}
                   onPress={() => setTab('mandi')}
                 >
-                  <Text style={s.primaryBtnText}>Open Full Mandi Live →</Text>
+                  <Text style={s.primaryBtnText}>View Full Mandi Live →</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -575,7 +870,7 @@ export default function App() {
         </View>
       )}
 
-      {/* TAB 2: MANDI LIVE UPDATES (DOMESTIC / INTERNATIONAL TOGGLE) */}
+      {/* TAB 2: MANDI LIVE UPDATES */}
       {tab === 'mandi' && (
         <View style={{ flex: 1 }}>
           <View style={s.toggleBox}>
@@ -647,23 +942,23 @@ export default function App() {
       {/* TAB 4: 7-IN-1 MULTI CALCULATOR */}
       {tab === 'calc' && <MultiCalculatorScreen />}
 
-      {/* TAB 5: SERVICE HUB (INCLUDES QUOTATION, PI, LOI, PO MAKER) */}
+      {/* TAB 5: SERVICE HUB */}
       {tab === 'services' && (
         <ServiceHubScreen
           onOpenLogistics={() => setOverlayScreen('logistics')}
         />
       )}
 
-      {/* 5 BOTTOM NAVIGATION TABS (Feed | Mandi | + | Calculator | Services) */}
+      {/* 5 BOTTOM NAVIGATION TABS WITH ICONS & SAFE PADDING */}
       <View style={s.navBar}>
         <TouchableOpacity style={s.navItem} onPress={() => setTab('feed')}>
+          <Text style={s.navIcon}>🏠</Text>
           <Text style={[s.navText, tab === 'feed' && s.navTextActive]}>Feed</Text>
-          {tab === 'feed' && <View style={s.navDot} />}
         </TouchableOpacity>
 
         <TouchableOpacity style={s.navItem} onPress={() => setTab('mandi')}>
+          <Text style={s.navIcon}>📊</Text>
           <Text style={[s.navText, tab === 'mandi' && s.navTextActive]}>Mandi</Text>
-          {tab === 'mandi' && <View style={s.navDot} />}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -674,27 +969,27 @@ export default function App() {
         </TouchableOpacity>
 
         <TouchableOpacity style={s.navItem} onPress={() => setTab('calc')}>
+          <Text style={s.navIcon}>🧮</Text>
           <Text style={[s.navText, tab === 'calc' && s.navTextActive]}>
             Calculator
           </Text>
-          {tab === 'calc' && <View style={s.navDot} />}
         </TouchableOpacity>
 
         <TouchableOpacity style={s.navItem} onPress={() => setTab('services')}>
+          <Text style={s.navIcon}>🛎️</Text>
           <Text style={[s.navText, tab === 'services' && s.navTextActive]}>
             Services
           </Text>
-          {tab === 'services' && <View style={s.navDot} />}
         </TouchableOpacity>
       </View>
 
-      {/* SIDE DRAWER MODAL (NO JOB RECRUITMENT) */}
+      {/* COMPLETE SIDE DRAWER (NO JOB RECRUITMENT) */}
       <Modal visible={drawerOpen} transparent animationType="fade">
         <View style={s.drawerOverlay}>
-          <View style={s.drawerPanel}>
+          <View style={[s.drawerPanel, { paddingTop: TOP_PAD + 10 }]}>
             <View style={s.drawerTop}>
-              <Text style={s.drawerUser}>Trade SETUU Member</Text>
-              <Text style={s.goldBadge}>Exporter / Importer • Verified</Text>
+              <Text style={s.drawerUser}>{userName}</Text>
+              <Text style={s.goldBadge}>{userRole} • {companyName}</Text>
             </View>
 
             <ScrollView style={{ flex: 1 }}>
@@ -705,76 +1000,34 @@ export default function App() {
                   setOverlayScreen('wallet');
                 }}
               >
-                <Text style={s.drawerWalletTitle}>Wallet & Credits</Text>
+                <Text style={s.drawerWalletTitle}>💰 Wallet & Credits</Text>
                 <Text style={s.drawerWalletAmt}>₹ {walletBalance}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={s.drawerItem}
-                onPress={() => {
-                  setDrawerOpen(false);
-                  setOverlayScreen('logistics');
-                }}
-              >
-                <Text style={s.drawerItemTxt}>🌐 Global Logistics Hub</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[s.drawerItem, s.drawerBlindItem]}
-                onPress={() => {
-                  setDrawerOpen(false);
-                  setOverlayScreen('blindroom');
-                }}
-              >
-                <Text style={s.drawerBlindTxt}>🔒 Blind Deal Room</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={s.drawerItem}
-                onPress={() => {
-                  setDrawerOpen(false);
-                  setTab('services');
-                }}
-              >
-                <Text style={s.drawerItemTxt}>📄 Quotation, PI, LOI & PO Maker</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={s.drawerItem}
-                onPress={() => {
-                  setDrawerOpen(false);
-                  setTab('feed');
-                  setFeedSubTab('Exim News');
-                }}
-              >
-                <Text style={s.drawerItemTxt}>📰 Exim & DGFT News</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={s.drawerItem}
-                onPress={() => {
-                  setDrawerOpen(false);
-                  Alert.alert(
-                    'My Profile & KYC',
-                    'Company KYC, IEC & GST verification badge module ready for final login integration.'
-                  );
-                }}
-              >
-                <Text style={s.drawerItemTxt}>👤 My Profile & KYC</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={s.drawerItem}
-                onPress={() => {
-                  setDrawerOpen(false);
-                  Alert.alert(
-                    'Membership Plans',
-                    'Free Plan Active • Domestic & International Gold Plans available.'
-                  );
-                }}
-              >
-                <Text style={s.drawerItemTxt}>👑 Membership Plans</Text>
-              </TouchableOpacity>
+              {[
+                { key: 'profile', label: '👤  My Profile & KYC' },
+                { key: 'dashboard', label: '📈  Business Dashboard' },
+                { key: 'logistics', label: '🌐  Global Logistics Hub' },
+                { key: 'blindroom', label: '🔒  Blind Deal Room', special: true },
+                { key: 'myposts', label: '📝  My Posts & Listings' },
+                { key: 'saved', label: '⭐  Saved / Shortlist' },
+                { key: 'plans', label: '👑  Subscription Plans' },
+                { key: 'settings', label: '⚙️  Settings' },
+                { key: 'support', label: '🎧  Help & Support' },
+              ].map((d) => (
+                <TouchableOpacity
+                  key={d.key}
+                  style={[s.drawerItem, d.special && s.drawerBlindItem]}
+                  onPress={() => {
+                    setDrawerOpen(false);
+                    setOverlayScreen(d.key);
+                  }}
+                >
+                  <Text style={d.special ? s.drawerBlindTxt : s.drawerItemTxt}>
+                    {d.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
 
               <TouchableOpacity
                 style={s.drawerItem}
@@ -784,7 +1037,7 @@ export default function App() {
                 }}
               >
                 <Text style={[s.drawerItemTxt, { color: '#EF4444' }]}>
-                  🚪 Logout
+                  🚪  Logout
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -803,72 +1056,115 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* CREATE POST MODAL (+ BUTTON) */}
+      {/* FULL CREATE POST MODAL (+ BUTTON) */}
       <Modal visible={postModal} transparent animationType="slide">
         <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Create Trade Post</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 }}>
-              {['Export', 'Import', 'Domestic', 'International'].map((sc) => (
-                <TouchableOpacity
-                  key={sc}
-                  style={[s.chip, postScope === sc && s.chipActive]}
-                  onPress={() => {
-                    setPostScope(sc);
-                    setPostType(sc);
-                  }}
-                >
-                  <Text
-                    style={[
-                      s.chipText,
-                      postScope === sc && s.chipTextActive,
-                    ]}
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+            <View style={s.modalCard}>
+              <Text style={s.modalTitle}>Create Trade Post</Text>
+
+              <Text style={s.label}>POST TYPE</Text>
+              <View style={s.toggleBox}>
+                {['Buy Requirement', 'Sell Offer'].map((pt) => (
+                  <TouchableOpacity
+                    key={pt}
+                    style={[s.scopeBtn, postIntent === pt && s.scopeBtnActive]}
+                    onPress={() => setPostIntent(pt)}
                   >
-                    {sc}
-                  </Text>
+                    <Text style={[s.scopeTxt, postIntent === pt && s.scopeTxtActive]}>
+                      {pt}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={s.label}>MARKET SCOPE</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
+                {['Export', 'Import', 'Domestic', 'International'].map((sc) => (
+                  <TouchableOpacity
+                    key={sc}
+                    style={[s.chip, postScope === sc && s.chipActive]}
+                    onPress={() => setPostScope(sc)}
+                  >
+                    <Text
+                      style={[
+                        s.chipText,
+                        postScope === sc && s.chipTextActive,
+                      ]}
+                    >
+                      {sc}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TextInput
+                style={s.input}
+                placeholder="Product / Commodity (e.g. IR 64 Parboiled Rice)"
+                placeholderTextColor="#6B7280"
+                value={postTitle}
+                onChangeText={setPostTitle}
+              />
+
+              <View style={s.rowBetween}>
+                <TextInput
+                  style={[s.input, { width: '48%' }]}
+                  placeholder="Quantity (e.g. 500)"
+                  placeholderTextColor="#6B7280"
+                  keyboardType="numeric"
+                  value={postQty}
+                  onChangeText={setPostQty}
+                />
+                <View style={{ width: '48%', flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {['MT', 'Qtl', '20ft', '40ft'].map((u) => (
+                    <TouchableOpacity
+                      key={u}
+                      style={[s.unitPill, postUnit === u && s.chipActive]}
+                      onPress={() => setPostUnit(u)}
+                    >
+                      <Text style={s.chipText}>{u}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <TextInput
+                style={s.input}
+                placeholder="Origin / Destination Port (e.g. FOB JNPT -> Jebel Ali)"
+                placeholderTextColor="#6B7280"
+                value={postPort}
+                onChangeText={setPostPort}
+              />
+
+              <TextInput
+                style={s.input}
+                placeholder="Target Price (e.g. USD 445 / MT)"
+                placeholderTextColor="#6B7280"
+                value={postPrice}
+                onChangeText={setPostPrice}
+              />
+
+              <TextInput
+                style={s.input}
+                placeholder="Specs / Packaging (e.g. 5% Broken, 50kg PP Bag)"
+                placeholderTextColor="#6B7280"
+                value={postDesc}
+                onChangeText={setPostDesc}
+              />
+
+              <View style={s.rowBetween}>
+                <TouchableOpacity
+                  style={s.cancelBtn}
+                  onPress={() => setPostModal(false)}
+                >
+                  <Text style={s.cancelText}>Cancel</Text>
                 </TouchableOpacity>
-              ))}
+                <TouchableOpacity style={s.saveBtn} onPress={handleCreatePost}>
+                  <Text style={s.saveText}>Post Now</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <TextInput
-              style={s.input}
-              placeholder="Commodity & Qty (e.g. IR 64 Rice - 500 MT)"
-              placeholderTextColor="#6B7280"
-              value={postTitle}
-              onChangeText={setPostTitle}
-            />
-            <TextInput
-              style={s.input}
-              placeholder="Port / Route (e.g. FOB JNPT -> Jebel Ali)"
-              placeholderTextColor="#6B7280"
-              value={postPort}
-              onChangeText={setPostPort}
-            />
-            <TextInput
-              style={s.input}
-              placeholder="Target Price (e.g. USD 445 / MT)"
-              placeholderTextColor="#6B7280"
-              value={postPrice}
-              onChangeText={setPostPrice}
-            />
-            <TextInput
-              style={s.input}
-              placeholder="Your Company Name"
-              placeholderTextColor="#6B7280"
-              value={postCompany}
-              onChangeText={setPostCompany}
-            />
-            <View style={s.rowBetween}>
-              <TouchableOpacity
-                style={s.cancelBtn}
-                onPress={() => setPostModal(false)}
-              >
-                <Text style={s.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.saveBtn} onPress={handleCreatePost}>
-                <Text style={s.saveText}>Publish Now</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </SafeAreaView>
@@ -879,29 +1175,29 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0B0D12' },
   teal: { color: '#0D9488' },
   goldBadge: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
     color: '#C9B89A',
     letterSpacing: 0.8,
   },
   loginBox: { flex: 1, justifyContent: 'center', padding: 24 },
   loginTitle: { fontSize: 32, fontWeight: '800', color: '#D9DDE3', marginVertical: 8 },
   loginSub: { fontSize: 13, color: '#8A8F98', lineHeight: 20, marginBottom: 24 },
-  label: { fontSize: 11, fontWeight: '700', color: '#8A8F98', marginBottom: 6 },
+  label: { fontSize: 10, fontWeight: '700', color: '#8A8F98', marginBottom: 5 },
   input: {
     backgroundColor: '#141821',
     borderWidth: 1,
     borderColor: '#232936',
     borderRadius: 10,
-    padding: 12,
+    padding: 11,
     color: '#D9DDE3',
-    fontSize: 14,
-    marginBottom: 12,
+    fontSize: 13,
+    marginBottom: 10,
   },
   primaryBtn: {
     backgroundColor: '#0D9488',
     borderRadius: 10,
-    padding: 14,
+    padding: 13,
     alignItems: 'center',
     marginTop: 6,
   },
@@ -909,8 +1205,9 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#1A1F2B',
   },
@@ -923,8 +1220,21 @@ const s = StyleSheet.create({
     borderColor: '#232936',
   },
   menuIcon: { color: '#D9DDE3', fontSize: 18, fontWeight: '800' },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#D9DDE3' },
-  headerSub: { fontSize: 11, color: '#8A8F98' },
+  brandCenter: { flexDirection: 'row', alignItems: 'center' },
+  tsOrbit: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#121824',
+    borderWidth: 1.5,
+    borderColor: '#0D9488',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  tsLogoTxt: { color: '#D9DDE3', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#D9DDE3' },
+  headerSub: { fontSize: 10, color: '#8A8F98' },
   walletPill: {
     backgroundColor: '#1A202C',
     paddingHorizontal: 10,
@@ -948,8 +1258,7 @@ const s = StyleSheet.create({
   segBar: {
     flexDirection: 'row',
     paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 6,
+    paddingTop: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#1A1F2B',
   },
@@ -965,14 +1274,16 @@ const s = StyleSheet.create({
   segTxtActive: { color: '#D9DDE3' },
   toggleBox: {
     flexDirection: 'row',
-    margin: 14,
+    marginHorizontal: 14,
+    marginTop: 10,
+    marginBottom: 8,
     backgroundColor: '#12161F',
     borderRadius: 10,
     padding: 4,
     borderWidth: 1,
     borderColor: '#232936',
   },
-  scopeBtn: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center' },
+  scopeBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
   scopeBtnActive: { backgroundColor: '#0D9488' },
   scopeTxt: { color: '#8A8F98', fontSize: 12, fontWeight: '700' },
   scopeTxtActive: { color: '#FFFFFF' },
@@ -1004,28 +1315,59 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(13,148,136,0.2)',
   },
   tagText: { fontSize: 10, fontWeight: '800', color: '#14B8A6' },
+  intentTag: { fontSize: 11, color: '#8A8F98', fontWeight: '600' },
   priceText: { fontSize: 14, fontWeight: '800', color: '#14B8A6' },
   cardTitle: { fontSize: 14, fontWeight: '700', color: '#D9DDE3', marginTop: 6 },
+  specStrip: {
+    backgroundColor: '#0B0D12',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#1A202C',
+  },
+  specStripTxt: { color: '#D9DDE3', fontSize: 11, marginBottom: 2 },
   cardRoute: { fontSize: 12, color: '#8A8F98', marginTop: 4, marginBottom: 8 },
-  verifiedText: { fontSize: 11, color: '#C9B89A', fontWeight: '600', flex: 1 },
+  verifiedText: { fontSize: 11, color: '#C9B89A', fontWeight: '600', marginTop: 8 },
+  actionBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#1A1F2B',
+  },
+  miniAction: { paddingVertical: 4, paddingHorizontal: 8 },
+  miniActionTxt: { color: '#8A8F98', fontSize: 12, fontWeight: '700' },
   inquireBtn: {
-    backgroundColor: '#1A212E',
-    paddingHorizontal: 10,
+    backgroundColor: '#0D9488',
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
   },
-  inquireText: { color: '#14B8A6', fontSize: 11, fontWeight: '700' },
+  inquireText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
   chip: {
-    paddingHorizontal: 13,
-    paddingVertical: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: '#141821',
     marginRight: 8,
     borderWidth: 1,
     borderColor: '#232936',
   },
+  unitPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#141821',
+    marginRight: 4,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#232936',
+  },
   chipActive: { backgroundColor: '#0D9488', borderColor: '#14B8A6' },
-  chipText: { color: '#8A8F98', fontSize: 12, fontWeight: '700' },
+  chipText: { color: '#8A8F98', fontSize: 11, fontWeight: '700' },
   chipTextActive: { color: '#FFFFFF' },
   pctText: { fontSize: 12, fontWeight: '700', marginTop: 3 },
   navBar: {
@@ -1033,19 +1375,14 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#1A1F2B',
     backgroundColor: '#0E1118',
-    paddingVertical: 8,
+    paddingTop: 6,
+    paddingBottom: 14,
     alignItems: 'center',
   },
   navItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navText: { fontSize: 11, fontWeight: '700', color: '#8A8F98' },
+  navIcon: { fontSize: 16, marginBottom: 2 },
+  navText: { fontSize: 10, fontWeight: '700', color: '#8A8F98' },
   navTextActive: { color: '#14B8A6' },
-  navDot: {
-    width: 16,
-    height: 3,
-    backgroundColor: '#0D9488',
-    borderRadius: 2,
-    marginTop: 3,
-  },
   plusBtn: {
     width: 44,
     height: 44,
@@ -1076,22 +1413,24 @@ const s = StyleSheet.create({
   vaultHeaderCard: {
     backgroundColor: '#121620',
     borderRadius: 14,
-    padding: 18,
+    padding: 20,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#C9B89A',
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  vaultLockIcon: { fontSize: 32, marginBottom: 6 },
-  vaultTitle: { color: '#C9B89A', fontSize: 17, fontWeight: '800', letterSpacing: 1 },
-  vaultSub: { color: '#8A8F98', fontSize: 12, textAlign: 'center', marginTop: 4 },
+  vaultLockIcon: { fontSize: 34, marginBottom: 6 },
+  vaultTitle: { color: '#C9B89A', fontSize: 17, fontWeight: '800', letterSpacing: 1.2 },
   shieldCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#121620',
     borderRadius: 12,
-    padding: 16,
+    padding: 18,
     borderWidth: 1,
     borderColor: '#262D3D',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   shieldTitle: { color: '#D9DDE3', fontSize: 16, fontWeight: '800' },
   lockBadge: {
@@ -1099,11 +1438,10 @@ const s = StyleSheet.create({
     color: '#C9B89A',
     fontSize: 10,
     fontWeight: '800',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: 6,
   },
-  shieldDesc: { color: '#8A8F98', fontSize: 12, marginTop: 6 },
   walletBigCard: {
     backgroundColor: '#121620',
     borderRadius: 14,
@@ -1113,21 +1451,35 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   walletAmt: { color: '#14B8A6', fontSize: 32, fontWeight: '800', marginVertical: 6 },
+  dashGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  dashBox: {
+    width: '48%',
+    backgroundColor: '#12161F',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#232936',
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  dashNum: { color: '#14B8A6', fontSize: 22, fontWeight: '800' },
+  dashLbl: { color: '#8A8F98', fontSize: 11, marginTop: 4 },
   drawerOverlay: { flex: 1, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.75)' },
   drawerPanel: {
     width: '78%',
     backgroundColor: '#0E1118',
-    padding: 18,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     borderRightWidth: 1,
     borderRightColor: '#232936',
   },
   drawerTop: {
-    paddingBottom: 14,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#1E2430',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  drawerUser: { color: '#D9DDE3', fontSize: 18, fontWeight: '800', marginBottom: 4 },
+  drawerUser: { color: '#D9DDE3', fontSize: 17, fontWeight: '800', marginBottom: 3 },
   drawerWallet: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1137,44 +1489,43 @@ const s = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#C9B89A',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   drawerWalletTitle: { color: '#D9DDE3', fontSize: 13, fontWeight: '700' },
   drawerWalletAmt: { color: '#14B8A6', fontSize: 15, fontWeight: '800' },
   drawerItem: {
-    paddingVertical: 13,
+    paddingVertical: 11,
     borderBottomWidth: 1,
     borderBottomColor: '#161B26',
   },
-  drawerItemTxt: { color: '#D9DDE3', fontSize: 14, fontWeight: '600' },
+  drawerItemTxt: { color: '#D9DDE3', fontSize: 13, fontWeight: '600' },
   drawerBlindItem: {
     backgroundColor: 'rgba(201,184,154,0.08)',
     paddingHorizontal: 10,
     borderRadius: 8,
   },
-  drawerBlindTxt: { color: '#C9B89A', fontSize: 14, fontWeight: '800' },
+  drawerBlindTxt: { color: '#C9B89A', fontSize: 13, fontWeight: '800' },
   drawerCloseBtn: {
     backgroundColor: '#1A202C',
-    padding: 12,
+    padding: 11,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
   drawerCloseTxt: { color: '#D9DDE3', fontWeight: '700' },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.78)',
-    justifyContent: 'center',
-    padding: 20,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    padding: 16,
   },
   modalCard: {
     backgroundColor: '#12161F',
     borderRadius: 14,
-    padding: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#232936',
   },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#D9DDE3', marginBottom: 12 },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: '#D9DDE3', marginBottom: 10 },
   cancelBtn: {
     flex: 1,
     padding: 12,
