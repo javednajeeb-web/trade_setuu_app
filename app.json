@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Trade SETUU",
+    "slug": "trade-setuu",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./1795099375380.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./1795099393138.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0B0D12"
+    },
+    "android": {
+      "package": "com.apexsync.tradesetuu",
+      "adaptiveIcon": {
+        "foregroundImage": "./1795099375380.png",
+        "backgroundColor": "#0B0D12"
+      }
+    }
+  }
+}
