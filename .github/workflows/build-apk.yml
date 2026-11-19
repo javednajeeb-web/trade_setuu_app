@@ -26,24 +26,25 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Verify app.json config
+      - name: Configure app.json
         run: |
-          node -e "
-          const fs = require('fs');
-          const pngs = fs.readdirSync('.').filter(f => f.endsWith('.png'));
-          let cfg = fs.existsSync('app.json') ? JSON.parse(fs.readFileSync('app.json', 'utf8')) : { expo: { name: 'Trade SETUU', slug: 'trade-setuu' } };
+          node -e '
+          const fs = require("fs");
+          let cfg = fs.existsSync("app.json")
+            ? JSON.parse(fs.readFileSync("app.json", "utf8"))
+            : { expo: {} };
           cfg.expo = cfg.expo || {};
-          cfg.expo.name = cfg.expo.name || 'Trade SETUU';
-          cfg.expo.slug = cfg.expo.slug || 'trade-setuu';
+          cfg.expo.name = "Trade SETUU";
+          cfg.expo.slug = "trade-setuu";
           cfg.expo.android = cfg.expo.android || {};
-          cfg.expo.android.package = 'com.tradesetuu.app';
-          if (cfg.expo.icon && !fs.existsSync(cfg.expo.icon)) { if (pngs[0]) cfg.expo.icon = './' + pngs[0]; else delete cfg.expo.icon; }
-          if (cfg.expo.splash && cfg.expo.splash.image && !fs.existsSync(cfg.expo.splash.image)) { if (pngs[0]) cfg.expo.splash.image = './' + pngs[0]; else delete cfg.expo.splash.image; }
-          if (cfg.expo.android.adaptiveIcon && cfg.expo.android.adaptiveIcon.foregroundImage && !fs.existsSync(cfg.expo.android.adaptiveIcon.foregroundImage)) { if (pngs[0]) cfg.expo.android.adaptiveIcon.foregroundImage = './' + pngs[0]; else delete cfg.expo.android.adaptiveIcon; }
-          fs.writeFileSync('app.json', JSON.stringify(cfg, null, 2));
-          "
+          cfg.expo.android.package = "com.tradesetuu.app";
+          delete cfg.expo.icon;
+          delete cfg.expo.splash;
+          delete cfg.expo.android.adaptiveIcon;
+          fs.writeFileSync("app.json", JSON.stringify(cfg, null, 2));
+          '
 
-      - name: Prebuild Android project
+      - name: Prebuild Android
         run: npx expo prebuild --platform android --no-install
 
       - name: Build Release APK
@@ -56,5 +57,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Trade-SETUU-APK
-          path: android/app/build/outputs/apk/release/app-re
-          lease.apk
+          path: android/app/build/outputs/apk/release/*.apk
