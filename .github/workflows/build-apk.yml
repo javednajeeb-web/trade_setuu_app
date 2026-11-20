@@ -44,8 +44,18 @@ jobs:
               "name": "Trade SETUU",
               "slug": "trade-setuu",
               "version": "1.0.0",
+              "icon": "./img_1795099375380.png",
+              "splash": {
+                "image": "./img_1795099375380.png",
+                "resizeMode": "contain",
+                "backgroundColor": "#090C10"
+              },
               "android": {
-                "package": "com.tradesetuu.app"
+                "package": "com.tradesetuu.app",
+                "adaptiveIcon": {
+                  "foregroundImage": "./img_1795099375380.png",
+                  "backgroundColor": "#090C10"
+                }
               }
             }
           }
