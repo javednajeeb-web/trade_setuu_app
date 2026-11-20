@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Share,
+  Linking,
 } from 'react-native';
 
 const TOOLS = [
@@ -29,6 +30,19 @@ const FX_RATES = {
   CNY: 7.24,
 };
 
+const DEFAULT_THEME = {
+  isDark: true,
+  navy: '#0D1B2A',
+  bg: '#0B0D12',
+  card: '#121620',
+  inputBg: '#0B0D12',
+  border: '#232A38',
+  text: '#D9DDE3',
+  subText: '#8A8F98',
+  teal: '#0D9488',
+  gold: '#C9B89A',
+};
+
 const num = (v) => {
   const n = parseFloat(String(v).replace(/,/g, ''));
   return Number.isFinite(n) ? n : 0;
@@ -42,7 +56,8 @@ const fmt = (n, d = 2) =>
       })
     : '0.00';
 
-export default function MultiCalculatorScreen() {
+export default function SetuuCalcProScreen({ theme }) {
+  const T = theme || DEFAULT_THEME;
   const [activeTool, setActiveTool] = useState('cbm');
 
   // 1. CBM State
@@ -96,20 +111,26 @@ export default function MultiCalculatorScreen() {
   const [igstPct, setIgstPct] = useState('5');
   const [rodtepPct, setRodtepPct] = useState('1.5');
 
-  const shareSummary = async (title, lines) => {
-    try {
-      const msg =
-        'TRADE SETUU — ' +
-        title +
-        '\n------------------------\n' +
-        lines.join('\n') +
-        '\n------------------------\nPowered by Apex Sync Technologies';
-      await Share.share({ message: msg });
-    } catch (e) {}
+  const buildMsg = (title, lines) =>
+    'TRADE SETUU (Setuu Calc Pro) — ' +
+    title +
+    '\n------------------------\n' +
+    lines.join('\n') +
+    '\n------------------------\nPowered by Apex Sync Technologies';
+
+  const sendWhatsApp = async (title, lines) => {
+    const msg = buildMsg(title, lines);
+    const url = 'whatsapp://send?text=' + encodeURIComponent(msg);
+    const ok = await Linking.canOpenURL(url);
+    if (ok) Linking.openURL(url);
+    else Share.share({ message: msg });
   };
 
-  // --- Calculations ---
-  // 1. CBM
+  const shareAny = (title, lines) => {
+    Share.share({ message: buildMsg(title, lines) });
+  };
+
+  // Calculations
   const factor = cbmUnit === 'cm' ? 1000000 : 61023.74;
   const singleCbm = (num(len) * num(wid) * num(hgt)) / factor;
   const totalCbm = singleCbm * num(boxQty);
@@ -117,7 +138,6 @@ export default function MultiCalculatorScreen() {
   const totalGrossKg = num(boxWt) * num(boxQty);
   const totalGrossMt = totalGrossKg / 1000;
 
-  // 2. Container
   const contSpecs = {
     '20ft': { name: '20ft Standard', cbm: 33.2, maxMt: 28.0 },
     '40ft': { name: '40ft Standard', cbm: 67.7, maxMt: 28.5 },
@@ -125,25 +145,20 @@ export default function MultiCalculatorScreen() {
   };
   const spec = contSpecs[contType];
   const usableCbm = spec.cbm * (num(effPct) / 100);
-  const unitCbm =
-    loadMode === 'bag' ? (num(bagWt) / 1000) * 1.35 : num(pkgCbm);
+  const unitCbm = loadMode === 'bag' ? (num(bagWt) / 1000) * 1.35 : num(pkgCbm);
   const maxByVol = unitCbm > 0 ? Math.floor(usableCbm / unitCbm) : 0;
-  const maxByWt =
-    num(bagWt) > 0 ? Math.floor((spec.maxMt * 1000) / num(bagWt)) : maxByVol;
-  const finalUnits =
-    loadMode === 'bag' ? Math.min(maxByVol, maxByWt) : maxByVol;
+  const maxByWt = num(bagWt) > 0 ? Math.floor((spec.maxMt * 1000) / num(bagWt)) : maxByVol;
+  const finalUnits = loadMode === 'bag' ? Math.min(maxByVol, maxByWt) : maxByVol;
   const loadedMt = (finalUnits * num(bagWt)) / 1000;
   const limitReason =
     loadMode === 'bag' && maxByWt < maxByVol
       ? 'Max Payload Weight Limit'
       : 'Container Volume (CBM) Limit';
 
-  // 3. Freight
   const baseFreight = num(frQty) * num(frRate);
   const totalFreight = baseFreight + num(frHandling) + num(frExtra);
   const perUnitFr = num(frQty) > 0 ? totalFreight / num(frQty) : 0;
 
-  // 4. Landed Cost
   const exMtInr = num(exPriceQ) * 10;
   const fobInrMt = exMtInr + num(packMt) + num(chaMt);
   const fxL = num(fxLanded) > 0 ? num(fxLanded) : 84.5;
@@ -152,7 +167,6 @@ export default function MultiCalculatorScreen() {
   const cifUsdMt = cfrUsdMt * (1 + num(insPct) / 100);
   const cifInrMt = cifUsdMt * fxL;
 
-  // 5. Currency
   const selectCurrencies = (from, to) => {
     setFromCur(from);
     setToCur(to);
@@ -161,7 +175,6 @@ export default function MultiCalculatorScreen() {
   };
   const convertedVal = num(fxAmt) * num(customRate);
 
-  // 6. Profit & Margin
   const fxP = num(fxProfit) > 0 ? num(fxProfit) : 84.5;
   const totalCostMtInr = num(buyMt) + num(procMt) + num(logMt);
   const sellInrMt = num(sellUsdMt) * fxP;
@@ -171,7 +184,6 @@ export default function MultiCalculatorScreen() {
   const totalDealProfitUsd = profitMtUsd * num(dealMt);
   const marginPct = sellInrMt > 0 ? (profitMtInr / sellInrMt) * 100 : 0;
 
-  // 7. Duty & GST
   const cif = num(cifVal);
   const bcdAmt = cif * (num(bcdPct) / 100);
   const swsAmt = bcdAmt * (num(swsPct) / 100);
@@ -183,40 +195,64 @@ export default function MultiCalculatorScreen() {
 
   const renderField = (label, value, onChange, placeholder = '0') => (
     <View style={styles.fieldBox}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={[styles.fieldLabel, { color: T.subText }]}>{label}</Text>
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          { backgroundColor: T.inputBg, color: T.text, borderColor: T.border },
+        ]}
         value={value}
         onChangeText={onChange}
         keyboardType="numeric"
         placeholder={placeholder}
-        placeholderTextColor="#64748B"
+        placeholderTextColor={T.subText}
       />
     </View>
   );
 
   const renderRow = (k, v, highlight = false) => (
-    <View style={styles.resRow} key={k}>
-      <Text style={styles.resKey}>{k}</Text>
-      <Text style={[styles.resVal, highlight && styles.resHighlight]}>
+    <View style={[styles.resRow, { borderBottomColor: T.border }]} key={k}>
+      <Text style={[styles.resKey, { color: T.subText }]}>{k}</Text>
+      <Text
+        style={[
+          styles.resVal,
+          { color: highlight ? T.teal : T.text },
+          highlight && { fontSize: 14 },
+        ]}
+      >
         {v}
       </Text>
     </View>
   );
 
+  const renderShareBar = (title, lines) => (
+    <View style={styles.shareRow}>
+      <TouchableOpacity
+        style={styles.waBtn}
+        onPress={() => sendWhatsApp(title, lines)}
+      >
+        <Text style={styles.waBtnTxt}>💬 WhatsApp Quote</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.shareBtn, { backgroundColor: T.gold }]}
+        onPress={() => shareAny(title, lines)}
+      >
+        <Text style={styles.shareBtnTxt}>↗ Share</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>MULTI CALCULATOR</Text>
-        <Text style={styles.subtitle}>
-          7-in-1 Global Trade & Logistics Suite
-        </Text>
+    <View style={[styles.container, { backgroundColor: T.bg }]}>
+      <View style={[styles.header, { backgroundColor: T.navy }]}>
+        <Text style={styles.title}>SETUU CALC PRO</Text>
+        <Text style={styles.subtitle}>7-in-1 Global Trade & Logistics Suite</Text>
       </View>
 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.tabBar}
+        style={[styles.tabBar, { borderBottomColor: T.border }]}
         contentContainerStyle={styles.tabBarContent}
       >
         {TOOLS.map((t) => {
@@ -225,9 +261,18 @@ export default function MultiCalculatorScreen() {
             <TouchableOpacity
               key={t.id}
               onPress={() => setActiveTool(t.id)}
-              style={[styles.tabPill, active && styles.tabPillActive]}
+              style={[
+                styles.tabPill,
+                { backgroundColor: T.card, borderColor: T.border },
+                active && { backgroundColor: T.teal, borderColor: T.teal },
+              ]}
             >
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: active ? '#FFFFFF' : T.subText },
+                ]}
+              >
                 {t.label}
               </Text>
             </TouchableOpacity>
@@ -235,14 +280,10 @@ export default function MultiCalculatorScreen() {
         })}
       </ScrollView>
 
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={styles.bodyContent}
-      >
-        {/* 1. CBM CALCULATOR */}
+      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         {activeTool === 'cbm' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>1. CBM & Volume Calculator</Text>
+          <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+            <Text style={[styles.cardTitle, { color: T.text }]}>1. CBM & Volume Calculator</Text>
             <View style={styles.toggleRow}>
               {['cm', 'inch'].map((u) => (
                 <TouchableOpacity
@@ -250,10 +291,13 @@ export default function MultiCalculatorScreen() {
                   onPress={() => setCbmUnit(u)}
                   style={[
                     styles.toggleBtn,
-                    cbmUnit === u && styles.toggleBtnActive,
+                    { backgroundColor: T.inputBg, borderColor: T.border },
+                    cbmUnit === u && { backgroundColor: T.teal, borderColor: T.teal },
                   ]}
                 >
-                  <Text style={styles.toggleTxt}>Unit: {u.toUpperCase()}</Text>
+                  <Text style={{ color: cbmUnit === u ? '#FFF' : T.text, fontSize: 12, fontWeight: '700' }}>
+                    Unit: {u.toUpperCase()}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -266,36 +310,24 @@ export default function MultiCalculatorScreen() {
               {renderField('Weight / Box (kg)', boxWt, setBoxWt)}
             </View>
             {renderField('Total Cartons / Boxes', boxQty, setBoxQty)}
-
-            <View style={styles.resultBox}>
+            <View style={[styles.resultBox, { backgroundColor: T.inputBg, borderColor: T.border }]}>
               {renderRow('Single Box Volume', fmt(singleCbm, 4) + ' CBM')}
               {renderRow('Total Volume (CBM)', fmt(totalCbm, 3) + ' m3', true)}
               {renderRow('Total Cubic Feet', fmt(totalCft, 2) + ' CFT')}
-              {renderRow(
-                'Total Gross Weight',
-                fmt(totalGrossKg, 1) + ' kg (' + fmt(totalGrossMt, 2) + ' MT)'
-              )}
+              {renderRow('Total Gross Weight', fmt(totalGrossKg, 1) + ' kg (' + fmt(totalGrossMt, 2) + ' MT)')}
             </View>
-            <TouchableOpacity
-              style={styles.shareBtn}
-              onPress={() =>
-                shareSummary('CBM Calculation', [
-                  'Dimensions: ' + len + 'x' + wid + 'x' + hgt + ' ' + cbmUnit,
-                  'Quantity: ' + boxQty + ' boxes',
-                  'Total Volume: ' + fmt(totalCbm, 3) + ' CBM (' + fmt(totalCft, 2) + ' CFT)',
-                  'Total Weight: ' + fmt(totalGrossMt, 2) + ' MT',
-                ])
-              }
-            >
-              <Text style={styles.shareBtnTxt}>Share CBM Quote</Text>
-            </TouchableOpacity>
+            {renderShareBar('CBM Calculation', [
+              'Dimensions: ' + len + 'x' + wid + 'x' + hgt + ' ' + cbmUnit,
+              'Boxes: ' + boxQty,
+              'Total Volume: ' + fmt(totalCbm, 3) + ' CBM (' + fmt(totalCft, 2) + ' CFT)',
+              'Total Weight: ' + fmt(totalGrossMt, 2) + ' MT',
+            ])}
           </View>
         )}
 
-        {/* 2. CONTAINER LOAD CALCULATOR */}
         {activeTool === 'container' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>2. Container Load Planner</Text>
+          <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+            <Text style={[styles.cardTitle, { color: T.text }]}>2. Container Load Planner</Text>
             <View style={styles.toggleRow}>
               {[
                 { id: '20ft', label: '20ft GP' },
@@ -307,10 +339,13 @@ export default function MultiCalculatorScreen() {
                   onPress={() => setContType(c.id)}
                   style={[
                     styles.toggleBtn,
-                    contType === c.id && styles.toggleBtnActive,
+                    { backgroundColor: T.inputBg, borderColor: T.border },
+                    contType === c.id && { backgroundColor: T.teal, borderColor: T.teal },
                   ]}
                 >
-                  <Text style={styles.toggleTxt}>{c.label}</Text>
+                  <Text style={{ color: contType === c.id ? '#FFF' : T.text, fontSize: 12, fontWeight: '700' }}>
+                    {c.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -324,10 +359,13 @@ export default function MultiCalculatorScreen() {
                   onPress={() => setLoadMode(m.id)}
                   style={[
                     styles.toggleBtn,
-                    loadMode === m.id && styles.toggleBtnActive,
+                    { backgroundColor: T.inputBg, borderColor: T.border },
+                    loadMode === m.id && { backgroundColor: T.teal, borderColor: T.teal },
                   ]}
                 >
-                  <Text style={styles.toggleTxt}>{m.label}</Text>
+                  <Text style={{ color: loadMode === m.id ? '#FFF' : T.text, fontSize: 12, fontWeight: '700' }}>
+                    {m.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -337,37 +375,23 @@ export default function MultiCalculatorScreen() {
                 ? renderField('Single Box CBM', pkgCbm, setPkgCbm)
                 : renderField('Space Efficiency (%)', effPct, setEffPct)}
             </View>
-
-            <View style={styles.resultBox}>
+            <View style={[styles.resultBox, { backgroundColor: T.inputBg, borderColor: T.border }]}>
               {renderRow('Container Type', spec.name)}
-              {renderRow(
-                'Max Loadable Units',
-                finalUnits + (loadMode === 'bag' ? ' Bags' : ' Cartons'),
-                true
-              )}
+              {renderRow('Max Loadable Units', finalUnits + (loadMode === 'bag' ? ' Bags' : ' Cartons'), true)}
               {renderRow('Total Cargo Weight', fmt(loadedMt, 2) + ' MT', true)}
               {renderRow('Governing Limit', limitReason)}
             </View>
-            <TouchableOpacity
-              style={styles.shareBtn}
-              onPress={() =>
-                shareSummary('Container Stuffing Plan', [
-                  'Container: ' + spec.name,
-                  'Unit Weight: ' + bagWt + ' kg',
-                  'Max Capacity: ' + finalUnits + ' units (' + fmt(loadedMt, 2) + ' MT)',
-                  'Note: ' + limitReason,
-                ])
-              }
-            >
-              <Text style={styles.shareBtnTxt}>Share Stuffing Plan</Text>
-            </TouchableOpacity>
+            {renderShareBar('Container Stuffing Plan', [
+              'Container: ' + spec.name,
+              'Max Capacity: ' + finalUnits + ' units (' + fmt(loadedMt, 2) + ' MT)',
+              'Note: ' + limitReason,
+            ])}
           </View>
         )}
 
-        {/* 3. FREIGHT & TRANSPORT CALCULATOR */}
         {activeTool === 'freight' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>3. Freight & Transport Cost</Text>
+          <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+            <Text style={[styles.cardTitle, { color: T.text }]}>3. Freight & Transport Cost</Text>
             <View style={styles.toggleRow}>
               {[
                 { id: 'road', label: 'Road Truck (INR)' },
@@ -378,66 +402,39 @@ export default function MultiCalculatorScreen() {
                   onPress={() => setFrMode(m.id)}
                   style={[
                     styles.toggleBtn,
-                    frMode === m.id && styles.toggleBtnActive,
+                    { backgroundColor: T.inputBg, borderColor: T.border },
+                    frMode === m.id && { backgroundColor: T.teal, borderColor: T.teal },
                   ]}
                 >
-                  <Text style={styles.toggleTxt}>{m.label}</Text>
+                  <Text style={{ color: frMode === m.id ? '#FFF' : T.text, fontSize: 12, fontWeight: '700' }}>
+                    {m.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
             <View style={styles.gridRow}>
-              {renderField(
-                frMode === 'road' ? 'Load Weight (MT)' : 'No. of Containers',
-                frQty,
-                setFrQty
-              )}
-              {renderField(
-                frMode === 'road' ? 'Rate / MT (INR)' : 'Ocean Freight / Box ($)',
-                frRate,
-                setFrRate
-              )}
+              {renderField(frMode === 'road' ? 'Load Weight (MT)' : 'No. of Containers', frQty, setFrQty)}
+              {renderField(frMode === 'road' ? 'Rate / MT (INR)' : 'Ocean Freight / Box ($)', frRate, setFrRate)}
             </View>
             <View style={styles.gridRow}>
               {renderField('Loading / Stuffing', frHandling, setFrHandling)}
               {renderField('Toll / BL / Misc', frExtra, setFrExtra)}
             </View>
-
-            <View style={styles.resultBox}>
-              {renderRow(
-                'Base Freight',
-                (frMode === 'road' ? 'INR ' : 'USD ') + fmt(baseFreight, 2)
-              )}
-              {renderRow(
-                'Total Freight Cost',
-                (frMode === 'road' ? 'INR ' : 'USD ') + fmt(totalFreight, 2),
-                true
-              )}
-              {renderRow(
-                frMode === 'road' ? 'Effective Cost / MT' : 'Cost / Container',
-                (frMode === 'road' ? 'INR ' : 'USD ') + fmt(perUnitFr, 2)
-              )}
+            <View style={[styles.resultBox, { backgroundColor: T.inputBg, borderColor: T.border }]}>
+              {renderRow('Base Freight', (frMode === 'road' ? 'INR ' : 'USD ') + fmt(baseFreight, 2))}
+              {renderRow('Total Freight Cost', (frMode === 'road' ? 'INR ' : 'USD ') + fmt(totalFreight, 2), true)}
+              {renderRow(frMode === 'road' ? 'Effective Cost / MT' : 'Cost / Container', (frMode === 'road' ? 'INR ' : 'USD ') + fmt(perUnitFr, 2))}
             </View>
-            <TouchableOpacity
-              style={styles.shareBtn}
-              onPress={() =>
-                shareSummary('Freight Estimate', [
-                  'Mode: ' + (frMode === 'road' ? 'Road Transport' : 'Sea Freight'),
-                  'Quantity: ' + frQty,
-                  'Total Freight: ' +
-                    (frMode === 'road' ? 'INR ' : 'USD ') +
-                    fmt(totalFreight, 2),
-                ])
-              }
-            >
-              <Text style={styles.shareBtnTxt}>Share Freight Estimate</Text>
-            </TouchableOpacity>
+            {renderShareBar('Freight Estimate', [
+              'Mode: ' + (frMode === 'road' ? 'Road Transport' : 'Sea Freight'),
+              'Total Freight: ' + (frMode === 'road' ? 'INR ' : 'USD ') + fmt(totalFreight, 2),
+            ])}
           </View>
         )}
 
-        {/* 4. LANDED COST CALCULATOR */}
         {activeTool === 'landed' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>4. FOB & CIF Landed Cost</Text>
+          <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+            <Text style={[styles.cardTitle, { color: T.text }]}>4. FOB & CIF Landed Cost</Text>
             <View style={styles.gridRow}>
               {renderField('Ex-Factory (INR/Quintal)', exPriceQ, setExPriceQ)}
               {renderField('Packing & Bags (INR/MT)', packMt, setPackMt)}
@@ -450,35 +447,26 @@ export default function MultiCalculatorScreen() {
               {renderField('Insurance (%)', insPct, setInsPct)}
               {renderField('USD to INR Rate', fxLanded, setFxLanded)}
             </View>
-
-            <View style={styles.resultBox}>
+            <View style={[styles.resultBox, { backgroundColor: T.inputBg, borderColor: T.border }]}>
               {renderRow('Ex-Factory / MT', 'INR ' + fmt(exMtInr, 2))}
               {renderRow('FOB Price / MT', 'USD ' + fmt(fobUsdMt, 2), true)}
               {renderRow('CFR Price / MT', 'USD ' + fmt(cfrUsdMt, 2))}
               {renderRow('CIF Landed / MT', 'USD ' + fmt(cifUsdMt, 2), true)}
               {renderRow('CIF Landed (INR/MT)', 'INR ' + fmt(cifInrMt, 2))}
             </View>
-            <TouchableOpacity
-              style={styles.shareBtn}
-              onPress={() =>
-                shareSummary('Export Price Quote (FOB/CIF)', [
-                  'FOB Quote: USD ' + fmt(fobUsdMt, 2) + ' / MT',
-                  'CFR Quote: USD ' + fmt(cfrUsdMt, 2) + ' / MT',
-                  'CIF Quote: USD ' + fmt(cifUsdMt, 2) + ' / MT',
-                ])
-              }
-            >
-              <Text style={styles.shareBtnTxt}>Share FOB / CIF Quote</Text>
-            </TouchableOpacity>
+            {renderShareBar('Export Price Quote (FOB/CIF)', [
+              'FOB Quote: USD ' + fmt(fobUsdMt, 2) + ' / MT',
+              'CFR Quote: USD ' + fmt(cfrUsdMt, 2) + ' / MT',
+              'CIF Quote: USD ' + fmt(cifUsdMt, 2) + ' / MT',
+            ])}
           </View>
         )}
 
-        {/* 5. CURRENCY CONVERTER */}
         {activeTool === 'currency' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>5. Trade Currency Converter</Text>
+          <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+            <Text style={[styles.cardTitle, { color: T.text }]}>5. Trade Currency Converter</Text>
             {renderField('Amount', fxAmt, setFxAmt)}
-            <Text style={styles.fieldLabel}>From Currency:</Text>
+            <Text style={[styles.fieldLabel, { color: T.subText }]}>From Currency:</Text>
             <View style={styles.toggleRow}>
               {Object.keys(FX_RATES).map((c) => (
                 <TouchableOpacity
@@ -486,14 +474,15 @@ export default function MultiCalculatorScreen() {
                   onPress={() => selectCurrencies(c, toCur)}
                   style={[
                     styles.miniPill,
-                    fromCur === c && styles.toggleBtnActive,
+                    { backgroundColor: T.inputBg, borderColor: T.border },
+                    fromCur === c && { backgroundColor: T.teal, borderColor: T.teal },
                   ]}
                 >
-                  <Text style={styles.toggleTxt}>{c}</Text>
+                  <Text style={{ color: fromCur === c ? '#FFF' : T.text, fontSize: 12, fontWeight: '700' }}>{c}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.fieldLabel}>To Currency:</Text>
+            <Text style={[styles.fieldLabel, { color: T.subText }]}>To Currency:</Text>
             <View style={styles.toggleRow}>
               {Object.keys(FX_RATES).map((c) => (
                 <TouchableOpacity
@@ -501,36 +490,25 @@ export default function MultiCalculatorScreen() {
                   onPress={() => selectCurrencies(fromCur, c)}
                   style={[
                     styles.miniPill,
-                    toCur === c && styles.toggleBtnActive,
-                  ]}
+                    { backgroundColor: T.inputBg, borderColor: T.border },
+                    toCur === c && { backgroundColor: T.teal, borderColor: T.teal },
+                ]}
                 >
-                  <Text style={styles.toggleTxt}>{c}</Text>
+                  <Text style={{ color: toCur === c ? '#FFF' : T.text, fontSize: 12, fontWeight: '700' }}>{c}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-            {renderField(
-              'Exchange Rate (1 ' + fromCur + ' = ? ' + toCur + ')',
-              customRate,
-              setCustomRate
-            )}
-
-            <View style={styles.resultBox}>
+            {renderField('Exchange Rate (1 ' + fromCur + ' = ? ' + toCur + ')', customRate, setCustomRate)}
+            <View style={[styles.resultBox, { backgroundColor: T.inputBg, borderColor: T.border }]}>
               {renderRow('Input Amount', fromCur + ' ' + fmt(num(fxAmt), 2))}
-              {renderRow(
-                'Converted Value',
-                toCur + ' ' + fmt(convertedVal, 2),
-                true
-              )}
+              {renderRow('Converted Value', toCur + ' ' + fmt(convertedVal, 2), true)}
             </View>
           </View>
         )}
 
-        {/* 6. PROFIT & MARGIN CALCULATOR */}
         {activeTool === 'profit' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              6. Export Deal Profit & Margin
-            </Text>
+          <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+            <Text style={[styles.cardTitle, { color: T.text }]}>6. Export Deal Profit & Margin</Text>
             <View style={styles.gridRow}>
               {renderField('Buying Cost (INR/MT)', buyMt, setBuyMt)}
               {renderField('Packing/Proc (INR/MT)', procMt, setProcMt)}
@@ -543,35 +521,19 @@ export default function MultiCalculatorScreen() {
               {renderField('USD-INR Rate', fxProfit, setFxProfit)}
               {renderField('Total Deal Qty (MT)', dealMt, setDealMt)}
             </View>
-
-            <View style={styles.resultBox}>
+            <View style={[styles.resultBox, { backgroundColor: T.inputBg, borderColor: T.border }]}>
               {renderRow('All-in Cost / MT', 'INR ' + fmt(totalCostMtInr, 2))}
               {renderRow('Selling Price / MT', 'INR ' + fmt(sellInrMt, 2))}
-              {renderRow(
-                'Net Profit / MT',
-                'INR ' + fmt(profitMtInr, 2) + ' ($' + fmt(profitMtUsd, 2) + ')',
-                true
-              )}
-              {renderRow(
-                'Total Deal Profit',
-                'INR ' +
-                  fmt(totalDealProfitInr, 0) +
-                  ' ($' +
-                  fmt(totalDealProfitUsd, 2) +
-                  ')',
-                true
-              )}
+              {renderRow('Net Profit / MT', 'INR ' + fmt(profitMtInr, 2) + ' ($' + fmt(profitMtUsd, 2) + ')', true)}
+              {renderRow('Total Deal Profit', 'INR ' + fmt(totalDealProfitInr, 0) + ' ($' + fmt(totalDealProfitUsd, 2) + ')', true)}
               {renderRow('Net Profit Margin', fmt(marginPct, 2) + '%', true)}
             </View>
           </View>
         )}
 
-        {/* 7. EXPORT / IMPORT DUTY & GST ESTIMATOR */}
         {activeTool === 'duty' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              7. Customs Duty, IGST & RoDTEP
-            </Text>
+          <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
+            <Text style={[styles.cardTitle, { color: T.text }]}>7. Customs Duty, IGST & RoDTEP</Text>
             {renderField('Assessable CIF Value (INR)', cifVal, setCifVal)}
             <View style={styles.gridRow}>
               {renderField('Basic Duty BCD (%)', bcdPct, setBcdPct)}
@@ -581,92 +543,52 @@ export default function MultiCalculatorScreen() {
               {renderField('IGST (%)', igstPct, setIgstPct)}
               {renderField('RoDTEP / Drawback (%)', rodtepPct, setRodtepPct)}
             </View>
-
-            <View style={styles.resultBox}>
+            <View style={[styles.resultBox, { backgroundColor: T.inputBg, borderColor: T.border }]}>
               {renderRow('Basic Customs Duty', 'INR ' + fmt(bcdAmt, 2))}
               {renderRow('Social Welfare Surcharge', 'INR ' + fmt(swsAmt, 2))}
               {renderRow('IGST Payable', 'INR ' + fmt(igstAmt, 2))}
               {renderRow('Total Customs Outflow', 'INR ' + fmt(totalTax, 2), true)}
-              {renderRow(
-                'RoDTEP / Drawback Benefit',
-                'INR ' + fmt(incentiveAmt, 2)
-              )}
-              {renderRow(
-                'Net Effective Tax Impact',
-                'INR ' + fmt(netTaxImpact, 2),
-                true
-              )}
+              {renderRow('RoDTEP / Drawback Benefit', 'INR ' + fmt(incentiveAmt, 2))}
+              {renderRow('Net Effective Tax Impact', 'INR ' + fmt(netTaxImpact, 2), true)}
             </View>
           </View>
         )}
 
-        <Text style={styles.footer}>Powered by Apex Sync Technologies</Text>
+        <Text style={[styles.footer, { color: T.subText }]}>Powered by Apex Sync Technologies</Text>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0D12' },
+  container: { flex: 1 },
   header: {
-    paddingTop: 14,
+    paddingTop: 12,
     paddingHorizontal: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E2430',
+    paddingBottom: 12,
   },
-  title: {
-    color: '#D9DDE3',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  subtitle: { color: '#C9B89A', fontSize: 12, marginTop: 2 },
-  tabBar: {
-    maxHeight: 52,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E2430',
-  },
+  title: { color: '#FFFFFF', fontSize: 17, fontWeight: '800', letterSpacing: 1 },
+  subtitle: { color: '#C9B89A', fontSize: 11, marginTop: 2 },
+  tabBar: { maxHeight: 52, borderBottomWidth: 1 },
   tabBarContent: { paddingHorizontal: 12, alignItems: 'center' },
   tabPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#141821',
     borderWidth: 1,
-    borderColor: '#262D3D',
     marginRight: 8,
   },
-  tabPillActive: { backgroundColor: '#0D9488', borderColor: '#14B8A6' },
-  tabText: { color: '#8A8F98', fontSize: 12, fontWeight: '700' },
-  tabTextActive: { color: '#FFFFFF' },
+  tabText: { fontSize: 12, fontWeight: '700' },
   body: { flex: 1 },
-  bodyContent: { padding: 16, paddingBottom: 36 },
-  card: {
-    backgroundColor: '#121620',
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#232A38',
-  },
-  cardTitle: {
-    color: '#D9DDE3',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 12,
-  },
+  bodyContent: { padding: 14, paddingBottom: 36 },
+  card: { borderRadius: 14, padding: 15, borderWidth: 1 },
+  cardTitle: { fontSize: 15, fontWeight: '800', marginBottom: 12 },
+  toggleRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 },
   toggleBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#1A202C',
     borderWidth: 1,
-    borderColor: '#2D3748',
     marginRight: 6,
     marginBottom: 4,
   },
@@ -674,67 +596,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#1A202C',
     borderWidth: 1,
-    borderColor: '#2D3748',
     marginRight: 6,
     marginBottom: 4,
   },
-  toggleBtnActive: { backgroundColor: '#0D9488', borderColor: '#14B8A6' },
-  toggleTxt: { color: '#D9DDE3', fontSize: 12, fontWeight: '600' },
-  gridRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
+  gridRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   fieldBox: { flex: 1, marginBottom: 10 },
-  fieldLabel: {
-    color: '#8A8F98',
-    fontSize: 11,
-    marginBottom: 4,
-    fontWeight: '600',
-  },
+  fieldLabel: { fontSize: 11, marginBottom: 4, fontWeight: '600' },
   input: {
-    backgroundColor: '#0B0D12',
-    color: '#D9DDE3',
     borderWidth: 1,
-    borderColor: '#2A3242',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 14,
     fontWeight: '600',
   },
-  resultBox: {
-    marginTop: 8,
-    backgroundColor: '#0B0D12',
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#1F2937',
-  },
+  resultBox: { marginTop: 8, borderRadius: 10, padding: 12, borderWidth: 1 },
   resRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#161B26',
   },
-  resKey: { color: '#8A8F98', fontSize: 12 },
-  resVal: { color: '#D9DDE3', fontSize: 13, fontWeight: '700' },
-  resHighlight: { color: '#14B8A6', fontSize: 14 },
+  resKey: { fontSize: 12 },
+  resVal: { fontSize: 13, fontWeight: '700' },
+  shareRow: { flexDirection: 'row', marginTop: 14, gap: 8 },
+  waBtn: {
+    flex: 2,
+    backgroundColor: '#16A34A',
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  waBtnTxt: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   shareBtn: {
-    marginTop: 14,
-    backgroundColor: '#C9B89A',
+    flex: 1,
     paddingVertical: 11,
     borderRadius: 10,
     alignItems: 'center',
   },
   shareBtnTxt: { color: '#0B0D12', fontSize: 13, fontWeight: '800' },
-  footer: {
-    textAlign: 'center',
-    color: '#8A8F98',
-    fontSize: 11,
-    marginTop: 20,
-  },
+  footer: { textAlign: 'center', fontSize: 11, marginTop: 20 },
 });
