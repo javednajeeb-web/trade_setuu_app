@@ -19,7 +19,99 @@ import {
 } from 'react-native';
 import SplashScreen from './src/screens/SplashScreen';
 import { supabase } from './src/lib/supabase';
-import TradeSetuuHeader from './src/components/TradeSetuuHeader';
+function TradeSetuuHeader({
+  searchQuery = '',
+  onChangeSearch,
+  onOpenMenu,
+  onBack,
+  title = '',
+  onOpenChat,
+  unreadChats = 2,
+  onOpenNotifications,
+  unreadNotifs = 3,
+  onOpenSettings,
+}) {
+  const renderLogo = () => (
+    <View style={hdrStyles.orbitOuter}>
+      <View style={hdrStyles.flowArcTop} />
+      <View style={hdrStyles.flowArcBottom} />
+      <View style={hdrStyles.monogramBox}>
+        <Text style={hdrStyles.letterT}>T</Text>
+        <Text style={hdrStyles.letterS}>S</Text>
+      </View>
+    </View>
+  );
+
+  if (onBack) {
+    return (
+      <View style={hdrStyles.header}>
+        <TouchableOpacity style={hdrStyles.backBtn} onPress={onBack}>
+          <Text style={hdrStyles.backTxt}>← Back</Text>
+        </TouchableOpacity>
+        <View style={hdrStyles.subCenter}>
+          {renderLogo()}
+          <Text style={hdrStyles.subTitle} numberOfLines={1}>{title}</Text>
+        </View>
+        <TouchableOpacity style={hdrStyles.iconBtn} onPress={onOpenSettings}>
+          <Text style={hdrStyles.iconTxt}>⚙️</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={hdrStyles.header}>
+      <TouchableOpacity onPress={onOpenMenu} activeOpacity={0.8}>
+        {renderLogo()}
+      </TouchableOpacity>
+      <View style={hdrStyles.searchBox}>
+        <Text style={hdrStyles.searchIcon}>🔍</Text>
+        <TextInput
+          style={hdrStyles.searchInput}
+          placeholder="Search products, ports, RFQs..."
+          placeholderTextColor="#94A3B8"
+          value={searchQuery}
+          onChangeText={onChangeSearch}
+        />
+      </View>
+      <View style={hdrStyles.rightActions}>
+        <TouchableOpacity style={hdrStyles.iconBtn} onPress={onOpenChat}>
+          <Text style={hdrStyles.iconTxt}>💬</Text>
+          {unreadChats > 0 && <View style={hdrStyles.badge}><Text style={hdrStyles.badgeTxt}>{unreadChats}</Text></View>}
+        </TouchableOpacity>
+        <TouchableOpacity style={hdrStyles.iconBtn} onPress={onOpenNotifications}>
+          <Text style={hdrStyles.iconTxt}>🔔</Text>
+          {unreadNotifs > 0 && <View style={hdrStyles.badge}><Text style={hdrStyles.badgeTxt}>{unreadNotifs}</Text></View>}
+        </TouchableOpacity>
+        <TouchableOpacity style={hdrStyles.iconBtn} onPress={onOpenSettings}>
+          <Text style={hdrStyles.iconTxt}>⚙️</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const hdrStyles = StyleSheet.create({
+  header: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0D1B2A', paddingHorizontal: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: '#1E293B' },
+  orbitOuter: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#09131E', borderWidth: 1.5, borderColor: '#D9DDE3', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  flowArcTop: { position: 'absolute', top: -2, right: 4, width: 9, height: 3.5, borderRadius: 2, backgroundColor: '#14B8A6' },
+  flowArcBottom: { position: 'absolute', bottom: -2, left: 4, width: 9, height: 3.5, borderRadius: 2, backgroundColor: '#14B8A6' },
+  monogramBox: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  letterT: { position: 'absolute', top: 0, left: 3, color: '#D9DDE3', fontSize: 18, fontWeight: '900' },
+  letterS: { position: 'absolute', bottom: 0, right: 3, color: '#14B8A6', fontSize: 18, fontWeight: '900', textShadowColor: '#09131E', textShadowOffset: { width: -1, height: -1 }, textShadowRadius: 2 },
+  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#16263A', borderRadius: 18, paddingHorizontal: 10, height: 36, marginHorizontal: 8, borderWidth: 1, borderColor: '#253952' },
+  searchIcon: { fontSize: 12, marginRight: 6 },
+  searchInput: { flex: 1, color: '#FFFFFF', fontSize: 12, paddingVertical: 0 },
+  rightActions: { flexDirection: 'row', alignItems: 'center' },
+  iconBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center', marginLeft: 5, position: 'relative' },
+  iconTxt: { fontSize: 14 },
+  badge: { position: 'absolute', top: -3, right: -3, backgroundColor: '#0D9488', borderRadius: 8, minWidth: 15, height: 15, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  badgeTxt: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+  backBtn: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, marginRight: 8 },
+  backTxt: { color: '#C9B89A', fontSize: 12, fontWeight: '800' },
+  subCenter: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  subTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', marginLeft: 9, flex: 1 },
+});
 import SetuuCalcProScreen from './src/SetuuCalcProScreen';
 import LogisticsHubScreen from './src/LogisticsHubScreen';
 import ServiceHubScreen from './src/ServiceHubScreen';
@@ -1439,3 +1531,5 @@ const s = StyleSheet.create({
   saveText: { color: '#FFFFFF', fontWeight: '800' },
   footerBrand: { textAlign: 'center', fontSize: 11, marginTop: 24 },
 });
+
+            
