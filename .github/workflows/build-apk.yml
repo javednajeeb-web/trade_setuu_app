@@ -27,15 +27,14 @@ jobs:
         run: |
           npm install
           npx expo install --fix
-
-      - name: Fix image names
-        run: |
+         -name: Fix image names
+        run: 
           for f in [0-9]*.png; do
             [ -e "$f" ] || continue
             mv "$f" "img_$f"
-            grep -rl "$f" App.js src 2>/dev/null | xargs -r sed -i "s/$f/img_$f/g"
-          done
-
+            grep -rl "$f" App.js src 2>/dev/null | while read -r file; do
+              sed -i -E "s/(^|[^a-zA-Z0-9_])(img_)+$f/\1img_$f/g; s/(^|[^a-zA-Z0-9_])$f/\1img_$f/g" "$file"
+            done
       - name: Set app config
         run: |
           cat << 'EOF' > app.json
