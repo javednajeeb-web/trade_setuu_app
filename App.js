@@ -144,7 +144,15 @@ const MANDI_DATA = [
   { id: 'm3', marketType: 'Domestic', category: 'Grains', commodity: '1121 Basmati Steam', mandi: 'Karnal, HR', rate: 'INR 7,850 / Qtl', change_pct: '-0.4%', is_up: false },
   { id: 'm4', marketType: 'Domestic', category: 'Pulses', commodity: 'Chana Desi (Bold)', mandi: 'Indore, MP', rate: 'INR 6,150 / Qtl', change_pct: '+0.9%', is_up: true },
   { id: 'm5', marketType: 'Domestic', category: 'Oilseeds', commodity: 'Soybean Yellow', mandi: 'Ujjain, MP', rate: 'INR 4,680 / Qtl', change_pct: '+0.6%', is_up: true },
-  { id: 'm6', marketType: 'Domestic', category: 'Spices', commodity: 'Turmeric Finger (Salem)', mandi: 'Nizamabad, TS', rate: 'INR 14,900 / Qtl', change_pct: '+1.8
+  { id: 'm6', marketType: 'Domestic', category: 'Spices', commodity: 'Turmeric Finger (Salem)', mandi: 'Nizamabad, TS', rate: 'INR 14,900 / Qtl', change_pct: '+1.8%', is_up: true },
+  { id: 'm7', marketType: 'Domestic', category: 'MSP Rates', commodity: 'Paddy Common (Govt MSP)', mandi: 'All India MSP', rate: 'INR 2,369 / Qtl', change_pct: 'MSP Fixed', is_up: true },
+  { id: 'm8', marketType: 'Domestic', category: 'MSP Rates', commodity: 'Maize & Tur (Govt MSP)', mandi: 'All India MSP', rate: 'INR 2,400 / Qtl', change_pct: 'MSP Fixed', is_up: true },
+  { id: 'm9', marketType: 'International', category: 'Grains', commodity: '5% Broken White Rice', mandi: 'FOB Ho Chi Minh, Vietnam', rate: 'USD 515 / MT', change_pct: '+0.7%', is_up: true },
+  { id: 'm10', marketType: 'International', category: 'Grains', commodity: 'Parboiled Rice 5%', mandi: 'FOB Bangkok, Thailand', rate: 'USD 528 / MT', change_pct: '+0.4%', is_up: true },
+  { id: 'm11', marketType: 'International', category: 'Grains', commodity: 'Yellow Corn FOB', mandi: 'Santos Port, Brazil', rate: 'USD 218 / MT', change_pct: '-0.3%', is_up: false },
+  { id: 'm12', marketType: 'International', category: 'Spices', commodity: 'Black Pepper 550 GL', mandi: 'CIF Jebel Ali, UAE', rate: 'USD 6,450 / MT', change_pct: '+1.5%', is_up: true },
+];
+    
 const SUBSCRIPTION_CATALOG = {
   'Exporter / Importer': [
     { name: 'Free Starter Plan', price: '₹ 0 / Forever', gateway: 'Free Tier', desc: 'Trade Feed, Mandi Pulse, Setuu Calc Pro & Basic DocForge' },
