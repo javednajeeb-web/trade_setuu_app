@@ -45,12 +45,10 @@ export default function TradeSetuuHeader({
 
   return (
     <View style={styles.header}>
-      {/* Left: Circular Interlocking TS Logo (Tap to Open Drawer) */}
       <TouchableOpacity onPress={onOpenMenu} activeOpacity={0.8}>
         {renderLogo()}
       </TouchableOpacity>
 
-      {/* Center: Direct Search Bar */}
       <View style={styles.searchBox}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -62,7 +60,6 @@ export default function TradeSetuuHeader({
         />
       </View>
 
-      {/* Right: Chat, Notifications, Settings */}
       <View style={styles.rightActions}>
         <TouchableOpacity style={styles.iconBtn} onPress={onOpenChat}>
           <Text style={styles.iconTxt}>💬</Text>
@@ -220,3 +217,4 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+    
