@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import SplashScreen from './src/screens/SplashScreen';
 import { supabase } from './src/lib/supabase';
-import TradeSetuuHeader from './src/TradeSetuuHeader';
+import TradeSetuuHeader from './src/components/TradeSetuuHeader';
 import SetuuCalcProScreen from './src/SetuuCalcProScreen';
 import LogisticsHubScreen from './src/LogisticsHubScreen';
 import ServiceHubScreen from './src/ServiceHubScreen';
