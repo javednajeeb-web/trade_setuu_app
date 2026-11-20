@@ -44,17 +44,19 @@ jobs:
               "name": "Trade SETUU",
               "slug": "trade-setuu",
               "version": "1.0.0",
+              "backgroundColor": "#0B0D12",
               "icon": "./img_1795099375380.png",
               "splash": {
                 "image": "./img_1795099375380.png",
                 "resizeMode": "contain",
-                "backgroundColor": "#090C10"
+                "backgroundColor": "#0B0D12"
               },
               "android": {
                 "package": "com.tradesetuu.app",
+                "backgroundColor": "#0B0D12",
                 "adaptiveIcon": {
                   "foregroundImage": "./img_1795099375380.png",
-                  "backgroundColor": "#090C10"
+                  "backgroundColor": "#0B0D12"
                 }
               }
             }
@@ -63,6 +65,18 @@ jobs:
 
       - name: Prebuild Android
         run: npx expo prebuild --platform android --no-install
+
+      - name: Lock Native Obsidian Background (Zero White Flash)
+        run: |
+          COLORS_FILE="android/app/src/main/res/values/colors.xml"
+          if [ -f "$COLORS_FILE" ]; then
+            sed -i 's/#FFFFFF/#0B0D12/gI' "$COLORS_FILE"
+            sed -i 's/#ffffff/#0B0D12/gI' "$COLORS_FILE"
+          fi
+          STYLES_FILE="android/app/src/main/res/values/styles.xml"
+          if [ -f "$STYLES_FILE" ]; then
+            sed -i 's/<\/style>/    <item name="android:windowBackground">#0B0D12<\/item>\n  <\/style>/' "$STYLES_FILE"
+          fi
 
       - name: Build APK
         run: |
