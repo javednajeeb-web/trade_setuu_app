@@ -208,9 +208,10 @@ export default function LogisticsHubScreen({ theme, onEarnPoints }) {
                   <Text style={{ color: vehicle === v ? '#FFF' : T.text, fontSize: 12, fontWeight: '600' }}>{v}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
-            <Text style={[styles.label, { color: T.subText }]
-                          <TextInput style={[styles.input, { backgroundColor: T.inputBg, color: T.text, borderColor: T.border }]} value={origin} onChangeText={setOrigin} />
+                    </View>
+        <Text style={[styles.label, { color: T.subText }]}>Loading Point / Origin</Text>
+            
+            <TextInput style={[styles.input, { backgroundColor: T.inputBg, color: T.text, borderColor: T.border }]} value={origin} onChangeText={setOrigin} />
             <Text style={[styles.label, { color: T.subText }]}>Unloading Point</Text>
             <TextInput style={[styles.input, { backgroundColor: T.inputBg, color: T.text, borderColor: T.border }]} value={dest} onChangeText={setDest} />
             <Text style={[styles.label, { color: T.subText }]}>Mobile / WhatsApp Number</Text>
