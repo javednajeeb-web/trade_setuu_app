@@ -1,140 +1,217 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, Animated, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Animated,
+  StatusBar,
+  Dimensions,
+} from 'react-native';
 
-const TS_LOGO = require('../../1795099375380.png');
+const TS_LOGO = require('../../116115.png');
+const GLOBE_GRAPHIC = require('../../116117.png');
+const APEX_LOGO = require('../../116116.png');
+
+const { width } = Dimensions.get('window');
 
 export default function SplashScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.92)).current;
+  const scaleAnim = useRef(new Animated.Value(0.94)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 650, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, friction: 6, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 7,
+        tension: 45,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B0D12" />
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#050811" />
 
-      <Animated.View style={[styles.centerBlock, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <View style={styles.tsRing}>
+      <Animated.View
+        style={[
+          styles.content,
+          { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        {/* Top TS Logo */}
+        <View style={styles.tsWrapper}>
           <Image source={TS_LOGO} style={styles.tsImage} />
         </View>
 
-        <Text style={styles.brandTitle}>Trade SETUU</Text>
-        <Text style={styles.taglineMain}>Global Trade & Logistics Ecosystem</Text>
-        <Text style={styles.taglineSub}>Connect • Trade • Ship • Grow</Text>
+        {/* Brand Title & Taglines */}
+        <View style={styles.titleBlock}>
+          <View style={styles.brandRow}>
+            <Text style={styles.tradeWord}>Trade </Text>
+            <Text style={styles.setuuWord}>SETUU</Text>
+          </View>
+          <Text style={styles.mainTagline}>
+            Global Trade & Logistics Ecosystem
+          </Text>
+          <View style={styles.divider} />
+          <Text style={styles.subTagline}>Connect • Trade • Ship • Grow</Text>
+        </View>
+
+        {/* Middle Earth / Globe Graphic */}
+        <View style={styles.globeWrapper}>
+          <Image source={GLOBE_GRAPHIC} style={styles.globeImage} />
+        </View>
       </Animated.View>
 
+      {/* Bottom Footer — Apex Sync Logo Masked to Avoid White Border */}
       <View style={styles.footer}>
+        <Text style={styles.poweredBy}>Powered by</Text>
         <View style={styles.apexRow}>
-          <View style={styles.apexEmblem}>
-            <Text style={styles.apexLetter}>A</Text>
+          <View style={styles.apexMask}>
+            <Image source={APEX_LOGO} style={styles.apexImage} />
           </View>
           <View>
-            <Text style={styles.poweredBy}>Powered by</Text>
-            <Text style={styles.apexName}>Apex Sync Technologies</Text>
+            <Text style={styles.apexTitle}>Apex Sync</Text>
+            <Text style={styles.apexSub}>Technologies</Text>
           </View>
         </View>
-        <Text style={styles.apexTagline}>BUILD • CONNECT • AUTOMATE • SCALE GLOBALLY</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: '#0B0D12',
+    backgroundColor: '#050811',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 48,
-    paddingHorizontal: 20,
+    paddingTop: 42,
+    paddingBottom: 24,
   },
-  centerBlock: {
+  content: {
     flex: 1,
-    justifyContent: 'center',
+    width: '100%',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  tsRing: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: '#0B0D12',
-    borderWidth: 2,
-    borderColor: '#14B8A6',
+  tsWrapper: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
     overflow: 'hidden',
-    marginBottom: 20,
+    backgroundColor: '#050811',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 6,
   },
   tsImage: {
-    width: '100%',
-    height: '100%',
+    width: 124,
+    height: 124,
     resizeMode: 'cover',
   },
-  brandTitle: {
-    color: '#D9DDE3',
-    fontSize: 30,
-    fontWeight: '900',
-    letterSpacing: 1.2,
+  titleBlock: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginTop: 6,
   },
-  taglineMain: {
-    color: '#14B8A6',
-    fontSize: 13,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tradeWord: {
+    color: '#F1F5F9',
+    fontSize: 32,
     fontWeight: '800',
-    marginTop: 8,
     letterSpacing: 0.4,
   },
-  taglineSub: {
-    color: '#C9B89A',
-    fontSize: 12,
-    fontWeight: '700',
+  setuuWord: {
+    color: '#2DD4BF',
+    fontSize: 32,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    letterSpacing: 0.8,
+  },
+  mainTagline: {
+    color: '#E2E8F0',
+    fontSize: 13.5,
+    fontWeight: '600',
     marginTop: 6,
-    letterSpacing: 1.5,
+    textAlign: 'center',
+  },
+  divider: {
+    width: 44,
+    height: 1.5,
+    backgroundColor: 'rgba(226, 232, 240, 0.35)',
+    marginVertical: 10,
+  },
+  subTagline: {
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textAlign: 'center',
+  },
+  globeWrapper: {
+    width: width,
+    height: 230,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#050811',
+  },
+  globeImage: {
+    width: width * 1.12,
+    height: 245,
+    resizeMode: 'cover',
   },
   footer: {
     alignItems: 'center',
-    backgroundColor: '#0B0D12',
+    backgroundColor: '#050811',
+    paddingTop: 4,
+  },
+  poweredBy: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   apexRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0B0D12',
   },
-  apexEmblem: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#131924',
-    borderWidth: 1.2,
-    borderColor: '#C9B89A',
+  apexMask: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    overflow: 'hidden',
+    backgroundColor: '#050811',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 9,
+    marginRight: 8,
   },
-  apexLetter: {
-    color: '#D9DDE3',
+  apexImage: {
+    width: 58,
+    height: 58,
+    resizeMode: 'cover',
+  },
+  apexTitle: {
+    color: '#F8FAFC',
     fontSize: 15,
-    fontWeight: '900',
-  },
-  poweredBy: {
-    color: '#8A8F98',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  apexName: {
-    color: '#D9DDE3',
-    fontSize: 12,
     fontWeight: '800',
+    lineHeight: 17,
   },
-  apexTagline: {
-    color: '#8A8F98',
-    fontSize: 8.5,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginTop: 6,
+  apexSub: {
+    color: '#CBD5E1',
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.4,
+    lineHeight: 13,
   },
 });
