@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,215 +6,318 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Modal,
   Alert,
+  Linking,
 } from 'react-native';
 
-const SERVICES = [
-  { id: 'shipping', icon: '🚢', en: 'Shipping & Freight', hi: 'शिपिंग और फ्रेट' },
-  { id: 'cha', icon: '🛃', en: 'CHA & Customs', hi: 'CHA और कस्टम्स' },
-  { id: 'iec', icon: '📜', en: 'IEC & Compliance', hi: 'IEC और लाइसेंस' },
-  { id: 'packaging', icon: '🛍️', en: 'Packaging & Print', hi: 'पैकेजिंग और प्रिंट' },
-  { id: 'eway', icon: '🚛', en: 'E-Way & Domestic', hi: 'ई-वे और डोमेस्टिक' },
+const LIVE_TILES = [
+  { id: 'logistics', icon: '🌐', title: 'Global Logistics Hub', sub: 'Freight & Share', badge: 'Live' },
+  { id: 'docforge', icon: '📄', title: 'Setuu DocForge', sub: 'PI, PL & COO', badge: 'Live' },
+  { id: 'rescue', icon: '🚨', title: 'Port Rescue', sub: 'Distress Cargo', badge: 'Live' },
+  { id: 'shipping', icon: '🚢', title: 'Shipping & Freight', sub: 'Sea & Air Quotes', badge: 'Live' },
+  { id: 'cha', icon: '🛃', title: 'CHA & Customs', sub: 'Clearance Agents', badge: 'Live' },
+  { id: 'iec', icon: '📜', title: 'IEC & Compliance', sub: 'DGFT / APEDA', badge: 'Live' },
+  { id: 'packaging', icon: '📦', title: 'Packaging & Print', sub: 'Export Bags/Boxes', badge: 'Live' },
+  { id: 'eway', icon: '🚛', title: 'E-Way & Domestic', sub: 'Inland Trucking', badge: 'Live' },
+  { id: 'contact', icon: '🎧', title: 'Contact Us', sub: '24x7 Trade Desk', badge: 'Live' },
 ];
 
-export default function ServiceHubScreen({ theme = 'dark', lang = 'en', initialService = 'shipping' }) {
+const COMING_SOON_TILES = [
+  { id: 'cs1', icon: '🏦', title: 'Trade Finance & LC', sub: 'Bank LC / Discounting' },
+  { id: 'cs2', icon: '🛡️', title: 'Marine Insurance', sub: 'All-Risk Cargo Cover' },
+  { id: 'cs3', icon: '🔬', title: 'SGS / Quality Lab', sub: 'Pre-Shipment Testing' },
+  { id: 'cs4', icon: '📡', title: 'Live Container GPS', sub: 'AIS Vessel Tracking' },
+  { id: 'cs5', icon: '🤝', title: 'Escrow PayVault', sub: 'Milestone Settlement' },
+  { id: 'cs6', icon: '🏭', title: 'Bonded Warehouses', sub: 'Port Storage Slots' },
+];
+
+const RESCUE_CARGO = [
+  {
+    id: 'r1',
+    title: 'IR-64 Parboiled Rice • 2x20ft (52 MT)',
+    port: 'JNPT / Nhava Sheva (Stranded Export)',
+    offer: 'USD 335 / MT (28% OFF Market)',
+    masked: 'Shree B•••••• Exports | +91 98261 •••10',
+    supplier: 'Shree Balaji Agro Exports Pvt. Ltd.',
+    phone: '+919826144210',
+  },
+  {
+    id: 'r2',
+    title: 'Yellow Maize Feed Grade • 3x20ft (78 MT)',
+    port: 'Mundra Port CFS (LC Cancelled)',
+    offer: 'USD 204 / MT (24% OFF Market)',
+    masked: 'Narmada O•••••• Comm. | +91 94252 •••34',
+    supplier: 'Narmada Overseas Commodities',
+    phone: '+919425219834',
+  },
+];
+
+export default function ServiceHubScreen({
+  theme = 'dark',
+  lang = 'en',
+  isPaid = false,
+  vaultBalance = 500,
+  onDeductVault,
+  onOpenLogistics,
+  onOpenSub,
+}) {
   const isDark = theme === 'dark';
   const T = {
-    bg: isDark ? '#0B0D12' : '#F2F4F8',
+    bg: isDark ? '#0B0D12' : '#EFF2F6',
     card: isDark ? '#131924' : '#FAFBFD',
-    border: isDark ? '#1E293B' : '#DCE2EC',
+    border: isDark ? '#1E293B' : '#D5DCE6',
     text: isDark ? '#F1F5F9' : '#1E293B',
-    sub: isDark ? '#94A3B8' : '#64748B',
-    input: isDark ? '#0F1520' : '#EEF2F7',
+    sub: isDark ? '#94A3B8' : '#5B677A',
+    input: isDark ? '#0D131D' : '#E9EEF5',
     accent: '#0D9488',
+    gold: '#C9B89A',
   };
 
-  const [service, setService] = useState(initialService || 'shipping');
-  const [requests, setRequests] = useState([]);
+  const [activeServiceModal, setActiveServiceModal] = useState(null);
+  const [unlockedRescue, setUnlockedRescue] = useState([]);
 
-  useEffect(() => {
-    if (initialService) setService(initialService);
-  }, [initialService]);
+  // 5 Distinct Service Form States
+  const [f1, setF1] = useState('JNPT Nhava Sheva -> Jebel Ali');
+  const [f2, setF2] = useState('20ft Dry Container • 26 MT');
+  const [f3, setF3] = useState('Parboiled Rice / Agro Commodity');
+  const [f4, setF4] = useState('Within 7 Days');
 
-  // 1. Shipping & Freight state
-  const [pol, setPol] = useState('JNPT / Nhava Sheva');
-  const [pod, setPod] = useState('Jebel Ali');
-  const [contSize, setContSize] = useState('20ft Dry');
-  const [shipCargo, setShipCargo] = useState('Parboiled Rice • 26 MT');
-  const [sailingDate, setSailingDate] = useState('Within 7 Days');
+  const handleTilePress = (id) => {
+    if (id === 'logistics') {
+      if (onOpenLogistics) onOpenLogistics();
+      return;
+    }
+    if (id === 'shipping') {
+      setF1('JNPT Nhava Sheva -> Jebel Ali');
+      setF2('20ft Dry Container • 26 MT');
+      setF3('Parboiled Rice / Agro');
+      setF4('Within 7 Days');
+    } else if (id === 'cha') {
+      setF1('Export Customs Clearance');
+      setF2('Mundra / JNPT / Vizag Port');
+      setF3('HS Code: 10063010 (Rice)');
+      setF4('Invoice, Packing List & AD Code Ready');
+    } else if (id === 'iec') {
+      setF1('APEDA / FIEO RCMC Registration');
+      setF2('New IEC / Bank AD Code / LUT');
+      setF3('Proprietorship / LLP / Pvt Ltd');
+      setF4('Raipur, Chhattisgarh');
+    } else if (id === 'packaging') {
+      setF1('50 Kg PP Woven / 30 Kg BOPP Bag');
+      setF2('Multicolor Rotogravure Export Print');
+      setF3('MOQ: 10,000 Bags');
+      setF4('Delivery at Factory / Port');
+    } else if (id === 'eway') {
+      setF1('16-Wheeler (30 MT) / 18-Wheeler (35 MT)');
+      setF2('Raipur -> Vizag / JNPT Port');
+      setF3('E-Way Bill + Transit Insurance');
+      setF4('Loading Tomorrow');
+    } else if (id === 'docforge') {
+      setF1('Proforma Invoice (PI) & Packing List');
+      setF2('Buyer: Gulf Foodstuff Trading LLC, Dubai');
+      setF3('52 MT Parboiled Rice @ USD 465/MT');
+      setF4('FOB JNPT • LC / 30% Advance');
+    }
+    setActiveServiceModal(id);
+  };
 
-  // 2. CHA & Customs state
-  const [chaPort, setChaPort] = useState('Mundra / JNPT');
-  const [chaMode, setChaMode] = useState('Export Clearance');
-  const [hsCode, setHsCode] = useState('10063010 (Rice)');
-  const [chaDocs, setChaDocs] = useState('Invoice, Packing List, AD Code Ready');
-
-  // 3. IEC & Compliance state
-  const [compType, setCompType] = useState('APEDA / FIEO RCMC');
-  const [firmType, setFirmType] = useState('Proprietorship / LLP');
-  const [compCity, setCompCity] = useState('Raipur, Chhattisgarh');
-
-  // 4. Packaging & Print state
-  const [bagType, setBagType] = useState('50 Kg PP Woven Bag');
-  const [printStyle, setPrintStyle] = useState('Multicolor BOPP Laminated');
-  const [bagQty, setBagQty] = useState('10,000 Bags');
-
-  // 5. E-Way & Domestic state
-  const [truckType, setTruckType] = useState('16-Wheeler (30 MT)');
-  const [domRoute, setDomRoute] = useState('Raipur -> Vizag Port');
-  const [ewayNeed, setEwayNeed] = useState('Yes (E-Way + Transit Insurance)');
-
-  const submitQuote = (title, summary) => {
-    const newReq = {
-      id: String(Date.now()),
-      title,
-      summary,
-      status: lang === 'hi' ? 'वेरिफाइड पार्टनर्स को भेजा गया' : 'Sent to Verified Partners',
-    };
-    setRequests([newReq, ...requests]);
+  const handleUnlock499 = (item) => {
     Alert.alert(
-      lang === 'hi' ? 'रिक्वेस्ट सबमिट हो गई ✓' : 'Quote Request Submitted ✓',
-      `${title}\n${summary}\n\n${lang === 'hi' ? 'वेरिफाइड सर्विस प्रोवाइडर्स जल्द ही आपसे संपर्क करेंगे।' : 'Verified service providers will respond shortly.'}`
+      'Unlock Supplier Contact — ₹499 Only',
+      `${item.title}\n${item.port}\n\nOne-time fee ₹499 to unlock direct supplier phone & WhatsApp.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Pay ₹499 (Vault: ₹${vaultBalance})`,
+          onPress: () => {
+            if (vaultBalance >= 499 && onDeductVault) {
+              onDeductVault(499, `Port Rescue Unlock: ${item.title}`);
+            }
+            setUnlockedRescue([...unlockedRescue, item.id]);
+            Alert.alert('Unlocked ✓', `${item.supplier}\nPhone: ${item.phone}`);
+          },
+        },
+        {
+          text: 'Direct ₹499 Unlock',
+          onPress: () => {
+            setUnlockedRescue([...unlockedRescue, item.id]);
+            Alert.alert('Unlocked ✓', `${item.supplier}\nPhone: ${item.phone}`);
+          },
+        },
+      ]
     );
   };
+  const renderFormLabels = () => {
+    switch (activeServiceModal) {
+      case 'shipping':
+        return ['Port of Loading -> Discharge', 'Container Size & Load', 'Commodity Name', 'Target Sailing Window'];
+      case 'cha':
+        return ['Clearance Mode (Export/Import)', 'Custom Port / ICD Location', 'HS Code & Cargo Details', 'Document Readiness'];
+      case 'iec':
+        return ['Primary License (IEC / RCMC)', 'Additional Compliance (LUT / AD Code)', 'Business Constitution', 'Registered City & State'];
+      case 'packaging':
+        return ['Bag / Box Specification', 'Printing & Lamination Type', 'Order Quantity', 'Delivery Location'];
+      case 'eway':
+        return ['Truck / Trailer Capacity', 'Loading -> Unloading Route', 'E-Way Bill & Insurance', 'Dispatch Schedule'];
+      case 'docforge':
+        return ['Document Type (PI / PL / COO)', 'Consignee / Importer Name', 'Commodity, Qty & Rate', 'Incoterm & Payment Terms'];
+      default:
+        return ['Field 1', 'Field 2', 'Field 3', 'Field 4'];
+    }
+  };
 
-  const renderChips = (options, selected, onSelect) => (
-    <View style={styles.chipWrap}>
-      {options.map((opt) => {
-        const active = selected === opt;
-        return (
-          <TouchableOpacity
-            key={opt}
-            onPress={() => onSelect(opt)}
-            style={[styles.chip, { backgroundColor: active ? T.accent : T.input, borderColor: active ? T.accent : T.border }]}
-          >
-            <Text style={{ color: active ? '#FFF' : T.text, fontSize: 11, fontWeight: '700' }}>{opt}</Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+  const labels = renderFormLabels();
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: T.bg }]} contentContainerStyle={{ padding: 14, paddingBottom: 40 }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-        {SERVICES.map((s) => {
-          const active = service === s.id;
-          return (
-            <TouchableOpacity
-              key={s.id}
-              onPress={() => setService(s.id)}
-              style={[styles.topTab, { backgroundColor: active ? '#0D1B2A' : T.card, borderColor: active ? T.accent : T.border }]}
-            >
-              <Text style={{ fontSize: 15, marginRight: 5 }}>{s.icon}</Text>
-              <Text style={{ color: active ? '#14B8A6' : T.text, fontSize: 12, fontWeight: '800' }}>
-                {lang === 'hi' ? s.hi : s.en}
-              </Text>
+    <ScrollView style={[styles.container, { backgroundColor: T.bg }]} contentContainerStyle={{ padding: 14, paddingBottom: 80 }}>
+      <Text style={[styles.mainHead, { color: T.text }]}>SERVICE HUB</Text>
+      <Text style={[styles.subHead, { color: T.sub }]}>End-to-End Export, Logistics & Compliance Desk</Text>
+
+      <View style={styles.grid}>
+        {LIVE_TILES.map((tile) => (
+          <TouchableOpacity
+            key={tile.id}
+            onPress={() => handleTilePress(tile.id)}
+            style={[styles.tile, { backgroundColor: T.card, borderColor: T.border }]}
+          >
+            <View style={styles.liveBadge}><Text style={styles.liveTxt}>{tile.badge}</Text></View>
+            <Text style={{ fontSize: 22, marginTop: 4 }}>{tile.icon}</Text>
+            <Text style={[styles.tileTitle, { color: T.text }]} numberOfLines={2}>{tile.title}</Text>
+            <Text style={[styles.tileSub, { color: T.sub }]} numberOfLines={1}>{tile.sub}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {isPaid && (
+        <View style={{ marginTop: 14 }}>
+          <Text style={{ color: T.gold, fontSize: 12, fontWeight: '900', marginBottom: 8 }}>
+            ⭐ PAID SUBSCRIBER EXCLUSIVE & COMING SOON MODULES
+          </Text>
+          <View style={styles.grid}>
+            {COMING_SOON_TILES.map((tile) => (
+              <TouchableOpacity
+                key={tile.id}
+                onPress={() => Alert.alert(tile.title, 'Rolling out exclusively for Paid Subscription Members.')}
+                style={[styles.tile, { backgroundColor: T.card, borderColor: T.gold }]}
+              >
+                <View style={styles.soonBadge}><Text style={styles.soonTxt}>Soon</Text></View>
+                <Text style={{ fontSize: 20, marginTop: 4 }}>{tile.icon}</Text>
+                <Text style={[styles.tileTitle, { color: T.text }]} numberOfLines={2}>{tile.title}</Text>
+                <Text style={[styles.tileSub, { color: T.sub }]} numberOfLines={1}>{tile.sub}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <Modal visible={!!activeServiceModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            {activeServiceModal === 'rescue' ? (
+              <View>
+                <Text style={{ color: '#C9B89A', fontSize: 11, fontWeight: '800' }}>PORT RESCUE • DISTRESS CARGO DEALS</Text>
+                <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '900', marginVertical: 6 }}>Unlock Direct Supplier for ₹499 Only</Text>
+                {RESCUE_CARGO.map((item) => {
+                  const open = unlockedRescue.includes(item.id);
+                  return (
+                    <View key={item.id} style={styles.rescueCard}>
+                      <Text style={{ color: '#FFF', fontSize: 13, fontWeight: '800' }}>{item.title}</Text>
+                      <Text style={{ color: '#94A3B8', fontSize: 11, marginTop: 2 }}>📍 {item.port}</Text>
+                      <Text style={{ color: '#14B8A6', fontSize: 12, fontWeight: '900', marginTop: 4 }}>{item.offer}</Text>
+                      {open ? (
+                        <View style={{ marginTop: 8 }}>
+                          <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '800' }}>✓ {item.supplier} ({item.phone})</Text>
+                          <TouchableOpacity
+                            style={styles.waBtn}
+                            onPress={() => Linking.openURL(`https://wa.me/${item.phone.replace('+', '')}?text=${encodeURIComponent('Interested in Port Rescue: ' + item.title)}`)}
+                          >
+                            <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 12 }}>💬 WhatsApp Supplier</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <View style={{ marginTop: 8 }}>
+                          <Text style={{ color: '#94A3B8', fontSize: 11 }}>🔒 {item.masked}</Text>
+                          <TouchableOpacity style={styles.unlockBtn} onPress={() => handleUnlock499(item)}>
+                            <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12 }}>🔓 Unlock Contact — ₹499 Only</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            ) : activeServiceModal === 'contact' ? (
+              <View>
+                <Text style={{ color: '#C9B89A', fontSize: 11, fontWeight: '800' }}>TRADE SETUU SUPPORT DESK</Text>
+                <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '900', marginVertical: 6 }}>24x7 Exim & Logistics Concierge</Text>
+                <Text style={{ color: '#CBD5E1', fontSize: 12, marginBottom: 12 }}>
+                  Operated by Apex Sync Technologies • Raipur, Chhattisgarh
+                </Text>
+                <TouchableOpacity style={styles.waBtn} onPress={() => Linking.openURL('https://wa.me/919826100000?text=Hello%20Trade%20SETUU%20Support')}>
+                  <Text style={{ color: '#FFF', fontWeight: '900' }}>💬 Connect on WhatsApp Desk</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                <Text style={{ color: '#14B8A6', fontSize: 11, fontWeight: '800' }}>
+                  {LIVE_TILES.find((t) => t.id === activeServiceModal)?.title.toUpperCase()}
+                </Text>
+                <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '900', marginVertical: 6 }}>
+                  {activeServiceModal === 'docforge' ? 'Generate Export Document Draft' : 'Submit Verified Service Request'}
+                </Text>
+                <Text style={styles.mLbl}>{labels[0]}</Text>
+                <TextInput style={styles.mInp} value={f1} onChangeText={setF1} />
+                <Text style={styles.mLbl}>{labels[1]}</Text>
+                <TextInput style={styles.mInp} value={f2} onChangeText={setF2} />
+                <Text style={styles.mLbl}>{labels[2]}</Text>
+                <TextInput style={styles.mInp} value={f3} onChangeText={setF3} />
+                <Text style={styles.mLbl}>{labels[3]}</Text>
+                <TextInput style={styles.mInp} value={f4} onChangeText={setF4} />
+                <TouchableOpacity
+                  style={styles.unlockBtn}
+                  onPress={() => {
+                    const title = LIVE_TILES.find((t) => t.id === activeServiceModal)?.title;
+                    setActiveServiceModal(null);
+                    Alert.alert(
+                      activeServiceModal === 'docforge' ? 'Document Draft Generated ✓' : 'Request Submitted ✓',
+                      `${title}\n• ${f1}\n• ${f2}\n• ${f3}`
+                    );
+                  }}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>
+                    {activeServiceModal === 'docforge' ? 'Generate & Preview Document' : 'Send to Verified Partners'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <TouchableOpacity style={{ marginTop: 12, alignItems: 'center' }} onPress={() => setActiveServiceModal(null)}>
+              <Text style={{ color: '#94A3B8', fontSize: 12, fontWeight: '700' }}>Close</Text>
             </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      {service === 'shipping' && (
-        <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
-          <Text style={[styles.head, { color: T.text }]}>🚢 {lang === 'hi' ? 'समुद्री फ्रेट और कंटेनर बुकिंग' : 'Ocean Freight & Container Quote'}</Text>
-          <Text style={[styles.lbl, { color: T.sub }]}>Port of Loading (POL)</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={pol} onChangeText={setPol} />
-          <Text style={[styles.lbl, { color: T.sub }]}>Port of Discharge (POD)</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={pod} onChangeText={setPod} />
-          <Text style={[styles.lbl, { color: T.sub }]}>Container Size</Text>
-          {renderChips(['20ft Dry', '40ft HC', '40ft Reefer', 'LCL Cargo'], contSize, setContSize)}
-          <Text style={[styles.lbl, { color: T.sub }]}>Commodity & Weight</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={shipCargo} onChangeText={setShipCargo} />
-          <Text style={[styles.lbl, { color: T.sub }]}>Target Sailing Window</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={sailingDate} onChangeText={setSailingDate} />
-          <TouchableOpacity style={styles.btn} onPress={() => submitQuote('Shipping & Freight', `${pol} -> ${pod} | ${contSize} | ${shipCargo}`)}>
-            <Text style={styles.btnTxt}>{lang === 'hi' ? 'शिपिंग लाइन से रेट मँगवाएँ' : 'Get Shipping Line Rates'}</Text>
-          </TouchableOpacity>
+          </View>
         </View>
-      )}
-
-      {service === 'cha' && (
-        <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
-          <Text style={[styles.head, { color: T.text }]}>🛃 {lang === 'hi' ? 'CHA और कस्टम्स क्लियरेंस' : 'CHA & Customs Clearance'}</Text>
-          <Text style={[styles.lbl, { color: T.sub }]}>Clearance Type</Text>
-          {renderChips(['Export Clearance', 'Import Clearance', 'ICD Stuffing'], chaMode, setChaMode)}
-          <Text style={[styles.lbl, { color: T.sub }]}>Custom Port / ICD Location</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={chaPort} onChangeText={setChaPort} />
-          <Text style={[styles.lbl, { color: T.sub }]}>HS Code & Cargo Description</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={hsCode} onChangeText={setHsCode} />
-          <Text style={[styles.lbl, { color: T.sub }]}>Available Documents</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={chaDocs} onChangeText={setChaDocs} />
-          <TouchableOpacity style={styles.btn} onPress={() => submitQuote('CHA & Customs', `${chaMode} @ ${chaPort} | HS: ${hsCode}`)}>
-            <Text style={styles.btnTxt}>{lang === 'hi' ? 'वेरिफाइड CHA से संपर्क करें' : 'Request Verified CHA Quote'}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {service === 'iec' && (
-        <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
-          <Text style={[styles.head, { color: T.text }]}>📜 {lang === 'hi' ? 'IEC, RCMC और एक्सपोर्ट लाइसेंस' : 'IEC, RCMC & Export Compliance'}</Text>
-          <Text style={[styles.lbl, { color: T.sub }]}>Select Compliance Service</Text>
-          {renderChips(['New IEC Code', 'APEDA / FIEO RCMC', 'Bank AD Code', 'LUT Filing', 'COO & Phyto'], compType, setCompType)}
-          <Text style={[styles.lbl, { color: T.sub }]}>Entity Constitution</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={firmType} onChangeText={setFirmType} />
-          <Text style={[styles.lbl, { color: T.sub }]}>Registered City & State</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={compCity} onChangeText={setCompCity} />
-          <TouchableOpacity style={styles.btn} onPress={() => submitQuote('IEC & Compliance', `${compType} | ${firmType} | ${compCity}`)}>
-            <Text style={styles.btnTxt}>{lang === 'hi' ? 'कम्प्लायंस एक्सपर्ट बुक करें' : 'Book Compliance Expert'}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {service === 'packaging' && (
-        <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
-          <Text style={[styles.head, { color: T.text }]}>🛍️ {lang === 'hi' ? 'एक्सपोर्ट बैग्स और प्रिंटिंग' : 'Export Packaging & Custom Print'}</Text>
-          <Text style={[styles.lbl, { color: T.sub }]}>Packaging Material</Text>
-          {renderChips(['50 Kg PP Woven Bag', '25/30 Kg BOPP Bag', 'Export Carton Box', '1 MT Jumbo Bag'], bagType, setBagType)}
-          <Text style={[styles.lbl, { color: T.sub }]}>Printing & Lamination</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={printStyle} onChangeText={setPrintStyle} />
-          <Text style={[styles.lbl, { color: T.sub }]}>Order Quantity</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={bagQty} onChangeText={setBagQty} />
-          <TouchableOpacity style={styles.btn} onPress={() => submitQuote('Packaging & Print', `${bagType} | ${printStyle} | Qty: ${bagQty}`)}>
-            <Text style={styles.btnTxt}>{lang === 'hi' ? 'मैन्युफैक्चरर रेट मँगवाएँ' : 'Get Manufacturer Quote'}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {service === 'eway' && (
-        <View style={[styles.card, { backgroundColor: T.card, borderColor: T.border }]}>
-          <Text style={[styles.head, { color: T.text }]}>🚛 {lang === 'hi' ? 'ई-वे बिल और डोमेस्टिक ट्रक लोड' : 'E-Way Bill & Domestic Fleet'}</Text>
-          <Text style={[styles.lbl, { color: T.sub }]}>Truck / Trailer Type</Text>
-          {renderChips(['12-Wheeler (21 MT)', '16-Wheeler (30 MT)', '18-Wheeler (35 MT)', '22-Wheeler (42 MT)'], truckType, setTruckType)}
-          <Text style={[styles.lbl, { color: T.sub }]}>Loading to Unloading Route</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={domRoute} onChangeText={setDomRoute} />
-          <Text style={[styles.lbl, { color: T.sub }]}>E-Way Bill & Insurance</Text>
-          <TextInput style={[styles.input, { backgroundColor: T.input, color: T.text, borderColor: T.border }]} value={ewayNeed} onChangeText={setEwayNeed} />
-          <TouchableOpacity style={styles.btn} onPress={() => submitQuote('E-Way & Domestic', `${truckType} | ${domRoute} | ${ewayNeed}`)}>
-            <Text style={styles.btnTxt}>{lang === 'hi' ? 'ट्रक और ई-वे सपोर्ट लें' : 'Book Truck & E-Way Support'}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {requests.map((r) => (
-        <View key={r.id} style={[styles.reqCard, { backgroundColor: T.card, borderColor: T.accent }]}>
-          <Text style={{ color: T.accent, fontSize: 12, fontWeight: '800' }}>✓ {r.title} — {r.status}</Text>
-          <Text style={{ color: T.text, fontSize: 12, marginTop: 3 }}>{r.summary}</Text>
-        </View>
-      ))}
+      </Modal>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topTab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12, borderWidth: 1, marginRight: 8 },
-  card: { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 12 },
-  head: { fontSize: 15, fontWeight: '800', marginBottom: 12 },
-  lbl: { fontSize: 12, fontWeight: '600', marginBottom: 5 },
-  input: { borderWidth: 1, borderRadius: 9, paddingHorizontal: 11, paddingVertical: 8, fontSize: 13, fontWeight: '700', marginBottom: 10 },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
-  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 1, marginRight: 6, marginBottom: 6 },
-  btn: { backgroundColor: '#0D9488', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  btnTxt: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
-  reqCard: { borderRadius: 10, borderWidth: 1, padding: 10, marginTop: 8 },
+  mainHead: { fontSize: 18, fontWeight: '900' },
+  subHead: { fontSize: 12, marginTop: 2, marginBottom: 12 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  tile: { width: '31.5%', borderRadius: 14, borderWidth: 1, padding: 10, marginBottom: 10, alignItems: 'center', position: 'relative' },
+  liveBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: '#064E3B', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 },
+  liveTxt: { color: '#34D399', fontSize: 8, fontWeight: '900' },
+  soonBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: '#3B2F1E', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 },
+  soonTxt: { color: '#C9B89A', fontSize: 8, fontWeight: '900' },
+  tileTitle: { fontSize: 11, fontWeight: '800', textAlign: 'center', marginTop: 6 },
+  tileSub: { fontSize: 9, textAlign: 'center', marginTop: 2 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 16 },
+  modalCard: { backgroundColor: '#0D1B2A', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#C9B89A' },
+  rescueCard: { backgroundColor: '#132235', borderRadius: 12, padding: 11, marginBottom: 10, borderWidth: 1, borderColor: '#1E3A5F' },
+  unlockBtn: { backgroundColor: '#0D9488', borderRadius: 9, paddingVertical: 10, alignItems: 'center', marginTop: 8 },
+  waBtn: { backgroundColor: '#16A34A', borderRadius: 9, paddingVertical: 9, alignItems: 'center', marginTop: 6 },
+  mLbl: { color: '#94A3B8', fontSize: 11, fontWeight: '700', marginBottom: 4 },
+  mInp: { backgroundColor: '#131924', color: '#FFF', borderWidth: 1, borderColor: '#1E293B', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 8, fontSize: 12, marginBottom: 9 },
 });
