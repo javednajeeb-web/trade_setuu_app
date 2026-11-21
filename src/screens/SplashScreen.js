@@ -9,9 +9,8 @@ import {
   Dimensions,
 } from 'react-native';
 
-const TS_LOGO = require('../../img_1795099381934.png');
+const TS_LOGO = require('../../img_1795099375380.png');
 const GLOBE_GRAPHIC = require('../../img_1795099387435.png');
-// यहाँ अपनी अपलोड की गई फ़ाइल का पूरा नाम (जैसे .png या .jpg) लिखें:
 const APEX_LOGO = require('../../IMG_20261121_123036.png');
 
 const { width } = Dimensions.get('window');
@@ -54,14 +53,16 @@ export default function SplashScreen({ onFinish }) {
           { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
         ]}
       >
+        {/* Top TS Logo */}
         <View style={styles.tsWrapper}>
           <Image
             source={TS_LOGO}
             style={styles.tsImage}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         </View>
 
+        {/* Title & Taglines */}
         <View style={styles.brandBlock}>
           <View style={styles.brandRow}>
             <Text style={styles.tradeText}>Trade </Text>
@@ -73,6 +74,7 @@ export default function SplashScreen({ onFinish }) {
           <Text style={styles.subTagline}>Connect • Trade • Ship • Grow</Text>
         </View>
 
+        {/* Globe Graphic — Blended seamlessly without square box */}
         <View style={styles.globeWrapper}>
           <Image
             source={GLOBE_GRAPHIC}
@@ -81,6 +83,7 @@ export default function SplashScreen({ onFinish }) {
           />
         </View>
 
+        {/* Bottom Footer — Golden Metallic Styling */}
         <View style={styles.footer}>
           <Text style={styles.poweredBy}>Powered by</Text>
           <View style={styles.apexRow}>
@@ -110,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#050811',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 54,
+    paddingTop: 52,
     paddingBottom: 28,
     paddingHorizontal: 16,
   },
@@ -119,13 +122,12 @@ const styles = StyleSheet.create({
     height: 124,
     borderRadius: 62,
     overflow: 'hidden',
-    backgroundColor: '#050811',
     alignItems: 'center',
     justifyContent: 'center',
   },
   tsImage: {
-    width: 136,
-    height: 136,
+    width: 124,
+    height: 124,
   },
   brandBlock: {
     alignItems: 'center',
@@ -163,24 +165,22 @@ const styles = StyleSheet.create({
   globeWrapper: {
     width: width,
     height: 220,
-    backgroundColor: '#050811',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
   globeImage: {
-    width: width * 1.06,
+    width: width,
     height: 220,
   },
   footer: {
     alignItems: 'center',
-    backgroundColor: '#050811',
   },
   poweredBy: {
-    color: '#D4AF37',
+    color: '#C9A23F',
     fontSize: 11.5,
     fontWeight: '600',
     marginBottom: 6,
+    letterSpacing: 0.5,
   },
   apexRow: {
     flexDirection: 'row',
@@ -190,26 +190,25 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     marginRight: 8,
-    backgroundColor: '#050811',
   },
   apexName: {
-    color: '#F5D061',
+    color: '#E6C36A',
     fontSize: 16,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
     lineHeight: 18,
-    textShadowColor: 'rgba(180, 130, 20, 0.65)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowColor: 'rgba(138, 102, 22, 0.85)',
+    textShadowOffset: { width: 0, height: 1.5 },
+    textShadowRadius: 3,
   },
   apexSub: {
-    color: '#E5C158',
+    color: '#C59B37',
     fontSize: 10.5,
     fontWeight: '700',
-    letterSpacing: 1.6,
+    letterSpacing: 1.8,
     lineHeight: 13,
-    textShadowColor: 'rgba(146, 102, 12, 0.55)',
+    textShadowColor: 'rgba(110, 78, 14, 0.75)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 2.5,
   },
 });
