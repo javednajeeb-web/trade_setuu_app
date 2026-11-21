@@ -9,16 +9,16 @@ import {
   Dimensions,
 } from 'react-native';
 
-const FULL_SPLASH_BG = require('../../img_1795099375380.png');
 const TS_LOGO = require('../../img_1795099381934.png');
 const GLOBE_GRAPHIC = require('../../img_1795099387435.png');
-const APEX_LOGO = require('../../img_1795099393138.png');
+// यहाँ अपनी अपलोड की गई फ़ाइल का पूरा नाम (जैसे .png या .jpg) लिखें:
+const APEX_LOGO = require('../../IMG_20261121_123036.png');
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function SplashScreen({ onFinish }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const scaleAnim = useRef(new Animated.Value(0.96)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -39,7 +39,7 @@ export default function SplashScreen({ onFinish }) {
       if (typeof onFinish === 'function') {
         onFinish();
       }
-    }, 2200);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, [fadeAnim, scaleAnim, onFinish]);
@@ -48,20 +48,13 @@ export default function SplashScreen({ onFinish }) {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
 
-      <Image
-        source={FULL_SPLASH_BG}
-        style={styles.fullBgImage}
-        resizeMode="cover"
-      />
-      <View style={styles.darkOverlay} />
-
       <Animated.View
         style={[
-          styles.foreground,
+          styles.container,
           { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
         ]}
       >
-        <View style={styles.tsCircle}>
+        <View style={styles.tsWrapper}>
           <Image
             source={TS_LOGO}
             style={styles.tsImage}
@@ -77,11 +70,10 @@ export default function SplashScreen({ onFinish }) {
           <Text style={styles.mainTagline}>
             Global Trade & Logistics Ecosystem
           </Text>
-          <View style={styles.divider} />
           <Text style={styles.subTagline}>Connect • Trade • Ship • Grow</Text>
         </View>
 
-        <View style={styles.globeBox}>
+        <View style={styles.globeWrapper}>
           <Image
             source={GLOBE_GRAPHIC}
             style={styles.globeImage}
@@ -92,13 +84,11 @@ export default function SplashScreen({ onFinish }) {
         <View style={styles.footer}>
           <Text style={styles.poweredBy}>Powered by</Text>
           <View style={styles.apexRow}>
-            <View style={styles.apexClip}>
-              <Image
-                source={APEX_LOGO}
-                style={styles.apexImage}
-                resizeMode="cover"
-              />
-            </View>
+            <Image
+              source={APEX_LOGO}
+              style={styles.apexImage}
+              resizeMode="contain"
+            />
             <View>
               <Text style={styles.apexName}>Apex Sync</Text>
               <Text style={styles.apexSub}>Technologies</Text>
@@ -115,38 +105,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#050811',
   },
-  fullBgImage: {
-    position: 'absolute',
-    width,
-    height,
-    top: 0,
-    left: 0,
-    opacity: 0.35,
-  },
-  darkOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(5, 8, 17, 0.72)',
-  },
-  foreground: {
+  container: {
     flex: 1,
+    backgroundColor: '#050811',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 44,
-    paddingBottom: 24,
+    paddingTop: 54,
+    paddingBottom: 28,
     paddingHorizontal: 16,
   },
-  tsCircle: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+  tsWrapper: {
+    width: 124,
+    height: 124,
+    borderRadius: 62,
     overflow: 'hidden',
     backgroundColor: '#050811',
     alignItems: 'center',
     justifyContent: 'center',
   },
   tsImage: {
-    width: 124,
-    height: 124,
+    width: 136,
+    height: 136,
   },
   brandBlock: {
     alignItems: 'center',
@@ -157,12 +136,12 @@ const styles = StyleSheet.create({
   },
   tradeText: {
     color: '#F8FAFC',
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800',
   },
   setuuText: {
     color: '#2DD4BF',
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '900',
     fontStyle: 'italic',
   },
@@ -173,70 +152,64 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: 'center',
   },
-  divider: {
-    width: 44,
-    height: 1.5,
-    backgroundColor: 'rgba(226, 232, 240, 0.35)',
-    marginVertical: 10,
-  },
   subTagline: {
     color: '#F8FAFC',
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
+    marginTop: 12,
     textAlign: 'center',
   },
-  globeBox: {
+  globeWrapper: {
     width: width,
-    height: 210,
-    overflow: 'hidden',
+    height: 220,
+    backgroundColor: '#050811',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    overflow: 'hidden',
   },
   globeImage: {
-    width: width * 1.08,
-    height: 210,
+    width: width * 1.06,
+    height: 220,
   },
   footer: {
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: '#050811',
   },
   poweredBy: {
-    color: '#CBD5E1',
-    fontSize: 11,
+    color: '#D4AF37',
+    fontSize: 11.5,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   apexRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  apexClip: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: '#050811',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
   apexImage: {
-    width: 58,
-    height: 58,
+    width: 38,
+    height: 38,
+    marginRight: 8,
+    backgroundColor: '#050811',
   },
   apexName: {
-    color: '#F8FAFC',
-    fontSize: 15,
+    color: '#F5D061',
+    fontSize: 16,
     fontWeight: '800',
-    lineHeight: 17,
+    letterSpacing: 0.4,
+    lineHeight: 18,
+    textShadowColor: 'rgba(180, 130, 20, 0.65)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   apexSub: {
-    color: '#CBD5E1',
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 1.4,
+    color: '#E5C158',
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.6,
     lineHeight: 13,
+    textShadowColor: 'rgba(146, 102, 12, 0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });
