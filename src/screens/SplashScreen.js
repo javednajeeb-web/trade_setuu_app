@@ -62,7 +62,7 @@ export default function SplashScreen({ onFinish }) {
           />
         </View>
 
-        {/* Title & Taglines */}
+        {/* Brand Title & Taglines */}
         <View style={styles.brandBlock}>
           <View style={styles.brandRow}>
             <Text style={styles.tradeText}>Trade </Text>
@@ -74,24 +74,26 @@ export default function SplashScreen({ onFinish }) {
           <Text style={styles.subTagline}>Connect • Trade • Ship • Grow</Text>
         </View>
 
-        {/* Globe Graphic — Blended seamlessly without square box */}
+        {/* Globe Graphic — Blended into dark backdrop without square patch */}
         <View style={styles.globeWrapper}>
           <Image
             source={GLOBE_GRAPHIC}
             style={styles.globeImage}
-            resizeMode="contain"
+            resizeMode="cover"
           />
         </View>
 
-        {/* Bottom Footer — Golden Metallic Styling */}
+        {/* Bottom Footer — Golden Metallic Apex Sync Branding */}
         <View style={styles.footer}>
           <Text style={styles.poweredBy}>Powered by</Text>
           <View style={styles.apexRow}>
-            <Image
-              source={APEX_LOGO}
-              style={styles.apexImage}
-              resizeMode="contain"
-            />
+            <View style={styles.apexClip}>
+              <Image
+                source={APEX_LOGO}
+                style={styles.apexImage}
+                resizeMode="cover"
+              />
+            </View>
             <View>
               <Text style={styles.apexName}>Apex Sync</Text>
               <Text style={styles.apexSub}>Technologies</Text>
@@ -122,12 +124,13 @@ const styles = StyleSheet.create({
     height: 124,
     borderRadius: 62,
     overflow: 'hidden',
+    backgroundColor: '#050811',
     alignItems: 'center',
     justifyContent: 'center',
   },
   tsImage: {
-    width: 124,
-    height: 124,
+    width: 128,
+    height: 128,
   },
   brandBlock: {
     alignItems: 'center',
@@ -164,19 +167,22 @@ const styles = StyleSheet.create({
   },
   globeWrapper: {
     width: width,
-    height: 220,
+    height: 205,
+    overflow: 'hidden',
+    backgroundColor: '#050811',
     alignItems: 'center',
     justifyContent: 'center',
   },
   globeImage: {
-    width: width,
-    height: 220,
+    width: width * 1.16,
+    height: 245,
   },
   footer: {
     alignItems: 'center',
+    backgroundColor: '#050811',
   },
   poweredBy: {
-    color: '#C9A23F',
+    color: '#D4AF37',
     fontSize: 11.5,
     fontWeight: '600',
     marginBottom: 6,
@@ -186,29 +192,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  apexImage: {
-    width: 38,
-    height: 38,
+  apexClip: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    overflow: 'hidden',
+    backgroundColor: '#050811',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 8,
   },
+  apexImage: {
+    width: 44,
+    height: 44,
+  },
   apexName: {
-    color: '#E6C36A',
-    fontSize: 16,
+    color: '#F3D27A',
+    fontSize: 16.5,
     fontWeight: '800',
-    letterSpacing: 0.5,
-    lineHeight: 18,
-    textShadowColor: 'rgba(138, 102, 22, 0.85)',
-    textShadowOffset: { width: 0, height: 1.5 },
+    letterSpacing: 0.6,
+    lineHeight: 19,
+    textShadowColor: 'rgba(133, 94, 14, 0.95)',
+    textShadowOffset: { width: 1, height: 1.5 },
     textShadowRadius: 3,
   },
   apexSub: {
-    color: '#C59B37',
+    color: '#D4AF37',
     fontSize: 10.5,
     fontWeight: '700',
-    letterSpacing: 1.8,
+    letterSpacing: 1.9,
     lineHeight: 13,
-    textShadowColor: 'rgba(110, 78, 14, 0.75)',
-    textShadowOffset: { width: 0, height: 1 },
+    textShadowColor: 'rgba(102, 70, 8, 0.9)',
+    textShadowOffset: { width: 0.5, height: 1 },
     textShadowRadius: 2.5,
   },
 });
