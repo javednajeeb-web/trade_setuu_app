@@ -16,7 +16,7 @@ const APEX_LOGO = require('../../img_1795099393138.png');
 
 const { width, height } = Dimensions.get('window');
 
-export default function SplashScreen() {
+export default function SplashScreen({ onFinish }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
@@ -24,7 +24,7 @@ export default function SplashScreen() {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 550,
+        duration: 500,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
@@ -34,13 +34,20 @@ export default function SplashScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [fadeAnim, scaleAnim]);
+
+    const timer = setTimeout(() => {
+      if (typeof onFinish === 'function') {
+        onFinish();
+      }
+    }, 2200);
+
+    return () => clearTimeout(timer);
+  }, [fadeAnim, scaleAnim, onFinish]);
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
 
-      {/* Full-screen base layer */}
       <Image
         source={FULL_SPLASH_BG}
         style={styles.fullBgImage}
@@ -54,7 +61,6 @@ export default function SplashScreen() {
           { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
         ]}
       >
-        {/* TS Logo */}
         <View style={styles.tsCircle}>
           <Image
             source={TS_LOGO}
@@ -63,7 +69,6 @@ export default function SplashScreen() {
           />
         </View>
 
-        {/* Brand & Taglines */}
         <View style={styles.brandBlock}>
           <View style={styles.brandRow}>
             <Text style={styles.tradeText}>Trade </Text>
@@ -76,7 +81,6 @@ export default function SplashScreen() {
           <Text style={styles.subTagline}>Connect • Trade • Ship • Grow</Text>
         </View>
 
-        {/* Globe Layer */}
         <View style={styles.globeBox}>
           <Image
             source={GLOBE_GRAPHIC}
@@ -85,7 +89,6 @@ export default function SplashScreen() {
           />
         </View>
 
-        {/* Footer — Apex Sync Logo without White Frame */}
         <View style={styles.footer}>
           <Text style={styles.poweredBy}>Powered by</Text>
           <View style={styles.apexRow}>
