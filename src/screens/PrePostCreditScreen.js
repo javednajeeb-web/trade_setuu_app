@@ -10,7 +10,8 @@ import {
   StatusBar,
 } from 'react-native';
 import DocAttachmentBox from '../../src/components/DocAttachmentBox';
-import { formatAttachmentsForBrief } from '../../src/utils/attachmentHelper';
+import { formatAttachmentsForBrief } from '../../src/src/utils/attachmentHelper';
+
 
 const CREDIT_MODES = [
   {
