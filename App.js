@@ -122,7 +122,7 @@ export default function App() {
 
   // Navigation
   const [activeTab, setActiveTab] = useState('feed');
-  const [feedFilter, setFeedFilter] = useState('All'); // 'All' | 'India EXIM' | 'Domestic' | 'International' | 'Market' | 'Exim News'
+  const [feedFilter, setFeedFilter] = useState('All');
   const [mandiTab, setMandiTab] = useState('india');
   const [showLogistics, setShowLogistics] = useState(false);
   const [tabHistory, setTabHistory] = useState(['feed']);
@@ -151,7 +151,7 @@ export default function App() {
   const [commentPost, setCommentPost] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [modal, setModal] = useState(null); // 'post' | 'chat' | 'bell' | 'settings' | 'profile' | 'dashboard' | 'blind' | 'ad' | 'sub' | 'catalogue'
+  const [modal, setModal] = useState(null);
 
   const [subRole, setSubRole] = useState('commodity_broker');
   const [billingCycle, setBillingCycle] = useState('yearly');
@@ -178,11 +178,6 @@ export default function App() {
     accent: '#0D9488',
     gold: '#C9B89A',
   };
-
-  useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 1800);
-    return () => clearTimeout(t);
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -275,7 +270,9 @@ export default function App() {
   const shareText = (title, body) => Share.share({ message: `${title}\n${body}\n— Trade SETUU` }).catch(() => {});
   const openWA = (phone, msg) => Linking.openURL(`https://wa.me/${(phone || '+919826100000').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`);
 
-  if (showSplash) return <SplashScreen />;
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
 
   // LOGIN & ROLE ONBOARDING SCREEN (Shown on Logout or Role Switch)
   if (!isLoggedIn) {
@@ -312,6 +309,7 @@ export default function App() {
       </SafeAreaView>
     );
   }
+
   const statesList = ['All India', ...Array.from(new Set(mandiList.map((m) => m.state).filter(Boolean)))];
   const filteredMandi = mandiList.filter((m) => {
     const okSt = selectedState === 'All India' || m.state === selectedState;
@@ -465,7 +463,7 @@ export default function App() {
                           <Text style={{ color: T.sub, fontSize: 13, marginTop: 4, lineHeight: 19 }}>{post.desc}</Text>
                         )}
 
-                        {/* Open 3-Column Spec Row (No Nested Boxes!) */}
+                        {/* Open 3-Column Spec Row */}
                         <View style={[styles.specStrip, { borderTopColor: T.border, borderBottomColor: T.border }]}>
                           <View style={styles.specCol}>
                             <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>QUANTITY</Text>
@@ -507,7 +505,7 @@ export default function App() {
             </View>
           )}
 
-          {/* TAB 2: MANDI PULSE (Clean Edge-to-Edge Rows + State Filter + Price Alerts) */}
+          {/* TAB 2: MANDI PULSE */}
           {activeTab === 'mandi' && (
             <View style={{ flex: 1 }}>
               <View style={[styles.subBar, { backgroundColor: T.card, borderBottomColor: T.border }]}>
@@ -593,20 +591,24 @@ export default function App() {
             </View>
           )}
 
+          {/* TAB 4: SETUU CALC PRO */}
           {activeTab === 'calc' && <SetuuCalcProScreen theme={theme} />}
+
+          {/* TAB 5: SERVICE HUB */}
           {activeTab === 'services' && (
             <ServiceHubScreen
               theme={theme}
               isPaid={isPaid}
               vaultBalance={vaultBalance}
               onDeductVault={(amt, note) => setVaultBalance((v) => Math.max(0, v - amt))}
+              onOpenCalc={() => switchTab('calc')}
               onOpenLogistics={() => setShowLogistics(true)}
             />
           )}
         </>
       )}
 
-      {/* BOTTOM BAR WITH CENTER GREEN (+) BUTTON */}
+      {/* 5-TAB BOTTOM BAR: Trade Feed | Mandi Pulse | + | Calc Pro | Service Hub */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('feed')}>
           <Text style={{ fontSize: 16 }}>🏠</Text>
@@ -691,7 +693,7 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* UNIVERSAL MODALS (Post, Comment, Ad, Sub, Settings, Profile, Catalogue) */}
+      {/* UNIVERSAL MODALS */}
       <Modal visible={!!modal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
