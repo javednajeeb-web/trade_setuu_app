@@ -20,7 +20,7 @@ import {
 import SplashScreen from './src/screens/SplashScreen';
 import SetuuCalcProScreen from './src/SetuuCalcProScreen';
 import LogisticsHubScreen from './src/LogisticsHubScreen';
-import ServiceHubScreen from './src/ServiceHubScreen';
+import ServiceHubScreen from './src/screens/ServiceHubScreen';
 
 const TS_LOGO = require('./1795099375380.png');
 const AGMARKNET_API_KEY = '579b464db66ec23bdd00000126e3ad53d0e049c374bb6bbccfee0b03';
