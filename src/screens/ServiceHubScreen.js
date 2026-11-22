@@ -12,6 +12,7 @@ import ChaCustomsScreen from './ChaCustomsScreen';
 import PrePostCreditScreen from './PrePostCreditScreen';
 import EcgCreditCoverScreen from './EcgCreditCoverScreen';
 import MarineInsuranceScreen from './MarineInsuranceScreen';
+import TradeFinanceDeskScreen from './TradeFinanceDeskScreen';
 
 const ACTIVE_HUB_TILES = [
   {
@@ -64,7 +65,15 @@ const ACTIVE_HUB_TILES = [
     accent: '#2DD4BF',
     actionType: 'MARINE_INSURANCE',
   },
-      
+  { 
+    title: 'Trade Finance Desk',
+    subtitle: 'LC, BG/SBLC, buyer/supply credit & partner brief',
+    category: 'Trade Finance',
+    badge: 'BETA',
+    accent: '#2DD4BF',
+    actionType: 'TRADE_FINANCE_DESK',
+    },
+         
 ];
 
 export default function ServiceHubScreen({ onOpenService }) {
@@ -93,7 +102,10 @@ export default function ServiceHubScreen({ onOpenService }) {
   if (openScreenKey === 'MARINE_INSURANCE') {
     return <MarineInsuranceScreen onBack={() => setOpenScreenKey(null)} />;
   }
-  
+  if (openScreenKey === 'TRADE_FINANCE_DESK') {
+    return <TradeFinanceDeskScreen onBack={() => setOpenScreenKey(null)} />;
+  }
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
