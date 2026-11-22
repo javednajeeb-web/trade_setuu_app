@@ -8,17 +8,28 @@ import {
   StatusBar,
 } from 'react-native';
 import DocForgeMakerScreen from './DocForgeMakerScreen';
+import ChaCustomsScreen from './ChaCustomsScreen';
 
-const SINGLE_HUB_TILES = [
+const ACTIVE_HUB_TILES = [
   {
     id: 'doc_forge_maker',
     code: '01',
     title: 'DocForge Maker',
     subtitle: 'PI, LOI, PO, CI & PL drafts with separate document fields',
     category: 'Documentation',
-    badge: 'LIVE',
+    badge: 'READY',
     accent: '#2DD4BF',
     actionType: 'DOC_FORGE',
+  },
+  {
+    id: 'cha_customs',
+    code: '02',
+    title: 'CHA & Customs',
+    subtitle: 'Export Shipping Bill & Import BOE clearance brief with attached docs',
+    category: 'Compliance',
+    badge: 'NEW',
+    accent: '#F3D27A',
+    actionType: 'CHA_CUSTOMS',
   },
 ];
 
@@ -36,6 +47,10 @@ export default function ServiceHubScreen({ onOpenService }) {
     return <DocForgeMakerScreen onBack={() => setOpenScreenKey(null)} />;
   }
 
+  if (openScreenKey === 'CHA_CUSTOMS') {
+    return <ChaCustomsScreen onBack={() => setOpenScreenKey(null)} />;
+  }
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
@@ -51,19 +66,19 @@ export default function ServiceHubScreen({ onOpenService }) {
             <Text style={styles.titleGold}>Hub</Text>
           </View>
           <Text style={styles.subtitle}>
-            Testing single active module — DocForge Maker
+            Modular service screens — building tiles step by step
           </Text>
         </View>
 
         <View style={styles.metaRow}>
           <Text style={styles.metaText}>
-            Showing {SINGLE_HUB_TILES.length} active service tile
+            Showing {ACTIVE_HUB_TILES.length} prepared service tiles
           </Text>
           <Text style={styles.metaBrand}>Apex Sync</Text>
         </View>
 
         <View style={styles.grid}>
-          {SINGLE_HUB_TILES.map((tile) => {
+          {ACTIVE_HUB_TILES.map((tile) => {
             const isGold = tile.accent === '#F3D27A';
             return (
               <TouchableOpacity
@@ -202,7 +217,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 12,
     marginBottom: 12,
-    minHeight: 152,
+    minHeight: 158,
     justifyContent: 'space-between',
   },
   tileTopRow: {
