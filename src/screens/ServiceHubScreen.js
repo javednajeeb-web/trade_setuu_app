@@ -13,6 +13,7 @@ import PrePostCreditScreen from './PrePostCreditScreen';
 import EcgCreditCoverScreen from './EcgCreditCoverScreen';
 import MarineInsuranceScreen from './MarineInsuranceScreen';
 import TradeFinanceDeskScreen from './TradeFinanceDeskScreen';
+import BlindDealRoomScreen from './BlindDealRoomScreen';
 
 const ACTIVE_HUB_TILES = [
   {
@@ -72,8 +73,17 @@ const ACTIVE_HUB_TILES = [
     badge: 'BETA',
     accent: '#2DD4BF',
     actionType: 'TRADE_FINANCE_DESK',
-    },
-         
+  },
+  {
+    title: 'Blind Deal Room',
+    subtitle: 'Protected deal workspace',
+    category: 'Deal Room',
+    badge: 'SOON',
+    accent: '#F3D27A',
+    actionType: 'BLIND_DEAL_ROOM',
+    enabled: true,
+   },
+    
 ];
 
 export default function ServiceHubScreen({ onOpenService }) {
@@ -105,7 +115,10 @@ export default function ServiceHubScreen({ onOpenService }) {
   if (openScreenKey === 'TRADE_FINANCE_DESK') {
     return <TradeFinanceDeskScreen onBack={() => setOpenScreenKey(null)} />;
   }
-
+  if (openScreenKey === 'BLIND_DEAL_ROOM') {
+  return <BlindDealRoomScreen onBack={() => setOpenScreenKey(null)} />;
+}
+  
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
