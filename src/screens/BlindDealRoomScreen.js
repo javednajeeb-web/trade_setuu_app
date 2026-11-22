@@ -14,6 +14,7 @@ const BLIND_ROOM_CARDS = [
   { key: 'jugaad_shield', title: 'Jugaad Shield' },
   { key: 'doc_vault', title: 'Doc Vault' },
   { key: 'ghost_comms', title: 'Ghost Comms' },
+  { key: 'merchanting_trade', title: 'Merchanting Trade' },
 ];
 
 export default function BlindDealRoomScreen({ onBack }) {
