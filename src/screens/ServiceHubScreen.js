@@ -9,6 +9,9 @@ import {
 } from 'react-native';
 import DocForgeMakerScreen from './DocForgeMakerScreen';
 import ChaCustomsScreen from './ChaCustomsScreen';
+import PrePostCreditScreen from './PrePostCreditScreen';
+import EcgCreditCoverScreen from './EcgCreditCoverScreen';
+import MarineInsuranceScreen from './MarineInsuranceScreen';
 
 const ACTIVE_HUB_TILES = [
   {
@@ -30,7 +33,38 @@ const ACTIVE_HUB_TILES = [
     badge: 'NEW',
     accent: '#F3D27A',
     actionType: 'CHA_CUSTOMS',
+  },  
+  {
+    id: 'pre_post_credit',
+    code: '03',
+    title: 'Pre & Post Credit',
+    subtitle: 'Packing credit & post-shipment finance brief',
+    category: 'Trade Finance',
+    badge: 'NEW',
+    accent: '#2DD4BF',
+    actionType: 'PRE_POST_CREDIT',
   },
+  {
+    id: 'ecg_credit_cover',
+    code: '04',
+    title: 'ECGC Credit Cover',
+    subtitle: 'Buyer limit & policy/claim brief • Coming Soon live sync',
+    category: 'Credit Risk',
+    badge: 'BETA',
+    accent: '#F3D27A',
+    actionType: 'ECG_CREDIT_COVER',
+  },
+  {
+    id: 'marine_insurance',
+    code: '05',
+    title: 'Marine Insurance',
+    subtitle: 'Cargo cover & claim brief • Coming Soon live policy',
+    category: 'Cargo Insurance',
+    badge: 'BETA',
+    accent: '#2DD4BF',
+    actionType: 'MARINE_INSURANCE',
+  },
+      
 ];
 
 export default function ServiceHubScreen({ onOpenService }) {
@@ -50,7 +84,16 @@ export default function ServiceHubScreen({ onOpenService }) {
   if (openScreenKey === 'CHA_CUSTOMS') {
     return <ChaCustomsScreen onBack={() => setOpenScreenKey(null)} />;
   }
-
+  if (openScreenKey === 'PRE_POST_CREDIT') {
+    return <PrePostCreditScreen onBack={() => setOpenScreenKey(null)} />;
+  }
+  if (openScreenKey === 'ECG_CREDIT_COVER') {
+    return <EcgCreditCoverScreen onBack={() => setOpenScreenKey(null)} />;
+  }
+  if (openScreenKey === 'MARINE_INSURANCE') {
+    return <MarineInsuranceScreen onBack={() => setOpenScreenKey(null)} />;
+  }
+  
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
