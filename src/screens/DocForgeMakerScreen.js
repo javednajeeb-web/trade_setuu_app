@@ -16,117 +16,137 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 const DOC_TYPES = [
-  { key: 'QUOTE', label: 'QUOTE', fullName: 'Quotation', group: 'Offer' },
-  { key: 'SCO', label: 'SCO', fullName: 'Soft Corporate Offer', group: 'Offer' },
-  { key: 'FCO', label: 'FCO', fullName: 'Full Corporate Offer', group: 'Offer' },
-  { key: 'LOI', label: 'LOI', fullName: 'Letter of Intent', group: 'Intent' },
-  { key: 'PI', label: 'PI', fullName: 'Proforma Invoice', group: 'Billing' },
-  { key: 'SALES_CONTRACT', label: 'SPA / CONTRACT', fullName: 'Sales Contract / SPA', group: 'Contract' },
-  { key: 'ORDER_CONF', label: 'ORDER CONF', fullName: 'Sales Order Confirmation', group: 'Order' },
-  { key: 'PO', label: 'PO', fullName: 'Purchase Order', group: 'Order' },
-  { key: 'PPL', label: 'PPL', fullName: 'Proforma Packing List', group: 'Logistics' },
-  { key: 'INSP_REQ', label: 'INSP REQ', fullName: 'Inspection Request', group: 'Logistics' },
-  { key: 'SI', label: 'SI', fullName: 'Shipping Instructions', group: 'Logistics' },
-  { key: 'CI', label: 'CI', fullName: 'Commercial Invoice', group: 'Billing' },
-  { key: 'PL', label: 'PL', fullName: 'Final Packing List', group: 'Logistics' },
-  { key: 'NCNDA', label: 'NCNDA', fullName: 'Non-Circumvention & Non-Disclosure', group: 'Legal' },
-  { key: 'IMFPA', label: 'IMFPA', fullName: 'Irrevocable Master Fee Protection', group: 'Legal' },
+  { key: 'QUOTE', label: 'QUOTE', fullName: 'Quotation', category: 'commercial' },
+  { key: 'SCO', label: 'SCO', fullName: 'Soft Corporate Offer', category: 'commercial' },
+  { key: 'FCO', label: 'FCO', fullName: 'Full Corporate Offer', category: 'commercial' },
+  { key: 'LOI', label: 'LOI', fullName: 'Letter of Intent', category: 'intent' },
+  { key: 'PI', label: 'PI', fullName: 'Proforma Invoice', category: 'commercial' },
+  { key: 'SALES_CONTRACT', label: 'SPA / CONTRACT', fullName: 'Sales Contract / SPA', category: 'contract' },
+  { key: 'PO', label: 'PO', fullName: 'Purchase Order', category: 'po' },
+  { key: 'PPL', label: 'PPL', fullName: 'Proforma Packing List', category: 'logistics' },
+  { key: 'INSP_REQ', label: 'INSP REQ', fullName: 'Inspection Request', category: 'logistics' },
+  { key: 'SI', label: 'SI', fullName: 'Shipping Instructions', category: 'logistics' },
+  { key: 'CI', label: 'CI', fullName: 'Commercial Invoice', category: 'commercial' },
+  { key: 'PL', label: 'PL', fullName: 'Final Packing List', category: 'logistics' },
+  { key: 'NCNDA', label: 'NCNDA', fullName: 'Non-Circumvention & Non-Disclosure', category: 'legal' },
+  { key: 'IMFPA', label: 'IMFPA', fullName: 'Irrevocable Master Fee Protection', category: 'legal' },
 ];
 
 const LIFECYCLE_STATUSES = ['Planned', 'Draft', 'Submitted', 'Final'];
 const TRADE_MODES = ['International / Export', 'Domestic / Local'];
 const CURRENCIES = ['USD', 'EUR', 'INR', 'AED'];
 const UNITS = ['MT', 'KG', 'PCS', 'CBM'];
-const INCOTERMS_2020 = ['FOB', 'CIF', 'CFR', 'EXW', 'DAP', 'DDP'];
+const INCOTERMS_2020 = ['FOB', 'CIF', 'CFR', 'EXW', 'FCA', 'DAP', 'DDP'];
+
+const PO_DOMESTIC_PAYMENT_OPTIONS = [
+  'Advance',
+  'Part Advance + Balance on Delivery',
+  'Against Delivery / COD',
+  'Credit (7 / 15 / 30 Days)',
+  'Custom',
+];
+
+const PO_DOMESTIC_DELIVERY_OPTIONS = [
+  'LR / Bilty against Dispatch',
+  'Door Delivery (Vendor Scope)',
+  'Ex-Mill / Ex-Godown Pickup',
+  'Freight To-Pay / Paid',
+];
+
+const PO_INTL_PAYMENT_OPTIONS = [
+  'LC at Sight',
+  'Usance LC (30 / 60 / 90 Days)',
+  'Advance + Balance against BL Copy',
+  '100% TT Advance',
+  'CAD / DP',
+  'Custom',
+];
 
 const DOC_SPECIFIC_FIELDS = {
   QUOTE: [
-    { key: 'docRef', label: 'Quote Ref & Date', placeholder: 'e.g. QT-2026-51 | 23 Nov 2026' },
+    { key: 'docRef', label: 'Quote Ref & Issue Date', placeholder: 'e.g. QT-2026-51 | 23 Nov 2026' },
     { key: 'validity', label: 'Quote Validity', placeholder: 'e.g. Valid 7 Days' },
     { key: 'paymentTerms', label: 'Payment Terms', placeholder: 'e.g. 30% Advance, 70% LC / TT' },
     { key: 'deliverySchedule', label: 'Delivery / Shipment Schedule', placeholder: 'e.g. Within 15-20 days of confirmation' },
   ],
   SCO: [
     { key: 'docRef', label: 'SCO Reference & Date', placeholder: 'e.g. SCO-2026-12 | 23 Nov 2026' },
-    { key: 'validity', label: 'Offer Validity / Indicative Note', placeholder: 'e.g. Indicative offer subject to availability' },
+    { key: 'indicativeNote', label: 'Indicative Offer / Availability Note', placeholder: 'e.g. Indicative offer subject to availability & market movement' },
     { key: 'paymentTerms', label: 'Indicative Payment Terms', placeholder: 'e.g. LC at Sight / TT' },
     { key: 'deliverySchedule', label: 'Indicative Shipment Window', placeholder: 'e.g. Dec 2026' },
   ],
   FCO: [
-    { key: 'docRef', label: 'FCO Reference & Date', placeholder: 'e.g. FCO-2026-28 | 23 Nov 2026' },
+    { key: 'docRef', label: 'FCO Reference & Issue Date', placeholder: 'e.g. FCO-2026-28 | 23 Nov 2026' },
     { key: 'validity', label: 'Firm Offer Validity', placeholder: 'e.g. Valid for 5 business days' },
     { key: 'paymentTerms', label: 'Firm Payment & Banking Terms', placeholder: 'e.g. Irrevocable LC / Advance + Balance' },
-    { key: 'deliverySchedule', label: 'Firm Shipment Schedule', placeholder: 'e.g. Dispatch within 21 days' },
+    { key: 'inspectionTerms', label: 'Inspection & Delivery Schedule', placeholder: 'e.g. SGS inspection; dispatch within 21 days' },
   ],
   LOI: [
-    { key: 'docRef', label: 'LOI Reference & Date', placeholder: 'e.g. LOI-882 | 23 Nov 2026' },
-    { key: 'bindingStatus', label: 'LOI Binding / Non-Binding Status', placeholder: 'e.g. Non-Binding Intent / Subject to Final Contract' },
+    { key: 'docRef', label: 'LOI Reference, Date & Validity', placeholder: 'e.g. LOI-882 | 23 Nov 2026 | Valid 7 Days' },
+    { key: 'bindingStatus', label: 'Binding vs. Non-Binding Status', placeholder: 'e.g. Non-Binding Intent / Subject to Final Contract' },
     { key: 'inspectionTerms', label: 'Inspection Requirements', placeholder: 'e.g. SGS / Third-party quality & weight check' },
     { key: 'deliverySchedule', label: 'Target Delivery / Shipment Window', placeholder: 'e.g. Dec 2026 - Jan 2027' },
   ],
   PI: [
-    { key: 'docRef', label: 'PI Number & Issue Date', placeholder: 'e.g. PI-2026-104 | 23 Nov 2026' },
-    { key: 'validity', label: 'PI Valid Until', placeholder: 'e.g. Valid until 30 Nov 2026' },
-    { key: 'paymentTerms', label: 'Payment Terms (Adv / Balance / LC / TT)', placeholder: 'e.g. 30% Advance, 70% against BL copy' },
-    { key: 'bankDetails', label: 'Beneficiary Bank & SWIFT / IBAN', placeholder: 'e.g. Bank Name, A/C No., SWIFT Code' },
+    { key: 'docRef', label: 'PI Number, Issue Date & Valid Until', placeholder: 'e.g. PI-2026-104 | 23 Nov 2026 | Valid 30 Nov 2026' },
+    { key: 'packingWeight', label: 'Packing Type, Bag Wt, Packages & Net/Gross Wt', placeholder: 'e.g. 50kg PP bags | 20,000 bags | Net 1,000 MT / Gross 1,004 MT' },
+    { key: 'paymentTerms', label: 'Payment Terms (Advance / Balance / LC / TT)', placeholder: 'e.g. 30% Advance, 70% against BL copy' },
+    { key: 'bankDetails', label: 'Beneficiary Bank, Account / IBAN & SWIFT', placeholder: 'e.g. Bank Name, A/C No., SWIFT Code' },
   ],
   SALES_CONTRACT: [
     { key: 'docRef', label: 'Contract / SPA Ref & Date', placeholder: 'e.g. SC-2026-41 | 23 Nov 2026' },
     { key: 'paymentTerms', label: 'Contract Payment Terms', placeholder: 'e.g. LC at Sight / Advance + TT' },
-    { key: 'inspectionTerms', label: 'Quality & Inspection Clause', placeholder: 'e.g. SGS / Independent inspection at origin/discharge' },
-    { key: 'governingLaw', label: 'Governing Law & Dispute / Arbitration', placeholder: 'e.g. Arbitration / Agreed Jurisdiction (Legal review advised)' },
-  ],
-  ORDER_CONF: [
-    { key: 'docRef', label: 'Order Confirmation No. & Date', placeholder: 'e.g. SOC-2026-19 | 23 Nov 2026' },
-    { key: 'paymentTerms', label: 'Confirmed Payment Terms', placeholder: 'e.g. As per PI / Contract' },
-    { key: 'deliverySchedule', label: 'Confirmed Dispatch Schedule', placeholder: 'e.g. Ready for dispatch in 10 days' },
+    { key: 'inspectionTerms', label: 'Quality, Inspection & Delivery Clause', placeholder: 'e.g. SGS inspection; shipment/delivery schedule' },
+    { key: 'governingLaw', label: 'Governing Law & Dispute / Arbitration Seat', placeholder: 'e.g. Arbitration / Agreed Jurisdiction (Legal review advised)' },
   ],
   PO: [
-    { key: 'docRef', label: 'PO Number & Date', placeholder: 'e.g. PO-5591 | 23 Nov 2026' },
-    { key: 'deliveryAddress', label: 'Delivery / Plant / Port Address', placeholder: 'e.g. Mundra Port / Raipur Plant' },
-    { key: 'paymentTerms', label: 'Payment Terms', placeholder: 'e.g. Net 15 / LC / Advance' },
-    { key: 'cancellationTerms', label: 'Acceptance & Cancellation Terms', placeholder: 'e.g. Subject to vendor confirmation & timely dispatch' },
+    { key: 'docRef', label: 'PO Number, Order Date & Delivery Date', placeholder: 'e.g. PO-5591 | 23 Nov 2026 | Del: 05 Dec 2026' },
+    { key: 'billingAddress', label: 'Buyer Billing Address', placeholder: 'e.g. Billing address & GSTIN/Tax ID' },
+    { key: 'deliveryAddress', label: 'Buyer Delivery / Plant / Port Address', placeholder: 'e.g. Delivery address / Plant / Port' },
+    { key: 'customPaymentNote', label: 'Payment Terms Details / Custom Note', placeholder: 'e.g. Additional payment terms or custom note' },
+    { key: 'customDeliveryNote', label: 'LR / Dispatch / Transport Details', placeholder: 'e.g. LR / Bilty no. or dispatch instructions' },
+    { key: 'cancellationTerms', label: 'Inspection & Cancellation Terms', placeholder: 'e.g. Quality check & cancellation terms' },
     { key: 'vendorAcceptanceStatus', label: 'Vendor Acceptance Status', placeholder: 'e.g. Pending Confirmation / Confirmed & Accepted' },
     { key: 'vendorConfirmedBy', label: 'Confirmed By / Date & Acknowledgment', placeholder: 'e.g. Received & accepted by Vendor on Date' },
   ],
   PPL: [
-    { key: 'docRef', label: 'Proforma PL Ref & Date', placeholder: 'e.g. PPL-2026-07 (Planned Packing)' },
-    { key: 'packageBreakdown', label: 'Planned Packages / Bag Wt / Containers', placeholder: 'e.g. 20,000 Bags x 50kg | Planned 50x20ft' },
-    { key: 'weightCbm', label: 'Estimated Net Wt / Gross Wt / CBM', placeholder: 'e.g. Net 1,000 MT | Gross 1,004 MT' },
+    { key: 'docRef', label: 'Proforma PL Ref & Date', placeholder: 'e.g. PPL-2026-07 (Shipment Planning)' },
+    { key: 'packageBreakdown', label: 'Planned Packages, Bag/Unit Wt & Containers', placeholder: 'e.g. 20,000 Bags x 50kg | Est. 50x20ft' },
+    { key: 'weightCbm', label: 'Estimated Net Wt, Gross Wt & CBM', placeholder: 'e.g. Est. Net 1,000 MT | Gross 1,004 MT | CBM' },
   ],
   INSP_REQ: [
     { key: 'docRef', label: 'Inspection Request Ref & Date', placeholder: 'e.g. IR-2026-11 | 23 Nov 2026' },
-    { key: 'inspectionAgency', label: 'Preferred Inspection Agency / Scope', placeholder: 'e.g. SGS / Quality, Moisture & Weight Check' },
-    { key: 'deliverySchedule', label: 'Preferred Inspection Location & Date', placeholder: 'e.g. Load Port / Mill Warehouse' },
+    { key: 'inspectionAgency', label: 'Preferred Inspection Agency & Scope', placeholder: 'e.g. SGS / Quality, Moisture & Weight Check' },
+    { key: 'deliverySchedule', label: 'Inspection Location / Port & Preferred Date', placeholder: 'e.g. Load Port / Mill Warehouse | Date window' },
   ],
   SI: [
     { key: 'docRef', label: 'Shipping Instructions Ref & Date', placeholder: 'e.g. SI-2026-23 | 23 Nov 2026' },
-    { key: 'consigneeNotify', label: 'Consignee & Notify Party Details', placeholder: 'e.g. Consignee & Notify details per buyer' },
-    { key: 'blInstructions', label: 'BL / Container / Marks Instructions', placeholder: 'e.g. Marks, container type & shipping notes' },
+    { key: 'consigneeNotify', label: 'Consignee & Notify Party Details', placeholder: 'e.g. Consignee & Notify Party full details' },
+    { key: 'blInstructions', label: 'Carrier, Container Count, Marks & BL Notes', placeholder: 'e.g. Marks, seal/container notes & BL release instructions' },
   ],
   CI: [
     { key: 'docRef', label: 'Commercial Invoice No. & Date', placeholder: 'e.g. CI-309 | 23 Nov 2026' },
     { key: 'blRef', label: 'BL / AWB Ref (Optional for Pre-shipment)', placeholder: 'e.g. Optional / BL-77412' },
     { key: 'consigneeNotify', label: 'Consignee & Notify Party', placeholder: 'e.g. Consignee & Notify Party details' },
-    { key: 'bankDetails', label: 'Remittance Bank & SWIFT', placeholder: 'e.g. Beneficiary Bank & SWIFT details' },
+    { key: 'bankDetails', label: 'Payment Terms, Bank Details & Declaration', placeholder: 'e.g. Payment terms, Bank/SWIFT & Exporter declaration' },
   ],
   PL: [
-    { key: 'docRef', label: 'Final Packing List No. & Date', placeholder: 'e.g. PL-309 | 23 Nov 2026' },
-    { key: 'containerSeal', label: 'Container No(s). & Seal No(s).', placeholder: 'e.g. Container & Customs/Line Seal Nos.' },
-    { key: 'packageBreakdown', label: 'Package Count, Numbering & Type', placeholder: 'e.g. Pkg 1-1000 | Bags/Cartons/Pallets' },
-    { key: 'weightCbm', label: 'Net Wt / Gross Wt / Dimensions / CBM', placeholder: 'e.g. Net Wt, Gross Wt, LxWxH, CBM' },
+    { key: 'docRef', label: 'Final Packing List No., Date & Invoice Ref', placeholder: 'e.g. PL-309 | 23 Nov 2026 | Inv CI-309' },
+    { key: 'containerSeal', label: 'Container No(s). & Seal No(s).', placeholder: 'e.g. Container Nos. & Seal Nos.' },
+    { key: 'packageBreakdown', label: 'Package Count, Numbering (1-N) & Type', placeholder: 'e.g. Pkg 1-1000 | Bags/Cartons/Pallets' },
+    { key: 'weightCbm', label: 'Per-Pkg & Total Net/Gross Wt, LxWxH & CBM', placeholder: 'e.g. Net Wt, Gross Wt, Dimensions, Total CBM & Marks' },
   ],
   NCNDA: [
     { key: 'docRef', label: 'NCNDA Ref & Effective Date', placeholder: 'e.g. NCNDA-2026-09 | 23 Nov 2026' },
-    { key: 'protectionPeriod', label: 'Non-Circumvention & Confidentiality Period', placeholder: 'e.g. 24 Months from Execution' },
-    { key: 'protectedScope', label: 'Protected Parties, Buyers/Suppliers & Scope', placeholder: 'e.g. Disclosed contacts, mandates & trade channels' },
-    { key: 'governingLaw', label: 'Governing Law, Arbitration & Legal Note', placeholder: 'e.g. Mutual dispute resolution (Legal review advised)' },
+    { key: 'protectionPeriod', label: 'Non-Circumvention & Confidentiality Term', placeholder: 'e.g. 24 Months; survival & termination terms' },
+    { key: 'protectedScope', label: 'Protected Contacts, Mandate & Exceptions', placeholder: 'e.g. Disclosed buyers/sellers, confidential info & exceptions' },
+    { key: 'governingLaw', label: 'Breach Remedies, Governing Law & Arbitration', placeholder: 'e.g. Remedies, law & arbitration (Legal review advised)' },
   ],
   IMFPA: [
-    { key: 'docRef', label: 'IMFPA Ref & Linked Deal/Contract', placeholder: 'e.g. IMFPA-2026-14 | Linked PI/Contract' },
-    { key: 'beneficiarySchedule', label: 'Beneficiary / Intermediary & Commission Share', placeholder: 'e.g. Beneficiary name, % or per-MT fee & split' },
-    { key: 'paymentTrigger', label: 'Payment Trigger, Tranches & Bank/SWIFT', placeholder: 'e.g. Paid upon tranche settlement; Bank/SWIFT details' },
-    { key: 'governingLaw', label: 'Tax / Withholding & Governing Terms', placeholder: 'e.g. Applicable tax & dispute terms' },
+    { key: 'docRef', label: 'IMFPA Ref, Date & Linked Contract/PO', placeholder: 'e.g. IMFPA-2026-14 | 23 Nov 2026 | Ref PO/Contract' },
+    { key: 'beneficiarySchedule', label: 'Beneficiary / Intermediary & Fee / Share', placeholder: 'e.g. Intermediary name, % or rate/unit & payment share' },
+    { key: 'paymentTrigger', label: 'Payment Trigger, Tranches, Due Date & Bank/SWIFT', placeholder: 'e.g. Trigger, tranches, due date & Bank/IBAN/SWIFT' },
+    { key: 'governingLaw', label: 'Tax / Withholding, Breach & Governing Law', placeholder: 'e.g. Tax responsibility, default & governing law' },
   ],
 };
 
@@ -157,7 +177,11 @@ export default function DocForgeMakerScreen({ onBack }) {
   const [tradeMode, setTradeMode] = useState('International / Export');
   const [linkedRef, setLinkedRef] = useState('');
 
-  // Common Data Engine (shared across documents)
+  // PO interactive selections
+  const [poPaymentChoice, setPoPaymentChoice] = useState('LC at Sight');
+  const [poDeliveryChoice, setPoDeliveryChoice] = useState('LR / Bilty against Dispatch');
+
+  // Common Data Engine
   const [commonData, setCommonData] = useState({
     sellerName: 'UA EXIM Overseas',
     sellerAddress: 'Raipur, Chhattisgarh, India | IEC / GSTIN',
@@ -185,27 +209,25 @@ export default function DocForgeMakerScreen({ onBack }) {
     signatoryDesignation: 'Export Manager',
   });
 
-  // Document-specific fields per docType
   const [docSpecificByType, setDocSpecificByType] = useState({});
   const [previewText, setPreviewText] = useState('');
   const [savedPdfUri, setSavedPdfUri] = useState(null);
   const [savedPdfName, setSavedPdfName] = useState('');
   const [isBusy, setIsBusy] = useState(false);
 
-  // Verification / Auth controls (badges only shown when actual verification details are provided)
+  // Verification / Auth controls (verified badge only shown when verification ID is provided)
   const [verifiedAuthEnabled, setVerifiedAuthEnabled] = useState(false);
   const [verificationRef, setVerificationRef] = useState('');
-  const [authTypeNote, setAuthTypeNote] = useState('DSC / Seal Reference');
 
   const currentDocMeta = useMemo(
     () => DOC_TYPES.find((d) => d.key === docType) || DOC_TYPES[0],
     [docType]
   );
 
+  const isDomestic = tradeMode === 'Domestic / Local';
   const specificFieldDefs = DOC_SPECIFIC_FIELDS[docType] || [];
   const currentSpecific = docSpecificByType[docType] || {};
 
-  // Auto-Calculation
   const calcSummary = useMemo(() => {
     const qtyNum = parseNum(commonData.qty);
     const rateNum = parseNum(commonData.unitPrice);
@@ -243,7 +265,6 @@ export default function DocForgeMakerScreen({ onBack }) {
     }));
   };
 
-  // Auto-convert / carry over common data to another document type
   const handleConvertToDoc = (targetKey) => {
     const currentRef = (currentSpecific.docRef || '').trim();
     if (currentRef) {
@@ -254,42 +275,64 @@ export default function DocForgeMakerScreen({ onBack }) {
     setSavedPdfUri(null);
   };
 
+  const getPoTermsSummary = () => {
+    const customPay = (currentSpecific.customPaymentNote || '').trim();
+    const customDel = (currentSpecific.customDeliveryNote || '').trim();
+    const payPart = customPay ? `${poPaymentChoice} (${customPay})` : poPaymentChoice;
+    const delPart = isDomestic
+      ? customDel
+        ? `${poDeliveryChoice} (${customDel})`
+        : poDeliveryChoice
+      : `Incoterm 2020: ${commonData.incoterms}${customDel ? ` | ${customDel}` : ''}`;
+    return `Payment: ${payPart} | Dispatch/Terms: ${delPart}`;
+  };
+
   const getAuthText = () => {
     const refTrim = (verificationRef || '').trim();
     if (verifiedAuthEnabled && refTrim.length > 0) {
-      return `Verified Auth (${authTypeNote}): ${refTrim}`;
+      return `Verified Reference: ${refTrim}`;
     }
     if (verifiedAuthEnabled && refTrim.length === 0) {
-      return `Unverified Auth Flag — Enter valid certificate/verification ID to mark verified`;
+      return `Verification ID pending — enter valid reference ID`;
     }
     return `Signatory: ${(commonData.signatoryName || 'Authorized Signatory').trim()} (${(commonData.signatoryDesignation || 'Authorized Signatory').trim()})`;
   };
 
   const buildDraftText = () => {
-    const poLines =
-      docType === 'PO'
-        ? [
-            `Vendor Acceptance Status: ${(currentSpecific.vendorAcceptanceStatus || 'Pending Confirmation').trim()}`,
-            `Vendor Acknowledgment: ${(currentSpecific.vendorConfirmedBy || 'Awaiting signature / stamp').trim()}`,
-          ]
-        : [];
+    const showCommercialBlock =
+      currentDocMeta.category === 'commercial' ||
+      currentDocMeta.category === 'po' ||
+      currentDocMeta.category === 'contract' ||
+      currentDocMeta.category === 'intent';
+
+    const showLogisticsBlock = currentDocMeta.category === 'logistics';
 
     const lines = [
       `=== ${currentDocMeta.fullName.toUpperCase()} (${docType}) ===`,
       `Status: ${docStatus} | Mode: ${tradeMode}`,
       `Doc Ref: ${(currentSpecific.docRef || '').trim() || '—'}`,
       linkedRef ? `Linked Ref: ${linkedRef}` : null,
-      `Seller / Exporter: ${(commonData.sellerName || '').trim() || '—'} (${(commonData.sellerAddress || '').trim() || '—'})`,
-      `Buyer / Counterparty: ${(commonData.buyerName || '').trim() || '—'} (${(commonData.buyerAddress || '').trim() || '—'})`,
-      `Commodity: ${(commonData.commodity || '').trim() || '—'} | Specs: ${(commonData.specs || '').trim() || '—'}`,
-      `HS Code: ${(commonData.hsCode || '').trim() || '—'} | Origin: ${(commonData.origin || '').trim() || '—'}`,
-      `Qty & Rate: ${calcSummary.qtyNum} ${commonData.unit} @ ${formatMoney(calcSummary.rateNum, commonData.currency)} / ${commonData.unit}`,
-      `Subtotal: ${formatMoney(calcSummary.subtotal, commonData.currency)} | Grand Total: ${formatMoney(calcSummary.grandTotal, commonData.currency)}`,
-      `Incoterms 2020: ${commonData.incoterms} | Route: ${(commonData.portLoading || '').trim() || '—'} -> ${(commonData.portDischarge || '').trim() || '—'} (${(commonData.destinationCountry || '').trim() || '—'})`,
+      `Party 1 / Seller: ${(commonData.sellerName || '').trim() || '—'} (${(commonData.sellerAddress || '').trim() || '—'})`,
+      `Party 2 / Buyer: ${(commonData.buyerName || '').trim() || '—'} (${(commonData.buyerAddress || '').trim() || '—'})`,
+      showCommercialBlock
+        ? `Commodity: ${(commonData.commodity || '').trim() || '—'} | Specs: ${(commonData.specs || '').trim() || '—'}`
+        : null,
+      showCommercialBlock
+        ? `HS Code: ${(commonData.hsCode || '').trim() || '—'} | Origin: ${(commonData.origin || '').trim() || '—'}`
+        : null,
+      showCommercialBlock
+        ? `Qty & Rate: ${calcSummary.qtyNum} ${commonData.unit} @ ${formatMoney(calcSummary.rateNum, commonData.currency)} / ${commonData.unit} | Total: ${formatMoney(calcSummary.grandTotal, commonData.currency)}`
+        : null,
+      showCommercialBlock || showLogisticsBlock
+        ? `Incoterms 2020: ${commonData.incoterms} | Route: ${(commonData.portLoading || '').trim() || '—'} -> ${(commonData.portDischarge || '').trim() || '—'} (${(commonData.destinationCountry || '').trim() || '—'})`
+        : null,
+      docType === 'PO' ? getPoTermsSummary() : null,
+      docType === 'PO'
+        ? `Vendor Acceptance: ${(currentSpecific.vendorAcceptanceStatus || 'Pending Confirmation').trim()} | ${(currentSpecific.vendorConfirmedBy || 'Awaiting signature / date').trim()}`
+        : null,
       ...specificFieldDefs.map(
         (f) => `${f.label}: ${(currentSpecific[f.key] || '').trim() || '—'}`
       ),
-      ...poLines,
       getAuthText(),
       'Generated via DocForge Maker — Trade SETUU',
     ].filter(Boolean);
@@ -308,26 +351,32 @@ export default function DocForgeMakerScreen({ onBack }) {
       )
       .join('');
 
-    const poAcceptanceHtml =
+    const showCommercialSection =
+      currentDocMeta.category === 'commercial' ||
+      currentDocMeta.category === 'po' ||
+      currentDocMeta.category === 'contract' ||
+      currentDocMeta.category === 'intent';
+
+    const poBlockHtml =
       docType === 'PO'
         ? `<div class="notice">
-            <strong>Vendor / Seller Order Acknowledgment:</strong>
-            Status: ${escapeHtml((currentSpecific.vendorAcceptanceStatus || 'Pending Confirmation').trim())} |
-            Acknowledgment: ${escapeHtml((currentSpecific.vendorConfirmedBy || 'Awaiting signature / stamp').trim())}
+            <strong>PO Terms & Vendor Acceptance:</strong><br/>
+            ${escapeHtml(getPoTermsSummary())}<br/>
+            <strong>Vendor Acknowledgment:</strong> ${escapeHtml((currentSpecific.vendorAcceptanceStatus || 'Pending Confirmation').trim())} — ${escapeHtml((currentSpecific.vendorConfirmedBy || 'Awaiting signature / stamp / date').trim())}
           </div>`
         : '';
 
-    const legalNotice =
+    const complianceNotice =
       docType === 'SALES_CONTRACT' || docType === 'NCNDA' || docType === 'IMFPA'
-        ? `<div class="notice"><strong>Legal & Compliance Note:</strong> Trade agreement terms, Incoterms 2020, and dispute/governing clauses should be reviewed by a qualified trade legal advisor before final execution.</div>`
+        ? `<div class="notice"><strong>Legal Note:</strong> Terms, Incoterms 2020, and governing/dispute clauses should be reviewed by a qualified trade legal advisor before final execution.</div>`
         : docType === 'PPL' || docType === 'PL' || docType === 'INSP_REQ' || docType === 'SI'
-        ? `<div class="notice"><strong>Operational Note:</strong> Keep Proforma Packing List (PPL) distinct from Final Packing List (PL). Do not use system drafts in place of mandatory official government, carrier, or inspection forms unless officially accepted.</div>`
+        ? `<div class="notice"><strong>Operational Note:</strong> Proforma Packing List (PPL) and Final Packing List (PL) are separate records. Do not substitute mandatory official government, carrier, or inspection forms unless officially accepted.</div>`
         : '';
 
     const hasVerifiedId = verifiedAuthEnabled && (verificationRef || '').trim().length > 0;
     const authBadgeHtml = hasVerifiedId
-      ? `<span class="badge verified">VERIFIED AUTH (${escapeHtml(authTypeNote)}): ${escapeHtml(verificationRef.trim())}</span>`
-      : `<span class="badge plain">AUTHORIZED SIGNATORY: ${escapeHtml(commonData.signatoryName || 'Authorized Signatory')}</span>`;
+      ? `<span class="badge verified">VERIFIED REF: ${escapeHtml(verificationRef.trim())}</span>`
+      : `<span class="badge plain">SIGNATORY: ${escapeHtml(commonData.signatoryName || 'Authorized Signatory')}</span>`;
 
     return `
       <!DOCTYPE html>
@@ -433,19 +482,22 @@ export default function DocForgeMakerScreen({ onBack }) {
 
           <div class="grid-2">
             <div class="party-card">
-              <div class="party-title">Seller / Exporter</div>
+              <div class="party-title">First Party / Seller / Exporter</div>
               <div><strong>${escapeHtml(commonData.sellerName || '—')}</strong></div>
               <div class="muted">${escapeHtml(commonData.sellerAddress || '—')}</div>
               <div class="muted">${escapeHtml(commonData.sellerContact || '')}</div>
             </div>
             <div class="party-card">
-              <div class="party-title">Buyer / Counterparty</div>
+              <div class="party-title">Counterparty / Buyer / Importer</div>
               <div><strong>${escapeHtml(commonData.buyerName || '—')}</strong></div>
               <div class="muted">${escapeHtml(commonData.buyerAddress || '—')}</div>
               <div class="muted">${escapeHtml(commonData.buyerContact || '')}</div>
             </div>
           </div>
 
+          ${
+            showCommercialSection
+              ? `
           <table>
             <thead>
               <tr>
@@ -481,7 +533,9 @@ export default function DocForgeMakerScreen({ onBack }) {
             <div class="muted" style="margin-top:6px;">
               Route: ${escapeHtml(commonData.portLoading || '—')} → ${escapeHtml(commonData.portDischarge || '—')} (${escapeHtml(commonData.destinationCountry || '—')})
             </div>
-          </div>
+          </div>`
+              : ''
+          }
 
           <table>
             <tbody>
@@ -489,8 +543,8 @@ export default function DocForgeMakerScreen({ onBack }) {
             </tbody>
           </table>
 
-          ${poAcceptanceHtml}
-          ${legalNotice}
+          ${poBlockHtml}
+          ${complianceNotice}
 
           <div class="footer-auth">
             <div>${authBadgeHtml}</div>
@@ -507,8 +561,7 @@ export default function DocForgeMakerScreen({ onBack }) {
   };
 
   const handleBuildDraft = () => {
-    const draft = buildDraftText();
-    setPreviewText(draft);
+    setPreviewText(buildDraftText());
   };
 
   const createPdfFile = async () => {
@@ -571,6 +624,12 @@ export default function DocForgeMakerScreen({ onBack }) {
     }
   };
 
+  const showCommercialInputs =
+    currentDocMeta.category === 'commercial' ||
+    currentDocMeta.category === 'po' ||
+    currentDocMeta.category === 'contract' ||
+    currentDocMeta.category === 'intent';
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
@@ -589,10 +648,10 @@ export default function DocForgeMakerScreen({ onBack }) {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.subCaption}>
-          15 Trade Templates • Common Data • Auto-Calc • {docStatus}
+          14 Trade Templates • Common Data • {docStatus}
         </Text>
 
-        {/* 15 Document Type Tabs */}
+        {/* 14 Document Type Tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
           {DOC_TYPES.map((item) => {
             const active = item.key === docType;
@@ -615,13 +674,13 @@ export default function DocForgeMakerScreen({ onBack }) {
           })}
         </ScrollView>
 
-        {/* Status & Trade Mode */}
+        {/* Status, Trade Mode & Link */}
         <View style={styles.card}>
           <Text style={styles.cardHeading}>
             {currentDocMeta.fullName} ({docType})
           </Text>
 
-          <Text style={styles.fieldLabel}>Lifecycle Status (Draft vs Final)</Text>
+          <Text style={styles.fieldLabel}>Lifecycle Status</Text>
           <View style={styles.chipRow}>
             {LIFECYCLE_STATUSES.map((st) => {
               const active = docStatus === st;
@@ -649,6 +708,9 @@ export default function DocForgeMakerScreen({ onBack }) {
                   key={tm}
                   onPress={() => {
                     setTradeMode(tm);
+                    setPoPaymentChoice(
+                      tm === 'Domestic / Local' ? PO_DOMESTIC_PAYMENT_OPTIONS[0] : PO_INTL_PAYMENT_OPTIONS[0]
+                    );
                     setSavedPdfUri(null);
                   }}
                   style={[styles.chip, active && styles.chipActive]}
@@ -659,7 +721,7 @@ export default function DocForgeMakerScreen({ onBack }) {
             })}
           </View>
 
-          <Text style={styles.fieldLabel}>Linked Document Ref (e.g. Parent PI / Quote No.)</Text>
+          <Text style={styles.fieldLabel}>Linked Reference (e.g. Parent PI / Quote / PO No.)</Text>
           <TextInput
             value={linkedRef}
             onChangeText={(txt) => {
@@ -672,217 +734,293 @@ export default function DocForgeMakerScreen({ onBack }) {
           />
         </View>
 
-        {/* Common Data Engine: Parties & Commercials */}
+        {/* Parties */}
         <View style={styles.card}>
-          <Text style={styles.cardHeading}>Common Trade Data (Auto-Shared & Auto-Calc)</Text>
+          <Text style={styles.cardHeading}>Parties Details</Text>
 
-          <Text style={styles.fieldLabel}>Seller / Exporter Name</Text>
+          <Text style={styles.fieldLabel}>First Party / Seller / Exporter Name</Text>
           <TextInput
             value={commonData.sellerName}
             onChangeText={(t) => updateCommon('sellerName', t)}
-            placeholder="Exporter / Seller Name"
+            placeholder="Seller / Exporter Name"
             placeholderTextColor="#64748B"
             style={styles.input}
           />
 
-          <Text style={styles.fieldLabel}>Seller Address & IEC/GSTIN</Text>
+          <Text style={styles.fieldLabel}>Seller Address & IEC / GSTIN</Text>
           <TextInput
             value={commonData.sellerAddress}
             onChangeText={(t) => updateCommon('sellerAddress', t)}
-            placeholder="Full address, country, IEC/GSTIN"
+            placeholder="Full address, country, IEC / GSTIN"
             placeholderTextColor="#64748B"
             style={styles.input}
           />
 
-          <Text style={styles.fieldLabel}>Buyer / Counterparty Name</Text>
+          <Text style={styles.fieldLabel}>Counterparty / Buyer / Importer Name</Text>
           <TextInput
             value={commonData.buyerName}
             onChangeText={(t) => updateCommon('buyerName', t)}
-            placeholder="Buyer / Importer / Counterparty Name"
+            placeholder="Buyer / Counterparty Name"
             placeholderTextColor="#64748B"
             style={styles.input}
           />
 
-          <Text style={styles.fieldLabel}>Buyer Address & Tax/ID</Text>
+          <Text style={styles.fieldLabel}>Buyer Address & Tax / Registration ID</Text>
           <TextInput
             value={commonData.buyerAddress}
             onChangeText={(t) => updateCommon('buyerAddress', t)}
-            placeholder="Full address, country, registration ID"
+            placeholder="Full address, country, tax / reg ID"
             placeholderTextColor="#64748B"
             style={styles.input}
           />
-
-          <Text style={styles.fieldLabel}>Commodity / Item</Text>
-          <TextInput
-            value={commonData.commodity}
-            onChangeText={(t) => updateCommon('commodity', t)}
-            placeholder="Commodity / Product name"
-            placeholderTextColor="#64748B"
-            style={styles.input}
-          />
-
-          <Text style={styles.fieldLabel}>Specifications / Grade</Text>
-          <TextInput
-            value={commonData.specs}
-            onChangeText={(t) => updateCommon('specs', t)}
-            placeholder="Grade, specs, packing notes"
-            placeholderTextColor="#64748B"
-            style={styles.input}
-          />
-
-          <View style={styles.row2}>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>HS / HSN Code</Text>
-              <TextInput
-                value={commonData.hsCode}
-                onChangeText={(t) => updateCommon('hsCode', t)}
-                placeholder="e.g. 10063020"
-                placeholderTextColor="#64748B"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>Origin</Text>
-              <TextInput
-                value={commonData.origin}
-                onChangeText={(t) => updateCommon('origin', t)}
-                placeholder="e.g. India"
-                placeholderTextColor="#64748B"
-                style={styles.input}
-              />
-            </View>
-          </View>
-
-          <Text style={styles.fieldLabel}>Currency</Text>
-          <View style={styles.chipRow}>
-            {CURRENCIES.map((cur) => {
-              const active = commonData.currency === cur;
-              return (
-                <TouchableOpacity
-                  key={cur}
-                  onPress={() => updateCommon('currency', cur)}
-                  style={[styles.chip, active && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{cur}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <Text style={styles.fieldLabel}>Unit</Text>
-          <View style={styles.chipRow}>
-            {UNITS.map((u) => {
-              const active = commonData.unit === u;
-              return (
-                <TouchableOpacity
-                  key={u}
-                  onPress={() => updateCommon('unit', u)}
-                  style={[styles.chip, active && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{u}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <View style={styles.row2}>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>Quantity</Text>
-              <TextInput
-                value={commonData.qty}
-                onChangeText={(t) => updateCommon('qty', t)}
-                keyboardType="numeric"
-                placeholder="1000"
-                placeholderTextColor="#64748B"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>Unit Price ({commonData.currency})</Text>
-              <TextInput
-                value={commonData.unitPrice}
-                onChangeText={(t) => updateCommon('unitPrice', t)}
-                keyboardType="numeric"
-                placeholder="455"
-                placeholderTextColor="#64748B"
-                style={styles.input}
-              />
-            </View>
-          </View>
-
-          <View style={styles.row2}>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>Freight / Insurance / Other</Text>
-              <TextInput
-                value={commonData.freight}
-                onChangeText={(t) => updateCommon('freight', t)}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor="#64748B"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>Discount</Text>
-              <TextInput
-                value={commonData.discount}
-                onChangeText={(t) => updateCommon('discount', t)}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor="#64748B"
-                style={styles.input}
-              />
-            </View>
-          </View>
-
-          <View style={styles.calcBox}>
-            <Text style={styles.calcText}>
-              Subtotal: {formatMoney(calcSummary.subtotal, commonData.currency)}
-            </Text>
-            <Text style={styles.calcGrand}>
-              Grand Total: {formatMoney(calcSummary.grandTotal, commonData.currency)}
-            </Text>
-          </View>
-
-          <Text style={styles.fieldLabel}>Incoterms 2020</Text>
-          <View style={styles.chipRow}>
-            {INCOTERMS_2020.map((inc) => {
-              const active = commonData.incoterms === inc;
-              return (
-                <TouchableOpacity
-                  key={inc}
-                  onPress={() => updateCommon('incoterms', inc)}
-                  style={[styles.chip, active && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{inc}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <View style={styles.row2}>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>Port of Loading</Text>
-              <TextInput
-                value={commonData.portLoading}
-                onChangeText={(t) => updateCommon('portLoading', t)}
-                placeholder="e.g. JNPT / Vizag"
-                placeholderTextColor="#64748B"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>Port of Discharge</Text>
-              <TextInput
-                value={commonData.portDischarge}
-                onChangeText={(t) => updateCommon('portDischarge', t)}
-                placeholder="e.g. Dakar"
-                placeholderTextColor="#64748B"
-                style={styles.input}
-              />
-            </View>
-          </View>
         </View>
+
+        {/* Commercial / Commodity Block (shown for commercial, PO, contract, intent docs) */}
+        {showCommercialInputs ? (
+          <View style={styles.card}>
+            <Text style={styles.cardHeading}>Commodity, Pricing & Route (Auto-Calc)</Text>
+
+            <Text style={styles.fieldLabel}>Commodity / Item</Text>
+            <TextInput
+              value={commonData.commodity}
+              onChangeText={(t) => updateCommon('commodity', t)}
+              placeholder="Commodity / Product name"
+              placeholderTextColor="#64748B"
+              style={styles.input}
+            />
+
+            <Text style={styles.fieldLabel}>Grade / Specifications</Text>
+            <TextInput
+              value={commonData.specs}
+              onChangeText={(t) => updateCommon('specs', t)}
+              placeholder="Grade, specs, packing details"
+              placeholderTextColor="#64748B"
+              style={styles.input}
+            />
+
+            <View style={styles.row2}>
+              <View style={styles.halfCol}>
+                <Text style={styles.fieldLabel}>HS / HSN Code</Text>
+                <TextInput
+                  value={commonData.hsCode}
+                  onChangeText={(t) => updateCommon('hsCode', t)}
+                  placeholder="e.g. 10063020"
+                  placeholderTextColor="#64748B"
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.halfCol}>
+                <Text style={styles.fieldLabel}>Origin</Text>
+                <TextInput
+                  value={commonData.origin}
+                  onChangeText={(t) => updateCommon('origin', t)}
+                  placeholder="e.g. India"
+                  placeholderTextColor="#64748B"
+                  style={styles.input}
+                />
+              </View>
+            </View>
+
+            <Text style={styles.fieldLabel}>Currency</Text>
+            <View style={styles.chipRow}>
+              {CURRENCIES.map((cur) => {
+                const active = commonData.currency === cur;
+                return (
+                  <TouchableOpacity
+                    key={cur}
+                    onPress={() => updateCommon('currency', cur)}
+                    style={[styles.chip, active && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{cur}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.fieldLabel}>Unit</Text>
+            <View style={styles.chipRow}>
+              {UNITS.map((u) => {
+                const active = commonData.unit === u;
+                return (
+                  <TouchableOpacity
+                    key={u}
+                    onPress={() => updateCommon('unit', u)}
+                    style={[styles.chip, active && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{u}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.row2}>
+              <View style={styles.halfCol}>
+                <Text style={styles.fieldLabel}>Quantity</Text>
+                <TextInput
+                  value={commonData.qty}
+                  onChangeText={(t) => updateCommon('qty', t)}
+                  keyboardType="numeric"
+                  placeholder="1000"
+                  placeholderTextColor="#64748B"
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.halfCol}>
+                <Text style={styles.fieldLabel}>Unit Price ({commonData.currency})</Text>
+                <TextInput
+                  value={commonData.unitPrice}
+                  onChangeText={(t) => updateCommon('unitPrice', t)}
+                  keyboardType="numeric"
+                  placeholder="455"
+                  placeholderTextColor="#64748B"
+                  style={styles.input}
+                />
+              </View>
+            </View>
+
+            <View style={styles.row2}>
+              <View style={styles.halfCol}>
+                <Text style={styles.fieldLabel}>Freight / Insurance / Other</Text>
+                <TextInput
+                  value={commonData.freight}
+                  onChangeText={(t) => updateCommon('freight', t)}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor="#64748B"
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.halfCol}>
+                <Text style={styles.fieldLabel}>Discount</Text>
+                <TextInput
+                  value={commonData.discount}
+                  onChangeText={(t) => updateCommon('discount', t)}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor="#64748B"
+                  style={styles.input}
+                />
+              </View>
+            </View>
+
+            <View style={styles.calcBox}>
+              <Text style={styles.calcText}>
+                Subtotal: {formatMoney(calcSummary.subtotal, commonData.currency)}
+              </Text>
+              <Text style={styles.calcGrand}>
+                Grand Total: {formatMoney(calcSummary.grandTotal, commonData.currency)}
+              </Text>
+            </View>
+
+            <Text style={styles.fieldLabel}>Incoterms 2020</Text>
+            <View style={styles.chipRow}>
+              {INCOTERMS_2020.map((inc) => {
+                const active = commonData.incoterms === inc;
+                return (
+                  <TouchableOpacity
+                    key={inc}
+                    onPress={() => updateCommon('incoterms', inc)}
+                    style={[styles.chip, active && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{inc}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.row2}>
+              <View style={styles.halfCol}>
+                <Text style={styles.fieldLabel}>Port / Origin Point</Text>
+                <TextInput
+                  value={commonData.portLoading}
+                  onChangeText={(t) => updateCommon('portLoading', t)}
+                  placeholder="e.g. JNPT / Vizag"
+                  placeholderTextColor="#64748B"
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.halfCol}>
+                <Text style={styles.fieldLabel}>Port / Destination</Text>
+                <TextInput
+                  value={commonData.portDischarge}
+                  onChangeText={(t) => updateCommon('portDischarge', t)}
+                  placeholder="e.g. Dakar"
+                  placeholderTextColor="#64748B"
+                  style={styles.input}
+                />
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {/* PO Clickable Terms Selector (Domestic LR vs International LC / Incoterms) */}
+        {docType === 'PO' ? (
+          <View style={styles.card}>
+            <Text style={styles.cardHeading}>
+              PO Terms ({isDomestic ? 'Domestic / LR' : 'International / LC & Incoterms 2020'})
+            </Text>
+
+            <Text style={styles.fieldLabel}>Select Payment Terms</Text>
+            <View style={styles.chipRow}>
+              {(isDomestic ? PO_DOMESTIC_PAYMENT_OPTIONS : PO_INTL_PAYMENT_OPTIONS).map((opt) => {
+                const active = poPaymentChoice === opt;
+                return (
+                  <TouchableOpacity
+                    key={opt}
+                    onPress={() => {
+                      setPoPaymentChoice(opt);
+                      setSavedPdfUri(null);
+                    }}
+                    style={[styles.chip, active && styles.chipActive]}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {isDomestic ? (
+              <>
+                <Text style={styles.fieldLabel}>Select Domestic Dispatch / LR Terms</Text>
+                <View style={styles.chipRow}>
+                  {PO_DOMESTIC_DELIVERY_OPTIONS.map((opt) => {
+                    const active = poDeliveryChoice === opt;
+                    return (
+                      <TouchableOpacity
+                        key={opt}
+                        onPress={() => {
+                          setPoDeliveryChoice(opt);
+                          setSavedPdfUri(null);
+                        }}
+                        style={[styles.chip, active && styles.chipActive]}
+                      >
+                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.fieldLabel}>Select Incoterms 2020</Text>
+                <View style={styles.chipRow}>
+                  {INCOTERMS_2020.map((inc) => {
+                    const active = commonData.incoterms === inc;
+                    return (
+                      <TouchableOpacity
+                        key={inc}
+                        onPress={() => updateCommon('incoterms', inc)}
+                        style={[styles.chip, active && styles.chipActive]}
+                      >
+                        <Text style={[styles.chipText, active && styles.chipTextActive]}>{inc}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+          </View>
+        ) : null}
 
         {/* Document-Specific Fields */}
         <View style={styles.card}>
@@ -901,9 +1039,9 @@ export default function DocForgeMakerScreen({ onBack }) {
           ))}
         </View>
 
-        {/* Signatory & Verified Auth */}
+        {/* Signatory & Reference */}
         <View style={styles.card}>
-          <Text style={styles.cardHeading}>Signatory & Verification</Text>
+          <Text style={styles.cardHeading}>Signatory & Reference</Text>
           <Text style={styles.fieldLabel}>Authorized Signatory Name</Text>
           <TextInput
             value={commonData.signatoryName}
@@ -922,7 +1060,7 @@ export default function DocForgeMakerScreen({ onBack }) {
           />
 
           <View style={styles.switchRow}>
-            <Text style={styles.fieldLabel}>Include Verified DSC / Seal Reference</Text>
+            <Text style={styles.fieldLabel}>Attach Verification / Certificate Ref ID</Text>
             <Switch
               value={verifiedAuthEnabled}
               onValueChange={(v) => {
@@ -936,14 +1074,14 @@ export default function DocForgeMakerScreen({ onBack }) {
 
           {verifiedAuthEnabled ? (
             <>
-              <Text style={styles.fieldLabel}>Verification / Certificate Reference ID</Text>
+              <Text style={styles.fieldLabel}>Verification / Certificate ID</Text>
               <TextInput
                 value={verificationRef}
                 onChangeText={(t) => {
                   setVerificationRef(t);
                   setSavedPdfUri(null);
                 }}
-                placeholder="Enter verified DSC / seal reference ID"
+                placeholder="Enter certificate / verification ID"
                 placeholderTextColor="#64748B"
                 style={styles.input}
               />
@@ -951,11 +1089,11 @@ export default function DocForgeMakerScreen({ onBack }) {
           ) : null}
         </View>
 
-        {/* Quick Convert Shortcuts */}
+        {/* Convert / Carry Data To */}
         <View style={styles.card}>
           <Text style={styles.cardHeading}>Convert / Carry Data To</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {['PI', 'SALES_CONTRACT', 'ORDER_CONF', 'PPL', 'INSP_REQ', 'SI', 'CI', 'PL', 'FCO'].map(
+            {['PI', 'SALES_CONTRACT', 'PO', 'PPL', 'INSP_REQ', 'SI', 'CI', 'PL', 'SCO', 'FCO'].map(
               (target) =>
                 target !== docType ? (
                   <TouchableOpacity
