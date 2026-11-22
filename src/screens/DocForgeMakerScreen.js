@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 const DOC_TYPES = [
+  { key: 'QUOTE', label: 'QUOTE', fullName: 'Quotation' },
   { key: 'PI', label: 'PI', fullName: 'Proforma Invoice' },
   { key: 'LOI', label: 'LOI', fullName: 'Letter of Intent' },
   { key: 'PO', label: 'PO', fullName: 'Purchase Order' },
@@ -19,6 +20,15 @@ const DOC_TYPES = [
 ];
 
 const DOC_FIELDS = {
+  QUOTE: [
+    { key: 'partyFrom', label: 'Exporter / Seller Name', placeholder: 'e.g. UA EXIM Overseas' },
+    { key: 'partyTo', label: 'Buyer / Enquirer Name', placeholder: 'e.g. Dakar Global Foods' },
+    { key: 'docRef', label: 'Quote Ref & Validity', placeholder: 'e.g. QT-2026-51 | Valid 5 Days' },
+    { key: 'commodity', label: 'Commodity & Grade / Specs', placeholder: 'e.g. Non-Basmati Parboiled Rice 5%' },
+    { key: 'hsCode', label: 'HS Code', placeholder: 'e.g. 10063020' },
+    { key: 'qtyRate', label: 'Offered Qty & Rate', placeholder: 'e.g. 1,000 MT @ USD 465 / MT' },
+    { key: 'terms', label: 'Incoterms, Port & Remarks', placeholder: 'e.g. FOB JNPT | 50kg PP Bags, SGS Ready' },
+  ],
   PI: [
     { key: 'partyFrom', label: 'Exporter / Seller Name', placeholder: 'e.g. UA EXIM Overseas' },
     { key: 'partyTo', label: 'Buyer / Importer Name', placeholder: 'e.g. Dakar Global Foods' },
@@ -67,8 +77,9 @@ const DOC_FIELDS = {
 };
 
 export default function DocForgeMakerScreen({ onBack }) {
-  const [docType, setDocType] = useState('PI');
+  const [docType, setDocType] = useState('QUOTE');
   const [valuesByDoc, setValuesByDoc] = useState({
+    QUOTE: {},
     PI: {},
     LOI: {},
     PO: {},
@@ -373,4 +384,3 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 });
-    
