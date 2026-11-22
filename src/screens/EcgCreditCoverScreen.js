@@ -9,8 +9,8 @@ import {
   Share,
   StatusBar,
 } from 'react-native';
-import DocAttachmentBox from '../../src/components/DocAttachmentBox';
-import { formatAttachmentsForBrief } from '../../src/utils/attachmentHelper';
+import DocAttachmentBox from '../src/components/DocAttachmentBox';
+import { formatAttachmentsForBrief } from '../src/utils/attachmentHelper';
 
 const ECG_MODES = [
   {
