@@ -498,7 +498,9 @@ export default function SetuCalcProSuiteScreen({ onBack }) {
             </View>
           </View>
         );
-
+        case 'EXPORT_INCENTIVE':
+          return (
+            
           <View style={styles.card}>
             <Text style={styles.cardTitle}>18 • Export Incentive Calculator</Text>
             <Text style={styles.hint}>
