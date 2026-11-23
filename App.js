@@ -18,9 +18,9 @@ import {
   Platform,
 } from 'react-native';
 import SplashScreen from './src/screens/SplashScreen';
-import SetuuCalcProScreen from './src/SetuuCalcProScreen';
-import LogisticsHubScreen from './src/LogisticsHubScreen';
+import GlobalLogisticsHubScreen from './src/globalhublogistics';
 import ServiceHubScreen from './src/screens/ServiceHubScreen';
+
 
 const TS_LOGO = require('./1795099375380.png');
 const AGMARKNET_API_KEY = '579b464db66ec23bdd00000126e3ad53d0e049c374bb6bbccfee0b03';
@@ -266,6 +266,7 @@ export default function App() {
     setActiveTab(t);
     setTabHistory((prev) => (prev[prev.length - 1] === t ? prev : [...prev, t]));
   };
+  
 
   const shareText = (title, body) => Share.share({ message: `${title}\n${body}\n— Trade SETUU` }).catch(() => {});
   const openWA = (phone, msg) => Linking.openURL(`https://wa.me/${(phone || '+919826100000').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`);
@@ -435,26 +436,30 @@ export default function App() {
                       <Text style={{ color: T.sub, fontSize: 13 }}>Post a sell offer, buy requirement or fleet load...</Text>
                     </View>
                   </TouchableOpacity>
-
-                  {visiblePosts.map((post) => {
-                    const liked = likedIds.includes(post.id);
-                    const saved = savedIds.includes(post.id);
-                    return (
-                      <View key={post.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
-                        {/* Author Header */}
-                        <View style={styles.rowBetween}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                            <View style={styles.avatarCircle}>
-                              <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>{post.initials}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{ color: T.text, fontSize: 14, fontWeight: '900' }} numberOfLines={1}>
-                                {post.trader_name} <Text style={{ color: '#C9B89A', fontSize: 11 }}>✓</Text>
-                              </Text>
-                              <Text style={{ color: T.sub, fontSize: 11 }} numberOfLines={1}>{post.trader_role}</Text>
-                            </View>
-                          </View>
-                          <Text style={styles.offerPill}>{post.post_type}</Text>
+      {/* 5-TAB BOTTOM BAR: Trade Feed | Mandi Pulse | + | Logistics | Service Hub */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('feed')}>
+          <Text style={{ fontSize: 16 }}>🏠</Text>
+          <Text style={[styles.navLbl, activeTab === 'feed' && { color: '#14B8A6' }]}>Trade Feed</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('mandi')}>
+          <Text style={{ fontSize: 16 }}>📊</Text>
+          <Text style={[styles.navLbl, activeTab === 'mandi' && { color: '#14B8A6' }]}>Mandi Pulse</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.centerPlus} onPress={() => setModal('post')}>
+          <Text style={{ color: '#FFF', fontSize: 24, fontWeight: '900', marginTop: -2 }}>+</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={() => setShowLogistics(true)}>
+          <Text style={{ fontSize: 16 }}>🌐</Text>
+          <Text style={[styles.navLbl, showLogistics && { color: '#14B8A6' }]}>Logistics</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('services')}>
+          <Text style={{ fontSize: 16 }}>🛠️</Text>
+          <Text style={[styles.navLbl, activeTab === 'services' && !showLogistics && { color: '#14B8A6' }]}>Service Hub</Text>
+        </TouchableOpacity>
+      </View>
+        
+               
                         </View>
 
                         {/* Clean Open Headline & Description */}
