@@ -484,10 +484,10 @@ export default function SetuCalcProSuiteScreen({ onBack }) {
             <TextInput value={bcdPct} onChangeText={setBcdPct} keyboardType="numeric" style={styles.input} />
 
             <Text style={styles.label}>SWS (% of BCD) & IGST (%)</Text>
-            <View style={styles.row2}>
+                     <View style={styles.row2}>
               <TextInput value={swsPct} onChangeText={setSwsPct} keyboardType="numeric" style={[styles.input, styles.half]} placeholder="SWS %" placeholderTextColor="#64748B" />
-              <TextInput value={igstPct} onChangeText={setIgstPct} keyboardType="numeric" style={[styles.inp
-                      </View>
+              <TextInput value={igstPct} onChangeText={setIgstPct} keyboardType="numeric" style={[styles.input, styles.half]} placeholder="IGST %" placeholderTextColor="#64748B" />
+            </View>
 
             <Text style={styles.label}>Port / CHA / Inland Charges per MT</Text>
             <TextInput value={importOtherCharges} onChangeText={setImportOtherCharges} keyboardType="numeric" style={styles.input} />
@@ -497,9 +497,8 @@ export default function SetuCalcProSuiteScreen({ onBack }) {
               <Text style={styles.resHighlight}>Est. Landed Cost: {fmt(calc.landedCostPerMt, '')} / MT</Text>
             </View>
           </View>
-        )
-                case 'EXPORT_INCENTIVE':
-        return (
+        );
+
           <View style={styles.card}>
             <Text style={styles.cardTitle}>18 • Export Incentive Calculator</Text>
             <Text style={styles.hint}>
