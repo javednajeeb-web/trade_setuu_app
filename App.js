@@ -460,7 +460,7 @@ export default function App() {
       </View>
         
                
-   </ScrollView>                   
+              </ScrollView>                   
 
                         {/* Clean Open Headline & Description */}
                         <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', marginTop: 10, lineHeight: 21 }}>{post.title}</Text>
