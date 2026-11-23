@@ -18,9 +18,8 @@ import {
   Platform,
 } from 'react-native';
 import SplashScreen from './src/screens/SplashScreen';
-import GlobalLogisticsHubScreen from './src/globalhublogistics';
+import GlobalLogisticsHubScreen from './src/GlobalLogisticsHub';
 import ServiceHubScreen from './src/screens/ServiceHubScreen';
-
 
 const TS_LOGO = require('./1795099375380.png');
 const AGMARKNET_API_KEY = '579b464db66ec23bdd00000126e3ad53d0e049c374bb6bbccfee0b03';
@@ -183,7 +182,9 @@ export default function App() {
     let mounted = true;
     fetch('https://open.er-api.com/v6/latest/USD')
       .then((r) => r.json())
-      .then((d) => { if (mounted && d?.rates?.INR) setUsdInr(Number(d.rates.INR.toFixed(2))); })
+      .then((d) => {
+        if (mounted && d?.rates?.INR) setUsdInr(Number(d.rates.INR.toFixed(2)));
+      })
       .catch(() => {});
 
     setMandiLoading(true);
@@ -207,7 +208,9 @@ export default function App() {
         }
       })
       .catch(() => {})
-      .finally(() => { if (mounted) setMandiLoading(false); });
+      .finally(() => {
+        if (mounted) setMandiLoading(false);
+      });
 
     fetch(EXIM_NEWS_URL)
       .then((r) => r.json())
@@ -226,7 +229,9 @@ export default function App() {
       })
       .catch(() => {});
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -266,16 +271,18 @@ export default function App() {
     setActiveTab(t);
     setTabHistory((prev) => (prev[prev.length - 1] === t ? prev : [...prev, t]));
   };
-  
 
-  const shareText = (title, body) => Share.share({ message: `${title}\n${body}\n— Trade SETUU` }).catch(() => {});
-  const openWA = (phone, msg) => Linking.openURL(`https://wa.me/${(phone || '+919826100000').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`);
+  const shareText = (title, body) =>
+    Share.share({ message: `${title}\n${body}\n— Trade SETUU` }).catch(() => {});
+
+  const openWA = (phone, msg) =>
+    Linking.openURL(`https://wa.me/${(phone || '+919826100000').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`);
 
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
-  // LOGIN & ROLE ONBOARDING SCREEN (Shown on Logout or Role Switch)
+  // LOGIN & ROLE ONBOARDING SCREEN
   if (!isLoggedIn) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#090C10', justifyContent: 'center', padding: 20 }}>
@@ -363,7 +370,7 @@ export default function App() {
       </View>
 
       {showLogistics ? (
-        <LogisticsHubScreen theme={theme} />
+        <GlobalLogisticsHubScreen theme={theme} />
       ) : (
         <>
           {/* TAB 1: LINKEDIN-STYLE OPEN EDGE-TO-EDGE TRADE FEED */}
@@ -431,18 +438,32 @@ export default function App() {
                     onPress={() => setModal('post')}
                     style={[styles.startPostStrip, { backgroundColor: T.card, borderColor: T.border }]}
                   >
-                    <View style={styles.avatarCircle}><Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>NJ</Text></View>
+                    <View style={styles.avatarCircle}>
+                      <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>NJ</Text>
+                    </View>
                     <View style={[styles.fakeInput, { borderColor: T.border }]}>
                       <Text style={{ color: T.sub, fontSize: 13 }}>Post a sell offer, buy requirement or fleet load...</Text>
                     </View>
-                      
                   </TouchableOpacity>
-                    {visiblePosts.map((post) => (
-                <View key={post.id || post.title} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
 
-        
-               
-                             
+                  {visiblePosts.map((post) => {
+                    const liked = likedIds.includes(post.id);
+                    const saved = savedIds.includes(post.id);
+                    return (
+                      <View key={post.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
+                        {/* Trader Header */}
+                        <View style={styles.rowBetween}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                            <View style={styles.avatarCircle}>
+                              <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12 }}>{post.initials || 'TS'}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: T.text, fontSize: 14, fontWeight: '800' }}>{post.trader_name}</Text>
+                              <Text style={{ color: T.sub, fontSize: 11 }}>{post.trader_role}</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.offerPill}>{post.post_type}</Text>
+                        </View>
 
                         {/* Clean Open Headline & Description */}
                         <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', marginTop: 10, lineHeight: 21 }}>{post.title}</Text>
@@ -578,17 +599,14 @@ export default function App() {
             </View>
           )}
 
-          {/* TAB 4: SETUU CALC PRO */}
-          {activeTab === 'calc' && <SetuuCalcProScreen theme={theme} />}
-
-          {/* TAB 5: SERVICE HUB */}
-          {activeTab === 'services' && (
+          {/* TAB 4 & 5: SERVICE HUB (INCLUDES SETUU CALC PRO SUITES) */}
+          {(activeTab === 'calc' || activeTab === 'services') && (
             <ServiceHubScreen
               theme={theme}
               isPaid={isPaid}
               vaultBalance={vaultBalance}
               onDeductVault={(amt, note) => setVaultBalance((v) => Math.max(0, v - amt))}
-              onOpenCalc={() => switchTab('calc')}
+              onOpenCalc={() => switchTab('services')}
               onOpenLogistics={() => setShowLogistics(true)}
             />
           )}
