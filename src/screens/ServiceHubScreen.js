@@ -87,7 +87,7 @@ const ACTIVE_HUB_TILES = [
    {
     id: 'setu_calc_pro_suite',
     code: '08',
-    title: 'सेतु कैल्क प्रो सूट',
+    title: 'Setu CalcPro Suite',
     subtitle: 'Setu CalcPro Suite • 7×3 (21 Tools)',
     category: 'Calculators',
     badge: 'NEW',
