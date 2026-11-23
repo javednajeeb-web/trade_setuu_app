@@ -14,6 +14,7 @@ import EcgCreditCoverScreen from './EcgCreditCoverScreen';
 import MarineInsuranceScreen from './MarineInsuranceScreen';
 import TradeFinanceDeskScreen from './TradeFinanceDeskScreen';
 import BlindDealRoomScreen from './BlindDealRoomScreen';
+import SetuCalcProSuiteScreen from './SetuCalcProSuiteScreen';
 
 const ACTIVE_HUB_TILES = [
   {
@@ -83,7 +84,17 @@ const ACTIVE_HUB_TILES = [
     actionType: 'BLIND_DEAL_ROOM',
     enabled: true,
    },
-    
+   {
+    id: 'setu_calc_pro_suite',
+    code: '08',
+    title: 'सेतु कैल्क प्रो सूट',
+    subtitle: 'Setu CalcPro Suite • 7×3 (21 Tools)',
+    category: 'Calculators',
+    badge: 'NEW',
+    accent: '#2DD4BF',
+    actionType: 'SETU_CALCPRO_SUITE',
+   },
+  
 ];
 
 export default function ServiceHubScreen({ onOpenService }) {
@@ -117,9 +128,12 @@ export default function ServiceHubScreen({ onOpenService }) {
   }
   if (openScreenKey === 'BLIND_DEAL_ROOM') {
   return <BlindDealRoomScreen onBack={() => setOpenScreenKey(null)} />;
-}
-  
-  return (
+  }
+  if (openScreenKey === 'SETU_CALCPRO_SUITE') {
+    return <SetuCalcProSuiteScreen onBack={() => setOpenScreenKey(null)} />;
+ }
+ 
+      return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
 
