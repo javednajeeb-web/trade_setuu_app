@@ -1,1384 +1,1092 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  Modal,
 } from 'react-native';
 
-const COUNTRY_CONFIGS = [
-  {
-    country: 'India',
-    defaultCurrency: 'INR',
-    defaultWeightUnit: 'MT',
-    defaultDimUnit: 'CM',
-    normalFeePerTon: 25,
-    backhaulMinMarkup: 3000,
-    backhaulMaxMarkup: 5000,
-  },
-  {
-    country: 'United Arab Emirates',
-    defaultCurrency: 'AED',
-    defaultWeightUnit: 'MT',
-    defaultDimUnit: 'CM',
-    normalFeePerTon: 12,
-    backhaulMinMarkup: 180,
-    backhaulMaxMarkup: 350,
-  },
-  {
-    country: 'United States',
-    defaultCurrency: 'USD',
-    defaultWeightUnit: 'LB',
-    defaultDimUnit: 'IN',
-    normalFeePerTon: 4,
-    backhaulMinMarkup: 60,
-    backhaulMaxMarkup: 120,
-  },
-  {
-    country: 'Netherlands',
-    defaultCurrency: 'EUR',
-    defaultWeightUnit: 'MT',
-    defaultDimUnit: 'CM',
-    normalFeePerTon: 3.5,
-    backhaulMinMarkup: 55,
-    backhaulMaxMarkup: 110,
-  },
-  {
-    country: 'Singapore',
-    defaultCurrency: 'SGD',
-    defaultWeightUnit: 'KG',
-    defaultDimUnit: 'CM',
-    normalFeePerTon: 5,
-    backhaulMinMarkup: 75,
-    backhaulMaxMarkup: 150,
-  },
+const COUNTRIES = [
+  { code: 'IN', name: 'India', currency: 'INR', symbol: '₹', weightUnit: 'MT', dimUnit: 'CM', regionFactor: 1.0 },
+  { code: 'AE', name: 'United Arab Emirates', currency: 'AED', symbol: 'AED ', weightUnit: 'MT', dimUnit: 'CM', regionFactor: 1.15 },
+  { code: 'US', name: 'United States', currency: 'USD', symbol: '$', weightUnit: 'LB', dimUnit: 'IN', regionFactor: 1.35 },
+  { code: 'SG', name: 'Singapore', currency: 'SGD', symbol: 'S$', weightUnit: 'KG', dimUnit: 'CM', regionFactor: 1.2 },
+  { code: 'DE', name: 'Germany', currency: 'EUR', symbol: '€', weightUnit: 'KG', dimUnit: 'CM', regionFactor: 1.25 },
+  { code: 'NL', name: 'Netherlands', currency: 'EUR', symbol: '€', weightUnit: 'MT', dimUnit: 'CM', regionFactor: 1.22 },
+  { code: 'GB', name: 'United Kingdom', currency: 'GBP', symbol: '£', weightUnit: 'KG', dimUnit: 'CM', regionFactor: 1.28 },
+  { code: 'SA', name: 'Saudi Arabia', currency: 'SAR', symbol: 'SAR ', weightUnit: 'MT', dimUnit: 'CM', regionFactor: 1.18 },
+  { code: 'CN', name: 'China', currency: 'USD', symbol: '$', weightUnit: 'MT', dimUnit: 'CM', regionFactor: 1.12 },
+  { code: 'VN', name: 'Vietnam', currency: 'USD', symbol: '$', weightUnit: 'MT', dimUnit: 'CM', regionFactor: 1.08 },
 ];
 
-const CURRENCIES = ['INR', 'USD', 'EUR', 'AED', 'SGD', 'GBP'];
-const WEIGHT_UNITS = ['MT', 'KG', 'LB'];
-const DIM_UNITS = ['CM', 'MM', 'IN', 'FT'];
-const VOL_UNITS = ['CBM', 'CFT'];
+const CURRENCIES = ['INR', 'USD', 'AED', 'EUR', 'SGD', 'GBP', 'SAR'];
 
-const INCOTERMS_2020 = [
-  'EXW',
-  'FCA',
-  'FOB',
-  'CFR',
-  'CIF',
-  'CPT',
-  'CIP',
-  'DAP',
-  'DPU',
-  'DDP',
+const FX_TO_INR = {
+  INR: 1,
+  USD: 92.65,
+  AED: 25.23,
+  EUR: 100.4,
+  SGD: 69.1,
+  GBP: 117.5,
+  SAR: 24.7,
+};
+
+const PORTS_BY_COUNTRY = {
+  IN: ['Nhava Sheva (INNSA)', 'Mundra (INMUN)', 'Chennai (INMAA)', 'Visakhapatnam (INVTZ)', 'Kakinada (INKAK)'],
+  AE: ['Jebel Ali (AEJEA)', 'Khalifa Port (AUH)', 'Sharjah Port (SHJ)'],
+  NL: ['Rotterdam (NLRTM)', 'Amsterdam (NLAMS)'],
+  SG: ['PSA Singapore (SGSIN)', 'Jurong Port (SGJUR)'],
+  DE: ['Hamburg (DEHAM)', 'Bremerhaven (DEBRV)'],
+  US: ['Los Angeles (USLAX)', 'Savannah (USSAV)', 'New York / NJ (USNYC)'],
+  GB: ['Felixstowe (GBFXT)', 'Southampton (GBSOU)'],
+  SA: ['Jeddah Islamic Port (SAJED)', 'Dammam Port (SADMM)'],
+  CN: ['Shanghai (CNSHA)', 'Shenzhen (CNSZX)'],
+  VN: ['Ho Chi Minh (VNSGN)', 'Hai Phong (VNHPH)'],
+};
+
+const ALL_PORTS = Object.values(PORTS_BY_COUNTRY).flat();
+
+const AIRPORTS = [
+  'DEL — New Delhi, India',
+  'BOM — Mumbai, India',
+  'BLR — Bengaluru, India',
+  'DXB — Dubai, UAE',
+  'FRA — Frankfurt, Germany',
+  'SIN — Singapore',
+  'LHR — London Heathrow, UK',
 ];
 
-const INCOTERM_NOTES = {
-  EXW: 'Seller makes goods available at premises; buyer handles export, main carriage & import.',
-  FCA: 'Seller delivers to carrier/named place; export clearance & main carriage follow agreed terms.',
-  FOB: 'Ocean/inland waterway: seller delivers on board vessel at named port of shipment.',
-  CFR: 'Ocean/inland waterway: seller pays freight to destination port; risk transfers on board.',
-  CIF: 'Ocean/inland waterway: CFR plus minimum marine cargo insurance arranged by seller.',
-  CPT: 'Any mode: seller pays carriage to named destination; risk transfers on handover to first carrier.',
-  CIP: 'Any mode: CPT plus higher insurance coverage as per Incoterms 2020.',
-  DAP: 'Delivered at place ready for unloading; buyer handles import customs & duties.',
-  DPU: 'Delivered at place unloaded; seller unloads at destination, buyer handles import customs.',
-  DDP: 'Maximum seller responsibility including import customs clearance & duties (subject to country rules).',
-};
-
-const PORTS_MASTER = [
-  'Nhava Sheva (JNPT), India',
-  'Mundra, India',
-  'Jebel Ali, UAE',
-  'Rotterdam, Netherlands',
-  'Singapore, Singapore',
-  'Shanghai, China',
-  'Los Angeles, USA',
+const FLEET_OPTIONS = [
+  { id: 'mini', label: 'Mini Truck (1–3 MT)', maxMt: 3, baseInr: 4500, perKmInr: 22 },
+  { id: 'lcv', label: 'LCV (3–7 MT)', maxMt: 7, baseInr: 8500, perKmInr: 32 },
+  { id: '6w', label: '6-Wheeler (7–10 MT)', maxMt: 10, baseInr: 13000, perKmInr: 42 },
+  { id: '10w', label: '10-Wheeler (15–16 MT)', maxMt: 16, baseInr: 19500, perKmInr: 55 },
+  { id: '16w', label: '16-Wheeler (18–21 MT)', maxMt: 21, baseInr: 25000, perKmInr: 68 },
+  { id: '22w', label: '22-Wheeler Multi-Axle (25–35 MT)', maxMt: 35, baseInr: 34000, perKmInr: 88 },
+  { id: 'rail', label: 'Rail / Bulk Rake', maxMt: 60, baseInr: 48000, perKmInr: 72 },
 ];
 
-const AIRPORTS_MASTER = [
-  'DEL - Delhi, India',
-  'BOM - Mumbai, India',
-  'DXB - Dubai, UAE',
-  'AMS - Amsterdam, Netherlands',
-  'SIN - Singapore, Singapore',
-  'FRA - Frankfurt, Germany',
-];
+const LOAD_MODES = ['FTL', 'PTL', 'Container', 'Reefer', 'Rail'];
+const SEA_INCOTERMS = ['FOB', 'CIF', 'CFR', 'EXW', 'FCA', 'DAP', 'DDP'];
 
-const toKg = (val, unit) => {
-  const n = parseFloat(val);
-  if (isNaN(n) || n <= 0) return 0;
-  if (unit === 'MT') return n * 1000;
-  if (unit === 'LB') return n * 0.453592;
-  return n;
-};
+function formatMoney(inrAmount, targetCurrency) {
+  const rate = FX_TO_INR[targetCurrency] || 1;
+  const val = inrAmount / rate;
+  if (targetCurrency === 'INR') {
+    return `₹${Math.round(val).toLocaleString('en-IN')}`;
+  }
+  return `${targetCurrency} ${val.toFixed(2)}`;
+}
 
-const toCm = (val, unit) => {
-  const n = parseFloat(val);
-  if (isNaN(n) || n <= 0) return 0;
-  if (unit === 'MM') return n / 10;
-  if (unit === 'IN') return n * 2.54;
-  if (unit === 'FT') return n * 30.48;
-  return n;
-};
+export default function GlobalLogisticsHub({ theme = 'dark' }) {
+  const isDark = theme === 'dark';
 
-const fromKg = (kg, targetUnit) => {
-  if (targetUnit === 'MT') return kg / 1000;
-  if (targetUnit === 'LB') return kg / 0.453592;
-  return kg;
-};
+  const C = {
+    bg: isDark ? '#090C10' : '#F3F5F8',
+    card: isDark ? '#11161F' : '#FFFFFF',
+    cardAlt: isDark ? '#151D2B' : '#F8FAFC',
+    border: isDark ? '#1F2937' : '#E2E8F0',
+    text: isDark ? '#F8FAFC' : '#0F172A',
+    sub: isDark ? '#94A3B8' : '#64748B',
+    teal: '#0D9488',
+    tealBright: '#14B8A6',
+    gold: '#C9B89A',
+    pill: isDark ? '#182230' : '#E2E8F0',
+  };
 
-export default function GlobalLogisticsHubScreen({ onBack }) {
-  const [selectedCountry, setSelectedCountry] = useState('India');
-  const [displayCurrency, setDisplayCurrency] = useState('INR');
+  // Active Screen: null (4-Tile Hub), 'inland', 'ocean', 'air', 'sample', 'requests'
+  const [activeScreen, setActiveScreen] = useState(null);
+
+  // Country History & Region / Currency State
+  const [recentCodes, setRecentCodes] = useState(['IN', 'AE', 'US']);
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [txCurrency, setTxCurrency] = useState('INR');
+  const [dispCurrency, setDispCurrency] = useState('INR');
   const [weightUnit, setWeightUnit] = useState('MT');
   const [dimUnit, setDimUnit] = useState('CM');
-  const [volUnit, setVolUnit] = useState('CBM');
+  const [countryModalOpen, setCountryModalOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
 
-  const [activeTab, setActiveTab] = useState('INLAND');
-
-  const [inlandSubMode, setInlandSubMode] = useState('NORMAL');
-  const [inlandMode, setInlandMode] = useState('Road Freight');
-  const [originCountry, setOriginCountry] = useState('India');
+  // Inland State
+  const [inlandMode, setInlandMode] = useState('normal'); // 'normal' | 'backhaul'
+  const [loadMode, setLoadMode] = useState('FTL');
   const [pickupLoc, setPickupLoc] = useState('');
-  const [destCountry, setDestCountry] = useState('India');
   const [deliveryLoc, setDeliveryLoc] = useState('');
-  const [cargoName, setCargoName] = useState('');
-  const [cargoWeight, setCargoWeight] = useState('');
-  const [vehicleType, setVehicleType] = useState('18T / 22T Fleet');
-  const [pickupDate, setPickupDate] = useState('');
-  const [deliveryDate, setDeliveryDate] = useState('');
-  const [inlandNotes, setInlandNotes] = useState('');
+  const [distanceKm, setDistanceKm] = useState('450');
+  const [inlandCargo, setInlandCargo] = useState('');
+  const [inlandWeight, setInlandWeight] = useState('20');
+  const [showVehicleOptions, setShowVehicleOptions] = useState(false);
+  const [selectedFleetId, setSelectedFleetId] = useState('22w');
+  const [showIndicativeRates, setShowIndicativeRates] = useState(false);
+  const [backhaulRoute, setBackhaulRoute] = useState('');
+  const [backhaulWeight, setBackhaulWeight] = useState('25');
 
-  const [bidderRole, setBidderRole] = useState('CARGO_OWNER');
-  const [partnerBidInput, setPartnerBidInput] = useState('70000');
-  const [returnRoute, setReturnRoute] = useState('');
-  const [availableCapacity, setAvailableCapacity] = useState('');
-
-  const [oceanOriginCountry, setOceanOriginCountry] = useState('India');
-  const [originPort, setOriginPort] = useState('Nhava Sheva (JNPT), India');
-  const [oceanDestCountry, setOceanDestCountry] = useState('United Arab Emirates');
-  const [destPort, setDestPort] = useState('Jebel Ali, UAE');
-  const [shippingType, setShippingType] = useState('FCL');
-  const [containerSize, setContainerSize] = useState('40ft HC');
-  const [containerQty, setContainerQty] = useState('1');
-  const [oceanCommodity, setOceanCommodity] = useState('');
-  const [hsCode, setHsCode] = useState('');
-  const [oceanWeight, setOceanWeight] = useState('');
-  const [oceanVolume, setOceanVolume] = useState('');
+  // Ocean State
+  const [originCountryCode, setOriginCountryCode] = useState('IN');
+  const [destCountryCode, setDestCountryCode] = useState('AE');
+  const [originPort, setOriginPort] = useState(PORTS_BY_COUNTRY.IN[0]);
+  const [destPort, setDestPort] = useState(PORTS_BY_COUNTRY.AE[0]);
+  const [oceanType, setOceanType] = useState('FCL'); // 'FCL' | 'LCL' | 'Bulk'
+  const [containerSize, setContainerSize] = useState('40 ft');
   const [incoterm, setIncoterm] = useState('CIF');
-  const [sailingWindow, setSailingWindow] = useState('');
+  const [oceanCargo, setOceanCargo] = useState('');
+  const [showOceanQuotes, setShowOceanQuotes] = useState(false);
 
-  const [originAirport, setOriginAirport] = useState('BOM - Mumbai, India');
-  const [destAirport, setDestAirport] = useState('DXB - Dubai, UAE');
-  const [airCargoCategory, setAirCargoCategory] = useState('General Cargo');
-  const [airActualWeight, setAirActualWeight] = useState('');
-  const [airLen, setAirLen] = useState('');
-  const [airWid, setAirWid] = useState('');
-  const [airHei, setAirHei] = useState('');
-  const [airPackages, setAirPackages] = useState('1');
-  const [volDivisor, setVolDivisor] = useState('5000');
+  // Air State
+  const [airTab, setAirTab] = useState('calculator'); // 'details' | 'calculator' | 'documents'
+  const [originAirport, setOriginAirport] = useState(AIRPORTS[0]);
+  const [destAirport, setDestAirport] = useState(AIRPORTS[4]);
+  const [airCargoType, setAirCargoType] = useState('General Cargo');
+  const [actualWeightKg, setActualWeightKg] = useState('250');
+  const [dimL, setDimL] = useState('120');
+  const [dimW, setDimW] = useState('80');
+  const [dimH, setDimH] = useState('75');
+  const [airDocs, setAirDocs] = useState({
+    invoicePacking: true,
+    awbDraft: true,
+    msdsDg: false,
+    permits: false,
+  });
 
-  const [sampleCourier, setSampleCourier] = useState('DHL Express');
-  const [senderDetails, setSenderDetails] = useState('');
-  const [pickupAddress, setPickupAddress] = useState('');
-  const [receiverLab, setReceiverLab] = useState('');
-  const [sampleRefId, setSampleRefId] = useState('TS-SMP-2041');
-  const [trackingRef, setTrackingRef] = useState('');
-  const [sampleStatus, setSampleStatus] = useState('Draft / Pickup Requested (Manual Beta)');
+  // Sample & Tracking State
+  const [sampleTab, setSampleTab] = useState('express'); // 'express' | 'track'
+  const [courierPref, setCourierPref] = useState('DHL Express');
+  const [sampleCommodity, setSampleCommodity] = useState('');
+  const [sampleOrigin, setSampleOrigin] = useState('');
+  const [sampleDest, setSampleDest] = useState('');
+  const [sampleRefId] = useState('TS-SMP-2041');
+  const [awbRef, setAwbRef] = useState('');
+  const [trackInput, setTrackInput] = useState('TS-SMP-2041');
 
-  const currentCountryCfg = useMemo(() => {
-    return (
-      COUNTRY_CONFIGS.find((c) => c.country === selectedCountry) ||
-      COUNTRY_CONFIGS[0]
+  // Requests History
+  const [requests, setRequests] = useState([
+    {
+      id: 'TS-REQ-1001',
+      mode: 'Inland (22-Wheeler)',
+      route: 'Raipur → Visakhapatnam',
+      status: 'Quote Requested',
+    },
+  ]);
+
+  const recentCountries = useMemo(() => {
+    return recentCodes
+      .map((code) => COUNTRIES.find((c) => c.code === code))
+      .filter(Boolean);
+  }, [recentCodes]);
+
+  const filteredCountries = useMemo(() => {
+    const q = countrySearch.trim().toLowerCase();
+    if (!q) return COUNTRIES;
+    return COUNTRIES.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q) ||
+        c.currency.toLowerCase().includes(q)
     );
-  }, [selectedCountry]);
+  }, [countrySearch]);
 
-  const handleSelectCountry = (cfg) => {
-    setSelectedCountry(cfg.country);
-    setDisplayCurrency(cfg.defaultCurrency);
-    setTxCurrency(cfg.defaultCurrency);
-    setWeightUnit(cfg.defaultWeightUnit);
-    setDimUnit(cfg.defaultDimUnit);
+  const handleSelectCountry = (c) => {
+    setSelectedCountry(c);
+    setTxCurrency(c.currency);
+    setDispCurrency(c.currency);
+    setWeightUnit(c.weightUnit);
+    setDimUnit(c.dimUnit);
+    setRecentCodes((prev) => [c.code, ...prev.filter((item) => item !== c.code)].slice(0, 5));
+    setCountryModalOpen(false);
+    setCountrySearch('');
   };
 
-  const inlandNormalEstimate = useMemo(() => {
-    const w = parseFloat(cargoWeight);
-    const validWeight = isNaN(w) || w <= 0 ? 0 : w;
-    const mtEquivalent = toKg(validWeight, weightUnit) / 1000;
-    const feeRate = currentCountryCfg.normalFeePerTon;
-    const indicativeFee = mtEquivalent * feeRate;
-    return {
-      validWeight,
-      mtEquivalent,
-      feeRate,
-      indicativeFee,
-    };
-  }, [cargoWeight, weightUnit, currentCountryCfg]);
-
-  const backhaulQuote = useMemo(() => {
-    const bid = parseFloat(partnerBidInput);
-    const validBid = isNaN(bid) || bid <= 0 ? 0 : bid;
-    const minMarkup = currentCountryCfg.backhaulMinMarkup;
-    const maxMarkup = currentCountryCfg.backhaulMaxMarkup;
-    const midMarkup = Math.round((minMarkup + maxMarkup) / 2);
-    return {
-      validBid,
-      minMarkup,
-      maxMarkup,
-      midMarkup,
-      displayMin: validBid + minMarkup,
-      displayMax: validBid + maxMarkup,
-      displayIndicative: validBid + midMarkup,
-    };
-  }, [partnerBidInput, currentCountryCfg]);
-
-  const airWeightCalc = useMemo(() => {
-    const actualKg = toKg(airActualWeight, weightUnit);
-    const lCm = toCm(airLen, dimUnit);
-    const wCm = toCm(airWid, dimUnit);
-    const hCm = toCm(airHei, dimUnit);
-    const pkgs = Math.max(1, parseInt(airPackages, 10) || 1);
-    const div = Math.max(1, parseFloat(volDivisor) || 5000);
-
-    const volumetricKg =
-      lCm > 0 && wCm > 0 && hCm > 0 ? ((lCm * wCm * hCm) / div) * pkgs : 0;
-    const chargeableKg = Math.max(actualKg, volumetricKg);
-
-    return {
-      actualDisplay: fromKg(actualKg, weightUnit),
-      volumetricDisplay: fromKg(volumetricKg, weightUnit),
-      chargeableDisplay: fromKg(chargeableKg, weightUnit),
-    };
-  }, [airActualWeight, airLen, airWid, airHei, airPackages, volDivisor, weightUnit, dimUnit]);
-
-  const handleSubmitInland = () => {
-    if (!pickupLoc.trim() || !deliveryLoc.trim()) {
-      Alert.alert(
-        'Required Locations',
-        'Please enter Pickup Location and Delivery Location (Beta Request Mode).'
-      );
-      return;
-    }
-    Alert.alert(
-      'Beta Request Prepared',
-      `${inlandMode} (${inlandSubMode === 'NORMAL' ? 'Normal Booking' : 'Backhaul / Bidding'}) saved as an indicative request in ${txCurrency}.`
-    );
+  const handleOriginCountryChange = (code) => {
+    setOriginCountryCode(code);
+    const list = PORTS_BY_COUNTRY[code] || ALL_PORTS;
+    setOriginPort(list[0] || '');
   };
 
-  const handleSubmitOceanInquiry = () => {
-    if (!oceanCommodity.trim()) {
-      Alert.alert(
-        'Commodity Required',
-        'Please enter Commodity details to prepare an indicative shipping inquiry.'
-      );
-      return;
-    }
-    Alert.alert(
-      'Shipping Inquiry Saved',
-      `${shippingType} (${incoterm}) inquiry from ${originPort} to ${destPort} prepared as Request Only.`
-    );
+  const handleDestCountryChange = (code) => {
+    setDestCountryCode(code);
+    const list = PORTS_BY_COUNTRY[code] || ALL_PORTS;
+    setDestPort(list[0] || '');
   };
 
-  const handleSubmitAirInquiry = () => {
-    Alert.alert(
-      'Air Freight Inquiry Drafted',
-      `${airCargoCategory} from ${originAirport} to ${destAirport} (Chargeable: ${airWeightCalc.chargeableDisplay.toFixed(2)} ${weightUnit}) saved as Request Only.`
-    );
-  };
-
-  const handleGenerateSampleRef = () => {
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    const newId = `TS-SMP-${rand}`;
-    setSampleRefId(newId);
-    if (!trackingRef.trim()) {
-      setTrackingRef(`${sampleCourier.slice(0, 3).toUpperCase()}-${rand}8820`);
-    }
-    setSampleStatus('Pickup / Dispatch Request Logged (Manual Beta)');
-    Alert.alert(
-      'Sample Reference Created',
-      `Sample Ref ${newId} prepared with ${sampleCourier}. Live carrier tracking is Coming Soon.`
-    );
-  };
-
-  const renderGlobalConfigBar = () => (
-    <View style={styles.configCard}>
-      <View style={styles.rowBetween}>
-        <Text style={styles.sectionMiniTitle}>Global Region & Units (Manual)</Text>
-        <Text style={styles.tagZeroApi}>ZERO PAID API • BETA</Text>
-      </View>
-
-      <Text style={styles.fieldLabel}>Country / Regional Rule Set</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {COUNTRY_CONFIGS.map((cfg) => {
-          const active = cfg.country === selectedCountry;
-          return (
-            <TouchableOpacity
-              key={cfg.country}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => handleSelectCountry(cfg)}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {cfg.country}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      <Text style={styles.fieldLabel}>
-        Transaction Currency ({txCurrency}) • Display Currency ({displayCurrency})
-      </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {CURRENCIES.map((cur) => {
-          const active = cur === txCurrency;
-          return (
-            <TouchableOpacity
-              key={cur}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => {
-                setTxCurrency(cur);
-                setDisplayCurrency(cur);
-              }}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>{cur}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-      <View style={styles.rowBetween}>
-        <View style={styles.halfCol}>
-          <Text style={styles.fieldLabel}>Weight Unit</Text>
-          <View style={styles.inlineWrap}>
-            {WEIGHT_UNITS.map((u) => (
-              <TouchableOpacity
-                key={u}
-                style={[styles.smallChip, weightUnit === u && styles.chipActive]}
-                onPress={() => setWeightUnit(u)}
-              >
-                <Text style={[styles.smallChipText, weightUnit === u && styles.chipTextActive]}>
-                  {u}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.halfCol}>
-          <Text style={styles.fieldLabel}>Dimension / Volume</Text>
-          <View style={styles.inlineWrap}>
-            {DIM_UNITS.slice(0, 3).map((d) => (
-              <TouchableOpacity
-                key={d}
-                style={[styles.smallChip, dimUnit === d && styles.chipActive]}
-                onPress={() => setDimUnit(d)}
-              >
-                <Text style={[styles.smallChipText, dimUnit === d && styles.chipTextActive]}>
-                  {d}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            {VOL_UNITS.map((v) => (
-              <TouchableOpacity
-                key={v}
-                style={[styles.smallChip, volUnit === v && styles.chipActive]}
-                onPress={() => setVolUnit(v)}
-              >
-                <Text style={[styles.smallChipText, volUnit === v && styles.chipTextActive]}>
-                  {v}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </View>
-    </View>
+  const selectedFleet = useMemo(
+    () => FLEET_OPTIONS.find((f) => f.id === selectedFleetId) || FLEET_OPTIONS[5],
+    [selectedFleetId]
   );
 
-  const renderInlandSection = () => (
-    <View style={styles.panel}>
-      <View style={styles.rowBetween}>
-        <Text style={styles.panelTitle}>1. Inland Transport</Text>
-        <Text style={styles.badgePreview}>BETA • REQUEST MODE</Text>
-      </View>
-      <Text style={styles.subHint}>
-        Global road, rail, bulk & corridor haulage. Configurable country fee/markup rules (no hardcoded global rate).
-      </Text>
+  // All-inclusive indicative inland calculation (distance + weight + regional factor + margin)
+  const inlandEstimateInr = useMemo(() => {
+    const km = Math.max(20, parseFloat(distanceKm) || 350);
+    const wt = Math.max(1, parseFloat(inlandMode === 'backhaul' ? backhaulWeight : inlandWeight) || 15);
+    const rawTrip = selectedFleet.baseInr + km * selectedFleet.perKmInr + wt * 140;
+    const withRegion = rawTrip * (selectedCountry.regionFactor || 1);
+    const marginMultiplier = inlandMode === 'backhaul' ? 1.06 : 1.1;
+    return Math.round(withRegion * marginMultiplier);
+  }, [distanceKm, inlandWeight, backhaulWeight, inlandMode, selectedFleet, selectedCountry]);
 
-      <View style={styles.subToggleRow}>
-        <TouchableOpacity
-          style={[styles.subToggleBtn, inlandSubMode === 'NORMAL' && styles.subToggleActive]}
-          onPress={() => setInlandSubMode('NORMAL')}
-        >
-          <Text style={[styles.subToggleText, inlandSubMode === 'NORMAL' && styles.activeText]}>
-            Normal Booking
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.subToggleBtn, inlandSubMode === 'BACKHAUL' && styles.subToggleActive]}
-          onPress={() => setInlandSubMode('BACKHAUL')}
-        >
-          <Text style={[styles.subToggleText, inlandSubMode === 'BACKHAUL' && styles.activeText]}>
-            Backhaul / Bidding
-          </Text>
-        </TouchableOpacity>
-      </View>
+  // Air Freight Chargeable Weight (KG & CM)
+  const airCalc = useMemo(() => {
+    const actKg = Math.max(0, parseFloat(actualWeightKg) || 0);
+    const l = Math.max(0, parseFloat(dimL) || 0);
+    const w = Math.max(0, parseFloat(dimW) || 0);
+    const h = Math.max(0, parseFloat(dimH) || 0);
+    const volKg = Number(((l * w * h) / 5000).toFixed(2));
+    const chargeableKg = Number(Math.max(actKg, volKg).toFixed(2));
+    return { actKg, volKg, chargeableKg };
+  }, [actualWeightKg, dimL, dimW, dimH]);
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {[
-          'Road Freight',
-          'Trucking',
-          'Rail Freight',
-          'Inland Haulage',
-          'Bulk Transport',
-          'Port-to-Warehouse',
-          'Warehouse-to-Factory',
-        ].map((m) => (
-          <TouchableOpacity
-            key={m}
-            style={[styles.chip, inlandMode === m && styles.chipActive]}
-            onPress={() => setInlandMode(m)}
-          >
-            <Text style={[styles.chipText, inlandMode === m && styles.chipTextActive]}>
-              {m}
+  const createRequestRecord = (modeLabel, routeLabel) => {
+    const newId = `TS-REQ-${Math.floor(1002 + Math.random() * 8997)}`;
+    setRequests((prev) => [
+      { id: newId, mode: modeLabel, route: routeLabel, status: 'Quote Requested' },
+      ...prev,
+    ]);
+    Alert.alert('Request Submitted', `Reference ID: ${newId}\nSaved in My Requests.`);
+  };
+
+  const originPortsList = PORTS_BY_COUNTRY[originCountryCode] || ALL_PORTS;
+  const destPortsList = PORTS_BY_COUNTRY[destCountryCode] || ALL_PORTS;
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: 96 }}>
+      {/* TOP HEADER + REGION / CURRENCY BAR */}
+      <View style={[styles.headerCard, { backgroundColor: C.card, borderBottomColor: C.border }]}>
+        <View style={styles.rowBetween}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: C.tealBright }]}>TRADE SETUU • LOGISTICS</Text>
+            <Text style={[styles.hubTitle, { color: C.text }]}>
+              {activeScreen === null && 'Global Logistics Hub'}
+              {activeScreen === 'inland' && 'Inland Transport'}
+              {activeScreen === 'ocean' && 'Ocean & Shipping'}
+              {activeScreen === 'air' && 'Air Freight'}
+              {activeScreen === 'sample' && 'Sample & Tracking'}
+              {activeScreen === 'requests' && 'My Logistics Requests'}
             </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+          </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Origin Country"
-        placeholderTextColor="#7C8BA1"
-        value={originCountry}
-        onChangeText={setOriginCountry}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Pickup Location (City / Plant / Yard)"
-        placeholderTextColor="#7C8BA1"
-        value={pickupLoc}
-        onChangeText={setPickupLoc}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Destination Country"
-        placeholderTextColor="#7C8BA1"
-        value={destCountry}
-        onChangeText={setDestCountry}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Delivery Location (City / Port / Warehouse)"
-        placeholderTextColor="#7C8BA1"
-        value={deliveryLoc}
-        onChangeText={setDeliveryLoc}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Cargo / Commodity"
-        placeholderTextColor="#7C8BA1"
-        value={cargoName}
-        onChangeText={setCargoName}
-      />
-
-      <View style={styles.rowBetween}>
-        <TextInput
-          style={[styles.input, styles.halfInput]}
-          placeholder={`Cargo Weight (${weightUnit})`}
-          placeholderTextColor="#7C8BA1"
-          keyboardType="numeric"
-          value={cargoWeight}
-          onChangeText={setCargoWeight}
-        />
-        <TextInput
-          style={[styles.input, styles.halfInput]}
-          placeholder="Vehicle / Fleet Type"
-          placeholderTextColor="#7C8BA1"
-          value={vehicleType}
-          onChangeText={setVehicleType}
-        />
-      </View>
-
-      <View style={styles.rowBetween}>
-        <TextInput
-          style={[styles.input, styles.halfInput]}
-          placeholder="Pickup Date (e.g. 26 Nov 2026)"
-          placeholderTextColor="#7C8BA1"
-          value={pickupDate}
-          onChangeText={setPickupDate}
-        />
-        <TextInput
-          style={[styles.input, styles.halfInput]}
-          placeholder="Delivery Date (e.g. 29 Nov 2026)"
-          placeholderTextColor="#7C8BA1"
-          value={deliveryDate}
-          onChangeText={setDeliveryDate}
-        />
-      </View>
-
-      {inlandSubMode === 'NORMAL' ? (
-        <View style={styles.summaryBox}>
-          <Text style={styles.summaryTitle}>
-            Normal Booking Fee Preview ({selectedCountry} Config)
-          </Text>
-          <Text style={styles.summaryLine}>
-            Configured Rule Rate: {currentCountryCfg.normalFeePerTon} {txCurrency} / MT (India example: ₹25/MT)
-          </Text>
-          <Text style={styles.summaryLine}>
-            Weight Equivalent: {inlandNormalEstimate.mtEquivalent.toFixed(2)} MT ({inlandNormalEstimate.validWeight || 0} {weightUnit})
-          </Text>
-          <Text style={styles.summaryHighlight}>
-            Indicative Platform Fee: {inlandNormalEstimate.indicativeFee.toFixed(2)} {txCurrency} (Request Only)
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.summaryBox}>
-          <Text style={styles.summaryTitle}>Backhaul / Bidding Workflow</Text>
-          <View style={styles.inlineWrap}>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
             <TouchableOpacity
-              style={[styles.smallChip, bidderRole === 'CARGO_OWNER' && styles.chipActive]}
-              onPress={() => setBidderRole('CARGO_OWNER')}
+              onPress={() => setActiveScreen(activeScreen === 'requests' ? null : 'requests')}
+              style={[styles.backPill, { backgroundColor: C.cardAlt, borderColor: C.border }]}
             >
-              <Text style={[styles.smallChipText, bidderRole === 'CARGO_OWNER' && styles.chipTextActive]}>
-                Cargo Owner / Shipper
+              <Text style={{ color: C.gold, fontSize: 11, fontWeight: '800' }}>
+                Requests ({requests.length})
               </Text>
             </TouchableOpacity>
+
+            {activeScreen !== null && (
+              <TouchableOpacity
+                onPress={() => setActiveScreen(null)}
+                style={[styles.backPill, { backgroundColor: C.pill, borderColor: C.border }]}
+              >
+                <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>← Hub</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Country Search/Dropdown + Transaction & Display Currency */}
+        <View style={styles.regionGrid}>
+          <TouchableOpacity
+            onPress={() => setCountryModalOpen(true)}
+            style={[styles.regionBox, { backgroundColor: C.cardAlt, borderColor: C.tealBright }]}
+          >
+            <Text style={{ color: C.sub, fontSize: 10, fontWeight: '800' }}>COUNTRY / REGION</Text>
+            <Text style={{ color: C.text, fontSize: 12, fontWeight: '900', marginTop: 2 }} numberOfLines={1}>
+              {selectedCountry.name} ({selectedCountry.code}) ▾
+            </Text>
+          </TouchableOpacity>
+
+          <View style={[styles.regionBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+            <Text style={{ color: C.sub, fontSize: 10, fontWeight: '800' }}>TX CURRENCY</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+              {CURRENCIES.map((cur) => (
+                <TouchableOpacity
+                  key={'tx-' + cur}
+                  onPress={() => setTxCurrency(cur)}
+                  style={[styles.miniChip, txCurrency === cur && { backgroundColor: C.teal }]}
+                >
+                  <Text style={{ color: txCurrency === cur ? '#FFF' : C.text, fontSize: 10, fontWeight: '800' }}>
+                    {cur}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={[styles.regionBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+            <Text style={{ color: C.sub, fontSize: 10, fontWeight: '800' }}>DISPLAY CURRENCY</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+              {CURRENCIES.map((cur) => (
+                <TouchableOpacity
+                  key={'dp-' + cur}
+                  onPress={() => setDispCurrency(cur)}
+                  style={[styles.miniChip, dispCurrency === cur && { backgroundColor: C.gold }]}
+                >
+                  <Text style={{ color: dispCurrency === cur ? '#090C10' : C.text, fontSize: 10, fontWeight: '800' }}>
+                    {cur}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </View>
+
+      {/* =========================================================
+          0. 4-TILE HUB DASHBOARD
+      ========================================================= */}
+      {activeScreen === null && (
+        <View style={{ padding: 14 }}>
+          <View style={[styles.heroBanner, { backgroundColor: C.card, borderColor: C.border }]}>
+            <View style={styles.heroRouteBar}>
+              <View style={styles.heroNode}>
+                <Text style={{ color: C.tealBright, fontSize: 11, fontWeight: '900' }}>INLAND</Text>
+                <Text style={{ color: C.sub, fontSize: 10 }}>Truck • Rail</Text>
+              </View>
+              <Text style={{ color: C.gold, fontSize: 13, fontWeight: '900' }}>── ✈ ──</Text>
+              <View style={styles.heroNode}>
+                <Text style={{ color: C.tealBright, fontSize: 11, fontWeight: '900' }}>OCEAN</Text>
+                <Text style={{ color: C.sub, fontSize: 10 }}>FCL • LCL • Bulk</Text>
+              </View>
+              <Text style={{ color: C.gold, fontSize: 13, fontWeight: '900' }}>── 🚢 ──</Text>
+              <View style={styles.heroNode}>
+                <Text style={{ color: C.tealBright, fontSize: 11, fontWeight: '900' }}>SAMPLES</Text>
+                <Text style={{ color: C.sub, fontSize: 10 }}>Express • Lab</Text>
+              </View>
+            </View>
+            <Text style={{ color: C.text, fontSize: 15, fontWeight: '900', marginTop: 10 }}>
+              Plan • Compare • Quote • Track
+            </Text>
+            <Text style={{ color: C.sub, fontSize: 12, marginTop: 2, lineHeight: 17 }}>
+              Active Context: {selectedCountry.name} • Display {dispCurrency} • Settlement {txCurrency}
+            </Text>
+          </View>
+
+          <View style={styles.gridRow}>
             <TouchableOpacity
-              style={[styles.smallChip, bidderRole === 'TRANSPORT_PARTNER' && styles.chipActive]}
-              onPress={() => setBidderRole('TRANSPORT_PARTNER')}
+              onPress={() => setActiveScreen('inland')}
+              style={[styles.hubTile, { backgroundColor: C.card, borderColor: C.tealBright }]}
             >
-              <Text style={[styles.smallChipText, bidderRole === 'TRANSPORT_PARTNER' && styles.chipTextActive]}>
-                Transport Partner / Fleet
-              </Text>
+              <View style={[styles.tileBadge, { backgroundColor: 'rgba(13,148,136,0.16)' }]}>
+                <Text style={{ fontSize: 22 }}>🚛</Text>
+              </View>
+              <Text style={[styles.tileTitle, { color: C.text }]}>Inland Transport</Text>
+              <Text style={[styles.tileSub, { color: C.sub }]}>FTL • PTL • Vehicles • Rates</Text>
+              <Text style={[styles.tileCta, { color: C.tealBright }]}>Open →</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setActiveScreen('ocean')}
+              style={[styles.hubTile, { backgroundColor: C.card, borderColor: C.gold }]}
+            >
+              <View style={[styles.tileBadge, { backgroundColor: 'rgba(201,184,154,0.18)' }]}>
+                <Text style={{ fontSize: 22 }}>🚢</Text>
+              </View>
+              <Text style={[styles.tileTitle, { color: C.text }]}>Ocean & Shipping</Text>
+              <Text style={[styles.tileSub, { color: C.sub }]}>Ports • Containers • Quotes</Text>
+              <Text style={[styles.tileCta, { color: C.gold }]}>Compare Rates →</Text>
             </TouchableOpacity>
           </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Return Route / Corridor"
-            placeholderTextColor="#7C8BA1"
-            value={returnRoute}
-            onChangeText={setReturnRoute}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Available Capacity / Load Window"
-            placeholderTextColor="#7C8BA1"
-            value={availableCapacity}
-            onChangeText={setAvailableCapacity}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder={`Partner Bid / Offer Amount (${txCurrency})`}
-            placeholderTextColor="#7C8BA1"
-            keyboardType="numeric"
-            value={partnerBidInput}
-            onChangeText={setPartnerBidInput}
-          />
+          <View style={styles.gridRow}>
+            <TouchableOpacity
+              onPress={() => setActiveScreen('air')}
+              style={[styles.hubTile, { backgroundColor: C.card, borderColor: C.border }]}
+            >
+              <View style={[styles.tileBadge, { backgroundColor: 'rgba(13,148,136,0.16)' }]}>
+                <Text style={{ fontSize: 22 }}>✈️</Text>
+              </View>
+              <Text style={[styles.tileTitle, { color: C.text }]}>Air Freight</Text>
+              <Text style={[styles.tileSub, { color: C.sub }]}>KG / CM Weight • Docs</Text>
+              <Text style={[styles.tileCta, { color: C.tealBright }]}>Calculate →</Text>
+            </TouchableOpacity>
 
-          <Text style={styles.summaryLine}>
-            Partner Bid: {backhaulQuote.validBid.toLocaleString()} {txCurrency}
-          </Text>
-          <Text style={styles.summaryLine}>
-            Configurable Trip Markup ({selectedCountry}): {backhaulQuote.minMarkup.toLocaleString()} – {backhaulQuote.maxMarkup.toLocaleString()} {txCurrency} (India example: ₹3,000–₹5,000/trip)
-          </Text>
-          <Text style={styles.summaryHighlight}>
-            Indicative Displayed Range: {backhaulQuote.displayMin.toLocaleString()} – {backhaulQuote.displayMax.toLocaleString()} {txCurrency}
-          </Text>
+            <TouchableOpacity
+              onPress={() => setActiveScreen('sample')}
+              style={[styles.hubTile, { backgroundColor: C.card, borderColor: C.border }]}
+            >
+              <View style={[styles.tileBadge, { backgroundColor: 'rgba(201,184,154,0.18)' }]}>
+                <Text style={{ fontSize: 22 }}>📦</Text>
+              </View>
+              <Text style={[styles.tileTitle, { color: C.text }]}>Sample & Tracking</Text>
+              <Text style={[styles.tileSub, { color: C.sub }]}>Express • Lab Status</Text>
+              <Text style={[styles.tileCta, { color: C.gold }]}>Track →</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Loading / Unloading & Special Instructions"
-        placeholderTextColor="#7C8BA1"
-        value={inlandNotes}
-        onChangeText={setInlandNotes}
-      />
+      {/* =========================================================
+          1. INLAND TRANSPORT (OPTIONS -> VEHICLE -> RATES)
+      ========================================================= */}
+      {activeScreen === 'inland' && (
+        <View style={{ padding: 14 }}>
+          <View style={[styles.modeBanner, { backgroundColor: C.card, borderColor: C.border }]}>
+            <Text style={{ color: C.tealBright, fontSize: 12, fontWeight: '900' }}>
+              🚛 INLAND DISCOVERY & RATE COMPARISON • {selectedCountry.name.toUpperCase()}
+            </Text>
+            <Text style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>
+              Display: {dispCurrency} • Tx: {txCurrency}
+            </Text>
+          </View>
 
-      <TouchableOpacity style={styles.primaryBtn} onPress={handleSubmitInland}>
-        <Text style={styles.primaryBtnText}>Request Inland Booking (Beta)</Text>
-      </TouchableOpacity>
-    </View>
-  );
+          <View style={[styles.segmentBar, { backgroundColor: C.ca
+                 {/* Step 2: Vehicle / Tonnage Options */}
+          {showVehicleOptions && (
+            <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.tealBright }]}>
+              <Text style={[styles.sectionHead, { color: C.text }]}>Select Vehicle / Tonnage Option</Text>
+              {FLEET_OPTIONS.map((fl) => {
+                const active = selectedFleetId === fl.id;
+                return (
+                  <TouchableOpacity
+                    key={fl.id}
+                    onPress={() => setSelectedFleetId(fl.id)}
+                    style={[
+                      styles.fleetRow,
+                      { backgroundColor: C.cardAlt, borderColor: active ? C.tealBright : C.border },
+                    ]}
+                  >
+                    <Text style={{ color: C.text, fontSize: 13, fontWeight: '800' }}>{fl.label}</Text>
+                    <Text style={{ color: active ? C.tealBright : C.sub, fontSize: 11, fontWeight: '800' }}>
+                      {active ? 'Selected ✓' : 'Select'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
 
-  const renderOceanSection = () => (
-    <View style={styles.panel}>
-      <View style={styles.rowBetween}>
-        <Text style={styles.panelTitle}>2. Ocean & Shipping</Text>
-        <Text style={styles.badgeRequest}>INDICATIVE • REQUEST ONLY</Text>
-      </View>
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: C.gold, marginTop: 10 }]}
+                onPress={() => setShowIndicativeRates(true)}
+              >
+                <Text style={[styles.primaryBtnTxt, { color: '#090C10' }]}>View Indicative Rates →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-      <View style={styles.blockCard}>
-        <Text style={styles.blockTitle}>Block 1 • Route & Port Lane</Text>
-        <View style={styles.rowBetween}>
-          <TextInput
-            style={[styles.input, styles.halfInput]}
-            placeholder="Origin Country"
-            placeholderTextColor="#7C8BA1"
-            value={oceanOriginCountry}
-            onChangeText={setOceanOriginCountry}
-          />
-          <TextInput
-            style={[styles.input, styles.halfInput]}
-            placeholder="Destination Country"
-            placeholderTextColor="#7C8BA1"
-            value={oceanDestCountry}
-            onChangeText={setOceanDestCountry}
-          />
+          {/* Step 3: Indicative Rate Comparison */}
+          {showIndicativeRates && (
+            <View style={[styles.resultCard, { backgroundColor: C.card, borderColor: C.gold }]}>
+              <Text style={{ color: C.gold, fontSize: 12, fontWeight: '900' }}>
+                INDICATIVE RATE COMPARISON ({dispCurrency})
+              </Text>
+              <Text style={{ color: C.text, fontSize: 18, fontWeight: '900', marginTop: 6 }}>
+                {formatMoney(inlandEstimateInr, dispCurrency)}
+              </Text>
+              <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
+                {selectedFleet.label} • {loadMode} • Indicative Market Estimate (Subject to Partner Confirmation)
+              </Text>
+              <Text style={{ color: C.sub, fontSize: 11, marginTop: 6 }}>
+                Partner fleet quotes will appear alongside indicative estimates as operators join.
+              </Text>
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: C.teal, marginTop: 12 }]}
+                onPress={() =>
+                  createRequestRecord(
+                    `Inland ${loadMode} (${selectedFleet.label})`,
+                    `${pickupLoc || selectedCountry.name} → ${deliveryLoc || backhaulRoute || 'Destination'}`
+                  )
+                }
+              >
+                <Text style={styles.primaryBtnTxt}>Request Quote / Book</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-        <Text style={styles.fieldLabel}>Origin Port (Master List)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-          {PORTS_MASTER.map((p) => (
-            <TouchableOpacity
-              key={p}
-              style={[styles.chip, originPort === p && styles.chipActive]}
-              onPress={() => setOriginPort(p)}
-            >
-              <Text style={[styles.chipText, originPort === p && styles.chipTextActive]}>
-                {p}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <Text style={styles.fieldLabel}>Destination Port (Master List)</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-          {PORTS_MASTER.map((p) => (
-            <TouchableOpacity
-              key={p}
-              style={[styles.chip, destPort === p && styles.chipActive]}
-              onPress={() => setDestPort(p)}
-            >
-              <Text style={[styles.chipText, destPort === p && styles.chipTextActive]}>
-                {p}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      )}
 
-      <View style={styles.blockCard}>
-        <Text style={styles.blockTitle}>Block 2 • Container & Cargo Specs</Text>
-        <View style={styles.inlineWrap}>
-          {['FCL', 'LCL', 'Bulk'].map((t) => (
-            <TouchableOpacity
-              key={t}
-              style={[styles.smallChip, shippingType === t && styles.chipActive]}
-              onPress={() => setShippingType(t)}
-            >
-              <Text style={[styles.smallChipText, shippingType === t && styles.chipTextActive]}>
-                {t}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+      {/* =========================================================
+          2. OCEAN & SHIPPING
+      ========================================================= */}
+      {activeScreen === 'ocean' && (
+        <View style={{ padding: 14 }}>
+          <View style={[styles.modeBanner, { backgroundColor: C.card, borderColor: C.border }]}>
+            <Text style={{ color: C.gold, fontSize: 12, fontWeight: '900' }}>
+              🚢 OCEAN FREIGHT & RATE COMPARISON
+            </Text>
+            <Text style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>
+              {originPort} → {destPort} • {incoterm}
+            </Text>
+          </View>
 
-        {shippingType === 'FCL' && (
-          <View style={styles.rowBetween}>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>Container Size</Text>
-              <View style={styles.inlineWrap}>
-                {['20ft', '40ft', '40ft HC'].map((sz) => (
+          <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.border }]}>
+            <Text style={[styles.sectionHead, { color: C.text }]}>Route & Port Lane</Text>
+
+            <Text style={[styles.label, { color: C.sub }]}>Origin Country</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+              {COUNTRIES.map((c) => (
+                <TouchableOpacity
+                  key={'oc-' + c.code}
+                  onPress={() => handleOriginCountryChange(c.code)}
+                  style={[styles.choiceChip, { borderColor: C.border }, originCountryCode === c.code && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                >
+                  <Text style={{ color: originCountryCode === c.code ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{c.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.label, { color: C.sub }]}>Origin Port</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+              {originPortsList.map((p) => (
+                <TouchableOpacity
+                  key={'op-' + p}
+                  onPress={() => setOriginPort(p)}
+                  style={[styles.choiceChip, { borderColor: C.border }, originPort === p && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                >
+                  <Text style={{ color: originPort === p ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{p}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.label, { color: C.sub }]}>Destination Country</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+              {COUNTRIES.map((c) => (
+                <TouchableOpacity
+                  key={'dc-' + c.code}
+                  onPress={() => handleDestCountryChange(c.code)}
+                  style={[styles.choiceChip, { borderColor: C.border }, destCountryCode === c.code && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                >
+                  <Text style={{ color: destCountryCode === c.code ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{c.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.label, { color: C.sub }]}>Destination Port</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+              {destPortsList.map((p) => (
+                <TouchableOpacity
+                  key={'dp-' + p}
+                  onPress={() => setDestPort(p)}
+                  style={[styles.choiceChip, { borderColor: C.border }, destPort === p && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                >
+                  <Text style={{ color: destPort === p ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{p}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.label, { color: C.sub }]}>Shipment & Container</Text>
+            <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+              {['FCL', 'LCL', 'Bulk'].map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => setOceanType(t)}
+                  style={[styles.choiceChip, { borderColor: C.border }, oceanType === t && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                >
+                  <Text style={{ color: oceanType === t ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {oceanType === 'FCL' && (
+              <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+                {['20 ft', '40 ft', '40 ft HC'].map((sz) => (
                   <TouchableOpacity
                     key={sz}
-                    style={[styles.smallChip, containerSize === sz && styles.chipActive]}
                     onPress={() => setContainerSize(sz)}
+                    style={[styles.choiceChip, { borderColor: C.border }, containerSize === sz && { backgroundColor: C.gold, borderColor: C.gold }]}
                   >
-                    <Text style={[styles.smallChipText, containerSize === sz && styles.chipTextActive]}>
-                      {sz}
-                    </Text>
+                    <Text style={{ color: containerSize === sz ? '#090C10' : C.text, fontSize: 11, fontWeight: '900' }}>{sz}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            <Text style={[styles.label, { color: C.sub }]}>Incoterms</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+              {SEA_INCOTERMS.map((inc) => (
+                <TouchableOpacity
+                  key={inc}
+                  onPress={() => setIncoterm(inc)}
+                  style={[styles.choiceChip, { borderColor: C.border }, incoterm === inc && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                >
+                  <Text style={{ color: incoterm === inc ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{inc}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.label, { color: C.sub }]}>Commodity Description</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+              placeholder="e.g. 1121 Sella Rice / Yellow Maize"
+              placeholderTextColor={C.sub}
+              value={oceanCargo}
+              onChangeText={setOceanCargo}
+            />
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: C.teal }]}
+              onPress={() => setShowOceanQuotes(true)}
+            >
+              <Text style={styles.primaryBtnTxt}>Get Freight Quotes →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {showOceanQuotes && (
+            <View>
+              {[
+                { name: 'Indicative Market Estimate', tag: 'Estimated', transit: '14–18 Days' },
+                { name: 'Partner Forwarder Option', tag: 'Subject to Confirmation', transit: '15–20 Days' },
+              ].map((opt) => (
+                <View key={opt.name} style={[styles.quoteCard, { backgroundColor: C.card, borderColor: C.border }]}>
+                  <View style={styles.rowBetween}>
+                    <Text style={{ color: C.text, fontSize: 14, fontWeight: '900' }}>{opt.name}</Text>
+                    <Text style={{ color: C.gold, fontSize: 11, fontWeight: '800' }}>{opt.tag}</Text>
+                  </View>
+                  <Text style={{ color: C.sub, fontSize: 12, marginTop: 4 }}>
+                    {originPort} → {destPort} • {oceanType === 'FCL' ? containerSize : oceanType} • Est. Transit: {opt.transit}
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.secondaryBtn, { borderColor: C.tealBright, marginTop: 8 }]}
+                    onPress={() => createRequestRecord(`Ocean ${oceanType} (${incoterm})`, `${originPort} → ${destPort}`)}
+                  >
+                    <Text style={{ color: C.tealBright, fontSize: 12, fontWeight: '900' }}>Request Final Quote</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* =========================================================
+          3. AIR FREIGHT (KG & CM)
+      ========================================================= */}
+      {activeScreen === 'air' && (
+        <View style={{ padding: 14 }}>
+          <View style={[styles.modeBanner, { backgroundColor: C.card, borderColor: C.border }]}>
+            <Text style={{ color: C.tealBright, fontSize: 12, fontWeight: '900' }}>
+              ✈️ AIR FREIGHT • CHARGEABLE WEIGHT ({dimUnit} / KG)
+            </Text>
+            <Text style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>
+              {originAirport} → {destAirport}
+            </Text>
+          </View>
+
+          <View style={[styles.segmentBar, { backgroundColor: C.card, borderColor: C.border }]}>
+            {[
+              { id: 'details', label: 'Details' },
+              { id: 'calculator', label: 'Calculator' },
+              { id: 'documents', label: 'Documents' },
+            ].map((tb) => (
+              <TouchableOpacity
+                key={tb.id}
+                onPress={() => setAirTab(tb.id)}
+                style={[styles.segmentBtn, airTab === tb.id && { backgroundColor: C.teal }]}
+              >
+                <Text style={{ color: airTab === tb.id ? '#FFF' : C.text, fontSize: 12, fontWeight: '800' }}>{tb.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {airTab === 'details' && (
+            <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.border }]}>
+              <Text style={[styles.label, { color: C.sub }]}>Origin Airport</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                {AIRPORTS.map((ap) => (
+                  <TouchableOpacity
+                    key={'oa-' + ap}
+                    onPress={() => setOriginAirport(ap)}
+                    style={[styles.choiceChip, { borderColor: C.border }, originAirport === ap && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                  >
+                    <Text style={{ color: originAirport === ap ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{ap}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <Text style={[styles.label, { color: C.sub }]}>Destination Airport</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                {AIRPORTS.map((ap) => (
+                  <TouchableOpacity
+                    key={'da-' + ap}
+                    onPress={() => setDestAirport(ap)}
+                    style={[styles.choiceChip, { borderColor: C.border }, destAirport === ap && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                  >
+                    <Text style={{ color: destAirport === ap ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{ap}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <Text style={[styles.label, { color: C.sub }]}>Cargo Category</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {['General Cargo', 'Perishable Cargo', 'High-Value Cargo'].map((ct) => (
+                  <TouchableOpacity
+                    key={ct}
+                    onPress={() => setAirCargoType(ct)}
+                    style={[styles.choiceChip, { borderColor: C.border }, airCargoType === ct && { backgroundColor: C.gold, borderColor: C.gold }]}
+                  >
+                    <Text style={{ color: airCargoType === ct ? '#090C10' : C.text, fontSize: 11, fontWeight: '900' }}>{ct}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
-            <View style={styles.halfCol}>
-              <Text style={styles.fieldLabel}>Container Qty</Text>
+          )}
+
+          {airTab === 'calculator' && (
+            <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.border }]}>
+              <Text style={[styles.sectionHead, { color: C.text }]}>Chargeable Weight Calculator</Text>
+
+              <Text style={[styles.label, { color: C.sub }]}>Actual Weight (KG)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                placeholder="Actual Weight in KG"
+                placeholderTextColor={C.sub}
                 keyboardType="numeric"
-                value={containerQty}
-                onChangeText={setContainerQty}
-                placeholder="1"
-                placeholderTextColor="#7C8BA1"
+                value={actualWeightKg}
+                onChangeText={setActualWeightKg}
               />
+
+              <Text style={[styles.label, { color: C.sub }]}>Dimensions (L × W × H in CM)</Text>
+              <View style={styles.rowBetween}>
+                <TextInput
+                  style={[styles.input, { flex: 1, marginRight: 6, backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                  placeholder="L (cm)"
+                  placeholderTextColor={C.sub}
+                  keyboardType="numeric"
+                  value={dimL}
+                  onChangeText={setDimL}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1, marginRight: 6, backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                  placeholder="W (cm)"
+                  placeholderTextColor={C.sub}
+                  keyboardType="numeric"
+                  value={dimW}
+                  onChangeText={setDimW}
+                />
+                <TextInput
+                  style={[styles.input, { flex: 1, backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                  placeholder="H (cm)"
+                  placeholderTextColor={C.sub}
+                  keyboardType="numeric"
+                  value={dimH}
+                  onChangeText={setDimH}
+                />
+              </View>
+
+              <View style={[styles.calcSummaryBox, { backgroundColor: C.cardAlt, borderColor: C.teal }]}>
+                <View style={styles.rowBetween}>
+                  <Text style={{ color: C.sub, fontSize: 12 }}>Actual Weight:</Text>
+                  <Text style={{ color: C.text, fontSize: 13, fontWeight: '800' }}>{airCalc.actKg} KG</Text>
+                </View>
+                <View style={[styles.rowBetween, { marginTop: 4 }]}>
+                  <Text style={{ color: C.sub, fontSize: 12 }}>Volumetric Weight:</Text>
+                  <Text style={{ color: C.text, fontSize: 13, fontWeight: '800' }}>{airCalc.volKg} KG</Text>
+                </View>
+                <View style={[styles.rowBetween, { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: C.border }]}>
+                  <Text style={{ color: C.tealBright, fontSize: 13, fontWeight: '900' }}>Chargeable Weight:</Text>
+                  <Text style={{ color: C.gold, fontSize: 16, fontWeight: '900' }}>{airCalc.chargeableKg} KG</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: C.teal, marginTop: 12 }]}
+                onPress={() =>
+                  createRequestRecord(`Air Freight (${airCalc.chargeableKg} KG)`, `${originAirport} → ${destAirport}`)
+                }
+              >
+                <Text style={styles.primaryBtnTxt}>Request Air Quote →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {airTab === 'documents' && (
+            <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.border }]}>
+              <Text style={[styles.sectionHead, { color: C.text }]}>Air Cargo Document Checklist</Text>
+              {[
+                { key: 'invoicePacking', label: 'Commercial Invoice & Packing List' },
+                { key: 'awbDraft', label: 'Air Waybill (AWB) Details' },
+                { key: 'msdsDg', label: 'MSDS / Dangerous Goods Declaration' },
+                { key: 'permits', label: 'Export / Import Permits & Certificates' },
+              ].map((doc) => {
+                const checked = !!airDocs[doc.key];
+                return (
+                  <TouchableOpacity
+                    key={doc.key}
+                    onPress={() => setAirDocs((prev) => ({ ...prev, [doc.key]: !prev[doc.key] }))}
+                    style={[styles.docRow, { borderBottomColor: C.border }]}
+                  >
+                    <Text style={{ color: C.text, fontSize: 13, fontWeight: '700', flex: 1 }}>{doc.label}</Text>
+                    <Text style={{ color: checked ? C.tealBright : C.sub, fontSize: 12, fontWeight: '900' }}>
+                      {checked ? '✓ Ready' : 'Pending'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* =========================================================
+          4. SAMPLE & TRACKING
+      ========================================================= */}
+      {activeScreen === 'sample' && (
+   <View style={{ padding: 14 }}>
+          <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.border }]}>
+            <Text style={{ color: C.gold, fontSize: 12, fontWeight: '900' }}>
+              📦 SAMPLE EXPRESS & LAB TIMELINE
+            </Text>
+            <View style={styles.timelineRow}>
+              {['Pickup', 'In Transit', 'Testing', 'Report'].map((st, idx) => (
+                <View key={st} style={styles.timelineStep}>
+                  <View style={[styles.dot, { backgroundColor: idx < 3 ? C.tealBright : C.border }]} />
+                  <Text style={{ color: idx < 3 ? C.text : C.sub, fontSize: 10, fontWeight: '800', marginTop: 4 }}>{st}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={[styles.refStrip, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+              <Text style={{ color: C.sub, fontSize: 11 }}>
+                Sample Ref ID: <Text style={{ color: C.text, fontWeight: '900' }}>{sampleRefId}</Text>
+              </Text>
+              <Text style={{ color: C.sub, fontSize: 11 }}>
+                AWB: <Text style={{ color: C.gold, fontWeight: '900' }}>{awbRef || 'Pending'}</Text>
+              </Text>
             </View>
           </View>
-        )}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Commodity Description"
-          placeholderTextColor="#7C8BA1"
-          value={oceanCommodity}
-          onChangeText={setOceanCommodity}
-        />
-        <View style={styles.rowBetween}>
-          <TextInput
-            style={[styles.input, styles.halfInput]}
-            placeholder="HS Code (Optional)"
-            placeholderTextColor="#7C8BA1"
-            value={hsCode}
-            onChangeText={setHsCode}
-          />
-          <TextInput
-            style={[styles.input, styles.halfInput]}
-            placeholder={`Weight (${weightUnit})`}
-            placeholderTextColor="#7C8BA1"
-            keyboardType="numeric"
-            value={oceanWeight}
-            onChangeText={setOceanWeight}
-          />
-        </View>
-        <TextInput
-          style={styles.input}
-          placeholder={`Cargo Volume (${volUnit})`}
-          placeholderTextColor="#7C8BA1"
-          keyboardType="numeric"
-          value={oceanVolume}
-          onChangeText={setOceanVolume}
-        />
-      </View>
-
-      <View style={styles.blockCard}>
-        <Text style={styles.blockTitle}>Block 3 • Incoterms 2020 & Schedule</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-          {INCOTERMS_2020.map((term) => (
+          <View style={[styles.segmentBar, { backgroundColor: C.card, borderColor: C.border }]}>
             <TouchableOpacity
-              key={term}
-              style={[styles.chip, incoterm === term && styles.chipActive]}
-              onPress={() => setIncoterm(term)}
+              onPress={() => setSampleTab('express')}
+              style={[styles.segmentBtn, sampleTab === 'express' && { backgroundColor: C.teal }]}
             >
-              <Text style={[styles.chipText, incoterm === term && styles.chipTextActive]}>
-                {term}
+              <Text style={{ color: sampleTab === 'express' ? '#FFF' : C.text, fontSize: 12, fontWeight: '800' }}>
+                Sample Express
               </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <Text style={styles.summaryLine}>
-          {incoterm}: {INCOTERM_NOTES[incoterm]}
-        </Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Cargo Ready / Target Sailing Window"
-          placeholderTextColor="#7C8BA1"
-          value={sailingWindow}
-          onChangeText={setSailingWindow}
-        />
-      </View>
-
-      <View style={styles.summaryBox}>
-        <Text style={styles.summaryTitle}>Block 4 • Indicative Quote Summary</Text>
-        <Text style={styles.summaryLine}>
-          Lane: {originPort} → {destPort}
-        </Text>
-        <Text style={styles.summaryLine}>
-          Mode: {shippingType}
-          {shippingType === 'FCL' ? ` (${containerQty || '1'} x ${containerSize})` : ''} • Incoterm: {incoterm}
-        </Text>
-        <Text style={styles.summaryLine}>
-          Cargo: {oceanCommodity || 'Not specified'} • {oceanWeight || '0'} {weightUnit} • {oceanVolume || '0'} {volUnit}
-        </Text>
-        <Text style={styles.noticeText}>
-          Indicative information only. Final rates, transit time and space are subject to carrier / logistics partner confirmation.
-        </Text>
-        <TouchableOpacity style={styles.primaryBtn} onPress={handleSubmitOceanInquiry}>
-          <Text style={styles.primaryBtnText}>Request Freight Quote / Submit Inquiry</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderAirSection = () => (
-    <View style={styles.panel}>
-      <View style={styles.rowBetween}>
-        <Text style={styles.panelTitle}>3. Air Freight</Text>
-        <Text style={styles.badgeRequest}>FREE BETA • REQUEST ONLY</Text>
-      </View>
-
-      <Text style={styles.fieldLabel}>Origin Airport</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {AIRPORTS_MASTER.map((ap) => (
-          <TouchableOpacity
-            key={ap}
-            style={[styles.chip, originAirport === ap && styles.chipActive]}
-            onPress={() => setOriginAirport(ap)}
-          >
-            <Text style={[styles.chipText, originAirport === ap && styles.chipTextActive]}>
-              {ap}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <Text style={styles.fieldLabel}>Destination Airport</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {AIRPORTS_MASTER.map((ap) => (
-          <TouchableOpacity
-            key={ap}
-            style={[styles.chip, destAirport === ap && styles.chipActive]}
-            onPress={() => setDestAirport(ap)}
-          >
-            <Text style={[styles.chipText, destAirport === ap && styles.chipTextActive]}>
-              {ap}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <Text style={styles.fieldLabel}>Cargo Category</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {[
-          'General Cargo',
-          'Perishable Cargo',
-          'High-Value Cargo',
-          'Commercial Samples',
-          'Urgent Express Samples',
-        ].map((cat) => (
-          <TouchableOpacity
-            key={cat}
-            style={[styles.chip, airCargoCategory === cat && styles.chipActive]}
-            onPress={() => setAirCargoCategory(cat)}
-          >
-            <Text style={[styles.chipText, airCargoCategory === cat && styles.chipTextActive]}>
-              {cat}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <View style={styles.rowBetween}>
-        <TextInput
-          style={[styles.input, styles.halfInput]}
-          placeholder={`Actual Weight (${weightUnit})`}
-          placeholderTextColor="#7C8BA1"
-          keyboardType="numeric"
-          value={airActualWeight}
-          onChangeText={setAirActualWeight}
-        />
-        <TextInput
-          style={[styles.input, styles.halfInput]}
-          placeholder="Packages"
-          placeholderTextColor="#7C8BA1"
-          keyboardType="numeric"
-          value={airPackages}
-          onChangeText={setAirPackages}
-        />
-      </View>
-
-      <View style={styles.rowBetween}>
-        <TextInput
-          style={[styles.input, styles.thirdInput]}
-          placeholder={`L (${dimUnit})`}
-          placeholderTextColor="#7C8BA1"
-          keyboardType="numeric"
-          value={airLen}
-          onChangeText={setAirLen}
-        />
-        <TextInput
-          style={[styles.input, styles.thirdInput]}
-          placeholder={`W (${dimUnit})`}
-          placeholderTextColor="#7C8BA1"
-          keyboardType="numeric"
-          value={airWid}
-          onChangeText={setAirWid}
-        />
-        <TextInput
-          style={[styles.input, styles.thirdInput]}
-          placeholder={`H (${dimUnit})`}
-          placeholderTextColor="#7C8BA1"
-          keyboardType="numeric"
-          value={airHei}
-          onChangeText={setAirHei}
-        />
-      </View>
-
-      <Text style={styles.fieldLabel}>Volumetric Divisor (Configurable per service)</Text>
-      <View style={styles.inlineWrap}>
-        {['5000', '6000', '4000'].map((div) => (
-          <TouchableOpacity
-            key={div}
-            style={[styles.smallChip, volDivisor === div && styles.chipActive]}
-            onPress={() => setVolDivisor(div)}
-          >
-            <Text style={[styles.smallChipText, volDivisor === div && styles.chipTextActive]}>
-              Divisor {div}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={styles.summaryBox}>
-        <Text style={styles.summaryTitle}>Chargeable Weight Calculator (Local)</Text>
-        <Text style={styles.summaryLine}>
-          Actual Weight: {airWeightCalc.actualDisplay.toFixed(2)} {weightUnit}
-        </Text>
-        <Text style={styles.summaryLine}>
-          Volumetric Weight: {airWeightCalc.volumetricDisplay.toFixed(2)} {weightUnit}
-        </Text>
-        <Text style={styles.summaryHighlight}>
-          Chargeable Weight: {airWeightCalc.chargeableDisplay.toFixed(2)} {weightUnit} (Indicative)
-        </Text>
-      </View>
-
-      <View style={styles.blockCard}>
-        <Text style={styles.blockTitle}>Air Document Checklist</Text>
-        <Text style={styles.summaryLine}>
-          • Commercial Invoice & Packing List • Air Waybill (AWB) • Shipper & Consignee Details • MSDS / DG or Permits (if applicable)
-        </Text>
-      </View>
-
-      <View style={styles.blockCard}>
-        <Text style={styles.blockTitle}>Free (Beta) vs Paid (Future) Boundaries</Text>
-        <Text style={styles.summaryLine}>
-          Free / Beta: Route/airport selection, chargeable-weight calculator, document checklist & inquiry draft.
-        </Text>
-        <Text style={styles.summaryLine}>
-          Paid / Future: Confirmed carrier quotes, live capacity, priority booking & customs/consolidation services.
-        </Text>
-      </View>
-
-      <TouchableOpacity style={styles.primaryBtn} onPress={handleSubmitAirInquiry}>
-        <Text style={styles.primaryBtnText}>Save Air Inquiry (Request Only)</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderSampleTrackingSection = () => (
-    <View style={styles.panel}>
-      <View style={styles.rowBetween}>
-        <Text style={styles.panelTitle}>4. Sample & Tracking</Text>
-        <Text style={styles.badgePreview}>MANUAL BETA</Text>
-      </View>
-      <Text style={styles.subHint}>
-        Unified sample express & tracking workflow (linked with SetuVerify / Lab Testing).
-      </Text>
-
-      <Text style={styles.fieldLabel}>Courier / Express Provider</Text>
-      <View style={styles.inlineWrap}>
-        {['DHL Express', 'FedEx', 'Express Partner', 'Drop-off'].map((c) => (
-          <TouchableOpacity
-            key={c}
-            style={[styles.smallChip, sampleCourier === c && styles.chipActive]}
-            onPress={() => setSampleCourier(c)}
-          >
-            <Text style={[styles.smallChipText, sampleCourier === c && styles.chipTextActive]}>
-              {c}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Sender Details & Sample Purpose / Description"
-        placeholderTextColor="#7C8BA1"
-        value={senderDetails}
-        onChangeText={setSenderDetails}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Pickup Address (Factory / Office / Warehouse)"
-        placeholderTextColor="#7C8BA1"
-        value={pickupAddress}
-        onChangeText={setPickupAddress}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Receiver / Laboratory Details & Destination Country"
-        placeholderTextColor="#7C8BA1"
-        value={receiverLab}
-        onChangeText={setReceiverLab}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Manual Tracking / AWB Reference"
-        placeholderTextColor="#7C8BA1"
-        value={trackingRef}
-        onChangeText={setTrackingRef}
-      />
-
-      <TouchableOpacity style={styles.primaryBtn} onPress={handleGenerateSampleRef}>
-        <Text style={styles.primaryBtnText}>Create Sample Shipment Request</Text>
-      </TouchableOpacity>
-
-      <View style={styles.summaryBox}>
-        <Text style={styles.summaryTitle}>Manual Sample Status</Text>
-        <Text style={styles.summaryLine}>Sample Ref ID: {sampleRefId}</Text>
-        <Text style={styles.summaryLine}>
-          Courier: {sampleCourier} • AWB: {trackingRef || 'Pending entry'}
-        </Text>
-        <Text style={styles.summaryHighlight}>Status: {sampleStatus}</Text>
-      </View>
-
-      <View style={styles.comingSoonBox}>
-        <View style={styles.rowBetween}>
-          <Text style={styles.summaryTitle}>Live Tracker & Auto-Sync</Text>
-          <Text style={styles.badgeSoon}>COMING SOON</Text>
-        </View>
-        <Text style={styles.summaryLine}>
-          • Live Shipment Tracking & Real-Time GPS Tracking • Automatic Carrier Status Sync • Automatic Document Sync • Advanced Alerts
-        </Text>
-      </View>
-    </View>
-  );
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerRow}>
-          {onBack ? (
-            <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-              <Text style={styles.backText}>← Back</Text>
+            <TouchableOpacity
+              onPress={() => setSampleTab('track')}
+              style={[styles.segmentBtn, sampleTab === 'track' && { backgroundColor: C.teal }]}
+            >
+              <Text style={{ color: sampleTab === 'track' ? '#FFF' : C.text, fontSize: 12, fontWeight: '800' }}>
+                Track Shipment
+              </Text>
             </TouchableOpacity>
-          ) : null}
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.screenTitle}>Global Logistics Hub</Text>
-            <Text style={styles.screenSub}>
-              Trade SETUU • Global Trade OS (Beta)
-            </Text>
           </View>
-          <View style={styles.betaPill}>
-            <Text style={styles.betaText}>BETA</Text>
-          </View>
-        </View>
 
-        {renderGlobalConfigBar()}
+          {sampleTab === 'express' ? (
+            <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.border }]}>
+              <Text style={[styles.label, { color: C.sub }]}>Courier Preference</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 }}>
+                {['DHL Express', 'FedEx', 'Other Partner'].map((cp) => (
+                  <TouchableOpacity
+                    key={cp}
+                    onPress={() => setCourierPref(cp)}
+                    style={[styles.choiceChip, { borderColor: C.border }, courierPref === cp && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                  >
+                    <Text style={{ color: courierPref === cp ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{cp}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-        <View style={styles.topTabsRow}>
-          {[
-            { id: 'INLAND', label: 'Inland' },
-            { id: 'OCEAN', label: 'Ocean' },
-            { id: 'AIR', label: 'Air Freight' },
-            { id: 'SAMPLE', label: 'Sample & Track' },
-          ].map((t) => {
-            const active = activeTab === t.id;
-            return (
+              <Text style={[styles.label, { color: C.sub }]}>Sample Commodity</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                placeholder="e.g. Rice / Spice / Lab Sample"
+                placeholderTextColor={C.sub}
+                value={sampleCommodity}
+                onChangeText={setSampleCommodity}
+              />
+
+              <Text style={[styles.label, { color: C.sub }]}>Pickup Location</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                placeholder="Factory / Office / City"
+                placeholderTextColor={C.sub}
+                value={sampleOrigin}
+                onChangeText={setSampleOrigin}
+              />
+
+              <Text style={[styles.label, { color: C.sub }]}>Receiver / Lab Location</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                placeholder="Buyer / Lab City & Country"
+                placeholderTextColor={C.sub}
+                value={sampleDest}
+                onChangeText={setSampleDest}
+              />
+
+              <Text style={[styles.label, { color: C.sub }]}>AWB Reference (Separate from Sample Ref ID)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                placeholder="Enter courier AWB if available"
+                placeholderTextColor={C.sub}
+                value={awbRef}
+                onChangeText={setAwbRef}
+              />
+
               <TouchableOpacity
-                key={t.id}
-                style={[styles.topTabBtn, active && styles.topTabBtnActive]}
-                onPress={() => setActiveTab(t.id)}
+                style={[styles.primaryBtn, { backgroundColor: C.teal }]}
+                onPress={() =>
+                  createRequestRecord(`Sample (${courierPref})`, `${sampleOrigin || selectedCountry.name} → ${sampleDest || 'Lab'}`)
+                }
               >
-                <Text style={[styles.topTabText, active && styles.topTabTextActive]}>
-                  {t.label}
-                </Text>
+                <Text style={styles.primaryBtnTxt}>Create Sample Shipment Request →</Text>
               </TouchableOpacity>
-            );
-          })}
+            </View>
+          ) : (
+            <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.border }]}>
+              <Text style={[styles.label, { color: C.sub }]}>Enter Sample Ref ID or AWB</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                placeholder="e.g. TS-SMP-2041 or AWB"
+                placeholderTextColor={C.sub}
+                value={trackInput}
+                onChangeText={setTrackInput}
+              />
+              <View style={[styles.comingSoonBox, { backgroundColor: C.cardAlt, borderColor: C.gold }]}>
+                <Text style={{ color: C.gold, fontSize: 12, fontWeight: '900' }}>
+                  LIVE TRACKING & AUTO CARRIER SYNC — COMING SOON
+                </Text>
+                <Text style={{ color: C.sub, fontSize: 12, marginTop: 4, lineHeight: 17 }}>
+                  Real-time carrier tracking and automated milestone sync will be available in a future update.
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
+      )}
 
-        {activeTab === 'INLAND' && renderInlandSection()}
-        {activeTab === 'OCEAN' && renderOceanSection()}
-        {activeTab === 'AIR' && renderAirSection()}
-        {activeTab === 'SAMPLE' && renderSampleTrackingSection()}
-      </ScrollView>
-    </SafeAreaView>
+      {/* =========================================================
+          5. MY LOGISTICS REQUESTS
+      ========================================================= */}
+      {activeScreen === 'requests' && (
+        <View style={{ padding: 14 }}>
+          {requests.map((req) => (
+            <View key={req.id} style={[styles.quoteCard, { backgroundColor: C.card, borderColor: C.border }]}>
+              <View style={styles.rowBetween}>
+                <Text style={{ color: C.tealBright, fontSize: 12, fontWeight: '900' }}>{req.id}</Text>
+                <Text style={{ color: C.gold, fontSize: 11, fontWeight: '800' }}>{req.status}</Text>
+              </View>
+              <Text style={{ color: C.text, fontSize: 14, fontWeight: '800', marginTop: 4 }}>{req.mode}</Text>
+              <Text style={{ color: C.sub, fontSize: 12, marginTop: 2 }}>{req.route}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* =========================================================
+          COUNTRY SEARCH + HISTORY + DROPDOWN MODAL
+      ========================================================= */}
+      <Modal visible={countryModalOpen} transparent animationType="slide">
+        <View style={styles.modalBg}>
+          <View style={[styles.modalCard, { backgroundColor: C.card, borderColor: C.border }]}>
+            <View style={styles.rowBetween}>
+              <Text style={{ color: C.text, fontSize: 15, fontWeight: '900' }}>Search & Select Country</Text>
+              <TouchableOpacity onPress={() => setCountryModalOpen(false)}>
+                <Text style={{ color: C.tealBright, fontSize: 13, fontWeight: '800' }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border, marginTop: 10 }]}
+              placeholder="Type country name, code or currency..."
+              placeholderTextColor={C.sub}
+              value={countrySearch}
+              onChangeText={setCountrySearch}
+            />
+
+            {recentCountries.length > 0 && !countrySearch.trim() && (
+              <View style={{ marginBottom: 10 }}>
+                <Text style={{ color: C.gold, fontSize: 11, fontWeight: '900', marginBottom: 6 }}>
+                  RECENTLY SELECTED (HISTORY)
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {recentCountries.map((rc) => (
+                    <TouchableOpacity
+                      key={'rec-' + rc.code}
+                      onPress={() => handleSelectCountry(rc)}
+                      style={[
+                        styles.choiceChip,
+                        { borderColor: C.gold, backgroundColor: C.cardAlt },
+                      ]}
+                    >
+                      <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>
+                        {rc.name} ({rc.currency})
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            <Text style={{ color: C.sub, fontSize: 11, fontWeight: '800', marginBottom: 4 }}>ALL COUNTRIES</Text>
+            <ScrollView style={{ maxHeight: 280 }}>
+              {filteredCountries.map((c) => {
+                const isCurrent = selectedCountry.code === c.code;
+                return (
+                  <TouchableOpacity
+                    key={c.code}
+                    onPress={() => handleSelectCountry(c)}
+                    style={[styles.countryItem, { borderBottomColor: C.border }]}
+                  >
+                    <Text style={{ color: isCurrent ? C.tealBright : C.text, fontSize: 13, fontWeight: '800' }}>
+                      {c.name} ({c.code}) {isCurrent ? '• Active' : ''}
+                    </Text>
+                    <Text style={{ color: C.sub, fontSize: 12, fontWeight: '800' }}>
+                      {c.currency} • {c.weightUnit}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#090D16',
-  },
-  scrollContent: {
-    padding: 14,
-    paddingBottom: 36,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  backBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: '#151E30',
-  },
-  backText: {
-    color: '#E2E8F0',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  headerTitleWrap: {
-    flex: 1,
-    marginHorizontal: 10,
-  },
-  screenTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  screenSub: {
-    color: '#94A3B8',
-    fontSize: 12,
-  },
-  betaPill: {
-    backgroundColor: '#0F172A',
-    borderColor: '#38BDF8',
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  betaText: {
-    color: '#38BDF8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  configCard: {
-    backgroundColor: '#111827',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    marginBottom: 12,
-  },
-  sectionMiniTitle: {
-    color: '#F8FAFC',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  tagZeroApi: {
-    color: '#34D399',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  fieldLabel: {
-    color: '#94A3B8',
-    fontSize: 11,
-    marginTop: 6,
-    marginBottom: 5,
-    fontWeight: '600',
-  },
-  chipRow: {
-    marginBottom: 6,
-  },
-  inlineWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 8,
-  },
-  chip: {
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 18,
-    backgroundColor: '#090D16',
-    borderWidth: 1,
-    borderColor: '#243046',
-    marginRight: 7,
-  },
-  chipActive: {
-    backgroundColor: '#1E3A8A',
-    borderColor: '#60A5FA',
-  },
-  chipText: {
-    color: '#94A3B8',
-    fontSize: 12,
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  smallChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: '#090D16',
-    borderWidth: 1,
-    borderColor: '#243046',
-  },
-  smallChipText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  halfCol: {
-    width: '48.5%',
-  },
-  topTabsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 12,
-  },
-  topTabBtn: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: 10,
-    backgroundColor: '#111827',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1E293B',
-  },
-  topTabBtnActive: {
-    backgroundColor: '#1D4ED8',
-    borderColor: '#60A5FA',
-  },
-  topTabText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  topTabTextActive: {
-    color: '#FFFFFF',
-  },
-  panel: {
-    backgroundColor: '#111827',
-    borderRadius: 14,
-    padding: 13,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-  },
-  panelTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  subHint: {
-    color: '#94A3B8',
-    fontSize: 12,
-    marginTop: 4,
-    marginBottom: 10,
-    lineHeight: 17,
-  },
-  badgePreview: {
-    color: '#38BDF8',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  badgeRequest: {
-    color: '#FBBF24',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  badgeSoon: {
-    color: '#F472B6',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  subToggleRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  subToggleBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#090D16',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#243046',
-  },
-  subToggleActive: {
-    backgroundColor: '#172554',
-    borderColor: '#38BDF8',
-  },
-  subToggleText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  activeText: {
-    color: '#FFFFFF',
-  },
-  input: {
-    backgroundColor: '#090D16',
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#243046',
-    borderRadius: 10,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    fontSize: 13,
-    marginBottom: 9,
-  },
-  rowBetween: {
+  headerCard: { padding: 14, borderBottomWidth: 1 },
+  eyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8 },
+  hubTitle: { fontSize: 20, fontWeight: '900', marginTop: 2 },
+  backPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, borderWidth: 1 },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  regionGrid: { flexDirection: 'row', marginTop: 12, gap: 8 },
+  regionBox: { flex: 1, borderWidth: 1, borderRadius: 10, padding: 8 },
+  miniChip: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, marginRight: 4 },
+  heroBanner: { borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 12 },
+  heroRouteBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  heroNode: { alignItems: 'center' },
+  gridRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  hubTile: { flex: 1, borderWidth: 1.2, borderRadius: 14, padding: 14 },
+  tileBadge: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  tileTitle: { fontSize: 14, fontWeight: '900' },
+  tileSub: { fontSize: 11, marginTop: 3, lineHeight: 15 },
+  tileCta: { fontSize: 12, fontWeight: '800', marginTop: 10 },
+  modeBanner: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 10 },
+  segmentBar: { flexDirection: 'row', borderWidth: 1, borderRadius: 12, padding: 4, marginBottom: 12 },
+  segmentBtn: { flex: 1, paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
+  formCard: { borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 12 },
+  sectionHead: { fontSize: 15, fontWeight: '900', marginBottom: 10 },
+  label: { fontSize: 11, fontWeight: '800', marginBottom: 5, marginTop: 4 },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, fontSize: 13, marginBottom: 10 },
+  choiceChip: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10, borderWidth: 1, marginRight: 7, marginBottom: 7 },
+  fleetRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
-  },
-  halfInput: {
-    width: '48.5%',
-  },
-  thirdInput: {
-    width: '31.5%',
-  },
-  blockCard: {
-    backgroundColor: '#090D16',
+    borderWidth: 1,
     borderRadius: 10,
     padding: 11,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    marginBottom: 10,
-  },
-  blockTitle: {
-    color: '#E2E8F0',
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  summaryBox: {
-    backgroundColor: '#090D16',
-    borderRadius: 10,
-    padding: 11,
-    borderWidth: 1,
-    borderColor: '#243046',
-    marginBottom: 10,
-  },
-  summaryTitle: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 5,
-  },
-  summaryLine: {
-    color: '#94A3B8',
-    fontSize: 12,
-    marginBottom: 4,
-    lineHeight: 17,
-  },
-  summaryHighlight: {
-    color: '#34D399',
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 3,
-  },
-  noticeText: {
-    color: '#FBBF24',
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 4,
     marginBottom: 8,
   },
-  comingSoonBox: {
-    backgroundColor: '#090D16',
-    borderRadius: 10,
-    padding: 11,
-    borderWidth: 1,
-    borderColor: '#334155',
-    borderStyle: 'dashed',
-    marginTop: 4,
-  },
-  primaryBtn: {
-    backgroundColor: '#2563EB',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 6,
-  },
-  primaryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-});
+  primaryBtn: { borderRadius: 11, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  primaryBtnTxt: { color: '#FFF', fontSize: 13, fontWeight: '900' },
+  secondaryBtn: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  resultCard: { borderWidth: 1.2, borderRadius: 14, padding: 14, marginBottom: 12 },
+  quoteCard: { borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 10 },
+  calcSummaryBox: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 4 },
+  docRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, borderBottomWidth: 0.5 },
+  timelineRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 14 },
+  timelineStep: { alignItems: 'center', flex: 1 },
+  dot: { width: 12, height: 12, borderRadius: 6 },
+  refStrip: { flexDirection: 'row', justifyContent: 'space-between', borderWidth: 1, borderRadius: 10, padding: 10 },
+  comingSoonBox: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 4 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
+  modalCard: { borderTopLeftRadius: 18, borderTopRightRadius: 18, borderWidth: 1, padding: 16 },
+  countryItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 0.5 },
+});                                     
