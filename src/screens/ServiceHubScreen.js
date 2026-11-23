@@ -15,6 +15,7 @@ import MarineInsuranceScreen from './MarineInsuranceScreen';
 import TradeFinanceDeskScreen from './TradeFinanceDeskScreen';
 import BlindDealRoomScreen from './BlindDealRoomScreen';
 import SetuCalcProSuiteScreen from './SetuCalcProSuiteScreen';
+import SetuVerifyScreen from './SetuVerifyScreen';
 
 const ACTIVE_HUB_TILES = [
   {
@@ -94,7 +95,17 @@ const ACTIVE_HUB_TILES = [
     accent: '#2DD4BF',
     actionType: 'SETU_CALCPRO_SUITE',
    },
-  
+   {
+    id: 'setu_verify',
+    code: '35',
+    title: 'SetuVerify',
+    subtitle: 'Global lab testing, inspection & sample express',
+    category: 'Quality & Labs',
+    badge: 'BETA',
+    accent: '#38BDF8',
+    actionType: 'SETU_VERIFY',
+  },
+    
 ];
 
 export default function ServiceHubScreen({ onOpenService }) {
@@ -131,9 +142,12 @@ export default function ServiceHubScreen({ onOpenService }) {
   }
   if (openScreenKey === 'SETU_CALCPRO_SUITE') {
     return <SetuCalcProSuiteScreen onBack={() => setOpenScreenKey(null)} />;
- }
+  }
+  if (openScreenKey === 'SETU_VERIFY') {
+    return <SetuVerifyScreen onBack={() => setOpenScreenKey(null)} />;
+}
  
-      return (
+  return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
 
