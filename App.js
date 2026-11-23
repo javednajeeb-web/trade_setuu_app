@@ -436,31 +436,10 @@ export default function App() {
                       <Text style={{ color: T.sub, fontSize: 13 }}>Post a sell offer, buy requirement or fleet load...</Text>
                     </View>
                   </TouchableOpacity>
-      {/* 5-TAB BOTTOM BAR: Trade Feed | Mandi Pulse | + | Logistics | Service Hub */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('feed')}>
-          <Text style={{ fontSize: 16 }}>🏠</Text>
-          <Text style={[styles.navLbl, activeTab === 'feed' && { color: '#14B8A6' }]}>Trade Feed</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('mandi')}>
-          <Text style={{ fontSize: 16 }}>📊</Text>
-          <Text style={[styles.navLbl, activeTab === 'mandi' && { color: '#14B8A6' }]}>Mandi Pulse</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.centerPlus} onPress={() => setModal('post')}>
-          <Text style={{ color: '#FFF', fontSize: 24, fontWeight: '900', marginTop: -2 }}>+</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => setShowLogistics(true)}>
-          <Text style={{ fontSize: 16 }}>🌐</Text>
-          <Text style={[styles.navLbl, showLogistics && { color: '#14B8A6' }]}>Logistics</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('services')}>
-          <Text style={{ fontSize: 16 }}>🛠️</Text>
-          <Text style={[styles.navLbl, activeTab === 'services' && !showLogistics && { color: '#14B8A6' }]}>Service Hub</Text>
-        </TouchableOpacity>
-      </View>
+      
         
                
-              </ScrollView>                   
+                             
 
                         {/* Clean Open Headline & Description */}
                         <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', marginTop: 10, lineHeight: 21 }}>{post.title}</Text>
