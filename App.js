@@ -435,8 +435,11 @@ export default function App() {
                     <View style={[styles.fakeInput, { borderColor: T.border }]}>
                       <Text style={{ color: T.sub, fontSize: 13 }}>Post a sell offer, buy requirement or fleet load...</Text>
                     </View>
+                      
                   </TouchableOpacity>
-      
+                    {visiblePosts.map((post) => (
+                <View key={post.id || post.title} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
+
         
                
                              
