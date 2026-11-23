@@ -123,7 +123,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('feed');
   const [feedFilter, setFeedFilter] = useState('All');
   const [mandiTab, setMandiTab] = useState('india');
-  const [showLogistics, setShowLogistics] = useState(false);
   const [tabHistory, setTabHistory] = useState(['feed']);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -252,7 +251,6 @@ export default function App() {
       if (commentPost) { setCommentPost(null); return true; }
       if (modal) { setModal(null); return true; }
       if (drawerOpen) { setDrawerOpen(false); return true; }
-      if (showLogistics) { setShowLogistics(false); return true; }
       if (tabHistory.length > 1) {
         const next = tabHistory.slice(0, -1);
         setTabHistory(next);
@@ -264,10 +262,9 @@ export default function App() {
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', handler);
     return () => sub.remove();
-  }, [selectedNews, selectedMandi, commentPost, modal, drawerOpen, showLogistics, tabHistory, activeTab]);
+  }, [selectedNews, selectedMandi, commentPost, modal, drawerOpen, tabHistory, activeTab]);
 
   const switchTab = (t) => {
-    setShowLogistics(false);
     setActiveTab(t);
     setTabHistory((prev) => (prev[prev.length - 1] === t ? prev : [...prev, t]));
   };
@@ -337,15 +334,9 @@ export default function App() {
 
       {/* CLEAN TOP HEADER */}
       <View style={hdr.bar}>
-        {showLogistics ? (
-          <TouchableOpacity style={hdr.backBtn} onPress={() => setShowLogistics(false)}>
-            <Text style={{ color: '#C9B89A', fontSize: 12, fontWeight: '800' }}>← Back</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={() => setDrawerOpen(true)} style={hdr.logoWrap}>
-            <Image source={TS_LOGO} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={() => setDrawerOpen(true)} style={hdr.logoWrap}>
+          <Image source={TS_LOGO} style={{ width: '100%', height: '100%', resizeMode: 'cover' }} />
+        </TouchableOpacity>
         <View style={hdr.searchWrap}>
           <Text style={{ fontSize: 12, marginRight: 6 }}>🔍</Text>
           <TextInput
@@ -369,251 +360,245 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {showLogistics ? (
-        <GlobalLogisticsHubScreen theme={theme} />
-      ) : (
-        <>
-          {/* TAB 1: LINKEDIN-STYLE OPEN EDGE-TO-EDGE TRADE FEED */}
-          {activeTab === 'feed' && (
-            <View style={{ flex: 1 }}>
-              <View style={{ backgroundColor: T.card, borderBottomWidth: 1, borderBottomColor: T.border }}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 9 }}>
-                  {['All', 'India EXIM', 'Domestic', 'International', 'Market', 'Exim News'].map((tab) => {
-                    const active = feedFilter === tab;
-                    return (
-                      <TouchableOpacity
-                        key={tab}
-                        onPress={() => setFeedFilter(tab)}
-                        style={[styles.filterPill, { backgroundColor: active ? T.accent : T.pill }]}
-                      >
-                        <Text style={{ color: active ? '#FFF' : T.text, fontSize: 12, fontWeight: '800' }}>{tab}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
+      {/* TAB 1: TRADE FEED */}
+      {activeTab === 'feed' && (
+        <View style={{ flex: 1 }}>
+          <View style={{ backgroundColor: T.card, borderBottomWidth: 1, borderBottomColor: T.border }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 9 }}>
+              {['All', 'India EXIM', 'Domestic', 'International', 'Market', 'Exim News'].map((tab) => {
+                const active = feedFilter === tab;
+                return (
+                  <TouchableOpacity
+                    key={tab}
+                    onPress={() => setFeedFilter(tab)}
+                    style={[styles.filterPill, { backgroundColor: active ? T.accent : T.pill }]}
+                  >
+                    <Text style={{ color: active ? '#FFF' : T.text, fontSize: 12, fontWeight: '800' }}>{tab}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
 
-              {feedFilter === 'Market' ? (
-                <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-                  <View style={[styles.liCard, { backgroundColor: '#0D1B2A', borderColor: T.border }]}>
-                    <Text style={{ color: '#C9B89A', fontSize: 11, fontWeight: '800' }}>LIVE FX REFERENCE</Text>
-                    <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '900', marginTop: 2 }}>1 USD = ₹{usdInr} INR</Text>
+          {feedFilter === 'Market' ? (
+            <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+              <View style={[styles.liCard, { backgroundColor: '#0D1B2A', borderColor: T.border }]}>
+                <Text style={{ color: '#C9B89A', fontSize: 11, fontWeight: '800' }}>LIVE FX REFERENCE</Text>
+                <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '900', marginTop: 2 }}>1 USD = ₹{usdInr} INR</Text>
+              </View>
+              {INTL_MARKET.map((item) => (
+                <View key={item.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
+                  <View style={styles.rowBetween}>
+                    <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', flex: 1 }}>{item.item}</Text>
+                    <TouchableOpacity onPress={() => shareText(item.item, `${item.port}: ${item.price}`)}>
+                      <Text style={{ fontSize: 16 }}>📤</Text>
+                    </TouchableOpacity>
                   </View>
-                  {INTL_MARKET.map((item) => (
-                    <View key={item.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
-                      <View style={styles.rowBetween}>
-                        <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', flex: 1 }}>{item.item}</Text>
-                        <TouchableOpacity onPress={() => shareText(item.item, `${item.port}: ${item.price}`)}>
-                          <Text style={{ fontSize: 16 }}>📤</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <Text style={{ color: T.sub, fontSize: 12, marginTop: 3 }}>📍 {item.port}</Text>
-                      <Text style={{ color: T.accent, fontSize: 15, fontWeight: '900', marginTop: 6 }}>{item.price}</Text>
-                    </View>
-                  ))}
-                </ScrollView>
-              ) : feedFilter === 'Exim News' ? (
-                <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
-                  {newsList.map((n) => (
-                    <TouchableOpacity
-                      key={n.id}
-                      onPress={() => setSelectedNews(n)}
-                      style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}
-                    >
-                      <View style={styles.rowBetween}>
-                        <Text style={{ color: T.accent, fontSize: 11, fontWeight: '800' }}>{n.source} • {n.date}</Text>
-                        <TouchableOpacity onPress={() => shareText(n.title, n.summary)}>
-                          <Text style={{ fontSize: 16 }}>📤</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', marginTop: 6 }}>{n.title}</Text>
-                      <Text style={{ color: T.sub, fontSize: 13, marginTop: 5, lineHeight: 19 }} numberOfLines={3}>{n.summary}</Text>
+                  <Text style={{ color: T.sub, fontSize: 12, marginTop: 3 }}>📍 {item.port}</Text>
+                  <Text style={{ color: T.accent, fontSize: 15, fontWeight: '900', marginTop: 6 }}>{item.price}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          ) : feedFilter === 'Exim News' ? (
+            <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+              {newsList.map((n) => (
+                <TouchableOpacity
+                  key={n.id}
+                  onPress={() => setSelectedNews(n)}
+                  style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}
+                >
+                  <View style={styles.rowBetween}>
+                    <Text style={{ color: T.accent, fontSize: 11, fontWeight: '800' }}>{n.source} • {n.date}</Text>
+                    <TouchableOpacity onPress={() => shareText(n.title, n.summary)}>
+                      <Text style={{ fontSize: 16 }}>📤</Text>
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              ) : (
-                <ScrollView contentContainerStyle={{ paddingBottom: 85 }}>
-                  {/* Quick LinkedIn-Style Start a Trade Post Strip */}
-                  <TouchableOpacity
-                    onPress={() => setModal('post')}
-                    style={[styles.startPostStrip, { backgroundColor: T.card, borderColor: T.border }]}
-                  >
-                    <View style={styles.avatarCircle}>
-                      <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>NJ</Text>
-                    </View>
-                    <View style={[styles.fakeInput, { borderColor: T.border }]}>
-                      <Text style={{ color: T.sub, fontSize: 13 }}>Post a sell offer, buy requirement or fleet load...</Text>
-                    </View>
-                  </TouchableOpacity>
+                  </View>
+                  <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', marginTop: 6 }}>{n.title}</Text>
+                  <Text style={{ color: T.sub, fontSize: 13, marginTop: 5, lineHeight: 19 }} numberOfLines={3}>{n.summary}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <ScrollView contentContainerStyle={{ paddingBottom: 85 }}>
+              <TouchableOpacity
+                onPress={() => setModal('post')}
+                style={[styles.startPostStrip, { backgroundColor: T.card, borderColor: T.border }]}
+              >
+                <View style={styles.avatarCircle}>
+                  <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>NJ</Text>
+                </View>
+                <View style={[styles.fakeInput, { borderColor: T.border }]}>
+                  <Text style={{ color: T.sub, fontSize: 13 }}>Post a sell offer, buy requirement or fleet load...</Text>
+                </View>
+              </TouchableOpacity>
 
-                  {visiblePosts.map((post) => {
-                    const liked = likedIds.includes(post.id);
-                    const saved = savedIds.includes(post.id);
-                    return (
-                      <View key={post.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
-                        {/* Trader Header */}
-                        <View style={styles.rowBetween}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                            <View style={styles.avatarCircle}>
-                              <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12 }}>{post.initials || 'TS'}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{ color: T.text, fontSize: 14, fontWeight: '800' }}>{post.trader_name}</Text>
-                              <Text style={{ color: T.sub, fontSize: 11 }}>{post.trader_role}</Text>
-                            </View>
-                          </View>
-                          <Text style={styles.offerPill}>{post.post_type}</Text>
+              {visiblePosts.map((post) => {
+                const liked = likedIds.includes(post.id);
+                const saved = savedIds.includes(post.id);
+                return (
+                  <View key={post.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
+                    <View style={styles.rowBetween}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <View style={styles.avatarCircle}>
+                          <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12 }}>{post.initials || 'TS'}</Text>
                         </View>
-
-                        {/* Clean Open Headline & Description */}
-                        <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', marginTop: 10, lineHeight: 21 }}>{post.title}</Text>
-                        {!!post.desc && (
-                          <Text style={{ color: T.sub, fontSize: 13, marginTop: 4, lineHeight: 19 }}>{post.desc}</Text>
-                        )}
-
-                        {/* Open 3-Column Spec Row */}
-                        <View style={[styles.specStrip, { borderTopColor: T.border, borderBottomColor: T.border }]}>
-                          <View style={styles.specCol}>
-                            <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>QUANTITY</Text>
-                            <Text style={{ color: T.text, fontSize: 13, fontWeight: '800', marginTop: 2 }}>{post.qty}</Text>
-                          </View>
-                          <View style={[styles.specCol, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: T.border, paddingHorizontal: 10 }]}>
-                            <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>PORT / ROUTE</Text>
-                            <Text style={{ color: T.text, fontSize: 13, fontWeight: '800', marginTop: 2 }} numberOfLines={1}>{post.port}</Text>
-                          </View>
-                          <View style={[styles.specCol, { paddingLeft: 10 }]}>
-                            <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>TARGET RATE</Text>
-                            <Text style={{ color: T.accent, fontSize: 13, fontWeight: '900', marginTop: 2 }}>{post.price}</Text>
-                          </View>
-                        </View>
-
-                        {/* LinkedIn-Style Bottom Action Bar */}
-                        <View style={styles.liActionRow}>
-                          <TouchableOpacity style={styles.liActBtn} onPress={() => setLikedIds(liked ? likedIds.filter((i) => i !== post.id) : [...likedIds, post.id])}>
-                            <Text style={{ color: liked ? T.accent : T.sub, fontSize: 12, fontWeight: '800' }}>{liked ? '❤️ Liked' : '🤍 Like'}</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.liActBtn} onPress={() => setCommentPost(post)}>
-                            <Text style={{ color: T.sub, fontSize: 12, fontWeight: '800' }}>💬 Comment ({post.comments?.length || 0})</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.liActBtn} onPress={() => setSavedIds(saved ? savedIds.filter((i) => i !== post.id) : [...savedIds, post.id])}>
-                            <Text style={{ color: saved ? T.gold : T.sub, fontSize: 12, fontWeight: '800' }}>{saved ? '🔖 Saved' : '📑 Save'}</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.liActBtn} onPress={() => shareText(post.title, `${post.qty} | ${post.port} | ${post.price}`)}>
-                            <Text style={{ color: T.sub, fontSize: 12, fontWeight: '800' }}>📤 Share</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.waCircle} onPress={() => openWA(post.phone, `Hi ${post.trader_name}, regarding ${post.title}`)}>
-                            <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900' }}>WA</Text>
-                          </TouchableOpacity>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: T.text, fontSize: 14, fontWeight: '800' }}>{post.trader_name}</Text>
+                          <Text style={{ color: T.sub, fontSize: 11 }}>{post.trader_role}</Text>
                         </View>
                       </View>
-                    );
-                  })}
-                </ScrollView>
-              )}
-            </View>
-          )}
+                      <Text style={styles.offerPill}>{post.post_type}</Text>
+                    </View>
 
-          {/* TAB 2: MANDI PULSE */}
-          {activeTab === 'mandi' && (
-            <View style={{ flex: 1 }}>
-              <View style={[styles.subBar, { backgroundColor: T.card, borderBottomColor: T.border }]}>
-                {['india', 'intl'].map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    onPress={() => setMandiTab(t)}
-                    style={[styles.subTabBtn, mandiTab === t && { borderBottomColor: T.accent, borderBottomWidth: 2.5 }]}
-                  >
-                    <Text style={{ color: mandiTab === t ? T.accent : T.sub, fontSize: 13, fontWeight: '800' }}>
-                      {t === 'india' ? 'Mandi Pulse (India)' : 'International FOB / LME'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                    <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', marginTop: 10, lineHeight: 21 }}>{post.title}</Text>
+                    {!!post.desc && (
+                      <Text style={{ color: T.sub, fontSize: 13, marginTop: 4, lineHeight: 19 }}>{post.desc}</Text>
+                    )}
 
-              {mandiTab === 'india' ? (
-                <ScrollView contentContainerStyle={{ paddingBottom: 85 }}>
-                  <ScrollView ref={tickerRef} horizontal showsHorizontalScrollIndicator={false} style={{ paddingVertical: 10, paddingLeft: 12 }}>
-                    {mandiList.slice(0, 8).map((m) => (
-                      <TouchableOpacity key={'tk-' + m.id} onPress={() => setSelectedMandi(m)} style={styles.tickerBox}>
-                        <Text style={{ color: '#14B8A6', fontSize: 11, fontWeight: '800' }} numberOfLines={1}>{m.commodity}</Text>
-                        <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '900' }}>₹{m.modal}/Qtl</Text>
-                        <Text style={{ color: '#94A3B8', fontSize: 10 }} numberOfLines={1}>{m.market}</Text>
+                    <View style={[styles.specStrip, { borderTopColor: T.border, borderBottomColor: T.border }]}>
+                      <View style={styles.specCol}>
+                        <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>QUANTITY</Text>
+                        <Text style={{ color: T.text, fontSize: 13, fontWeight: '800', marginTop: 2 }}>{post.qty}</Text>
+                      </View>
+                      <View style={[styles.specCol, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: T.border, paddingHorizontal: 10 }]}>
+                        <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>PORT / ROUTE</Text>
+                        <Text style={{ color: T.text, fontSize: 13, fontWeight: '800', marginTop: 2 }} numberOfLines={1}>{post.port}</Text>
+                      </View>
+                      <View style={[styles.specCol, { paddingLeft: 10 }]}>
+                        <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>TARGET RATE</Text>
+                        <Text style={{ color: T.accent, fontSize: 13, fontWeight: '900', marginTop: 2 }}>{post.price}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.liActionRow}>
+                      <TouchableOpacity style={styles.liActBtn} onPress={() => setLikedIds(liked ? likedIds.filter((i) => i !== post.id) : [...likedIds, post.id])}>
+                        <Text style={{ color: liked ? T.accent : T.sub, fontSize: 12, fontWeight: '800' }}>{liked ? '❤️ Liked' : '🤍 Like'}</Text>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingBottom: 10, paddingLeft: 12 }}>
-                    {statesList.map((st) => (
-                      <TouchableOpacity
-                        key={st}
-                        onPress={() => setSelectedState(st)}
-                        style={[styles.filterPill, { backgroundColor: selectedState === st ? T.accent : T.card }]}
-                      >
-                        <Text style={{ color: selectedState === st ? '#FFF' : T.text, fontSize: 11, fontWeight: '800' }}>{st}</Text>
+                      <TouchableOpacity style={styles.liActBtn} onPress={() => setCommentPost(post)}>
+                        <Text style={{ color: T.sub, fontSize: 12, fontWeight: '800' }}>💬 Comment ({post.comments?.length || 0})</Text>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-
-                  {mandiLoading && <ActivityIndicator color={T.accent} style={{ marginVertical: 8 }} />}
-                  {filteredMandi.map((m) => (
-                    <TouchableOpacity
-                      key={m.id}
-                      onPress={() => setSelectedMandi(m)}
-                      style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}
-                    >
-                      <View style={styles.rowBetween}>
-                        <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', flex: 1 }}>{m.commodity} ({m.variety})</Text>
-                        <TouchableOpacity onPress={() => {
-                          setPriceAlerts([...priceAlerts, `${m.commodity} @ ₹${m.modal}/Qtl`]);
-                          Alert.alert('Price Alert Set ✓', `You will be notified on ${m.commodity} rate changes.`);
-                        }}>
-                          <Text style={{ color: T.gold, fontSize: 11, fontWeight: '800', marginRight: 10 }}>🔔 Alert</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => shareText(`${m.commodity} Rate`, `${m.market}, ${m.state}: ₹${m.modal}/Qtl`)}>
-                          <Text style={{ fontSize: 15 }}>📤</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <Text style={{ color: T.sub, fontSize: 12, marginTop: 3 }}>📍 {m.market}, {m.state} • {m.date}</Text>
-                      <Text style={{ color: T.accent, fontSize: 15, fontWeight: '900', marginTop: 5 }}>
-                        Modal: ₹{m.modal}/Qtl  <Text style={{ color: T.sub, fontSize: 12, fontWeight: '600' }}>(Min ₹{m.min} • Max ₹{m.max})</Text>
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              ) : (
-                <ScrollView contentContainerStyle={{ paddingBottom: 85 }}>
-                  {INTL_MARKET.map((f) => (
-                    <View key={f.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
-                      <View style={styles.rowBetween}>
-                        <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', flex: 1 }}>{f.item}</Text>
-                        <TouchableOpacity onPress={() => shareText(f.item, `${f.port}: ${f.price}`)}>
-                          <Text style={{ fontSize: 15 }}>📤</Text>
-                        </TouchableOpacity>
-                      </View>
-                      <Text style={{ color: T.sub, fontSize: 12, marginTop: 3 }}>🚢 {f.port}</Text>
-                      <Text style={{ color: T.accent, fontSize: 15, fontWeight: '900', marginTop: 5 }}>{f.price}</Text>
+                      <TouchableOpacity style={styles.liActBtn} onPress={() => setSavedIds(saved ? savedIds.filter((i) => i !== post.id) : [...savedIds, post.id])}>
+                        <Text style={{ color: saved ? T.gold : T.sub, fontSize: 12, fontWeight: '800' }}>{saved ? '🔖 Saved' : '📑 Save'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.liActBtn} onPress={() => shareText(post.title, `${post.qty} | ${post.port} | ${post.price}`)}>
+                        <Text style={{ color: T.sub, fontSize: 12, fontWeight: '800' }}>📤 Share</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.waCircle} onPress={() => openWA(post.phone, `Hi ${post.trader_name}, regarding ${post.title}`)}>
+                        <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900' }}>WA</Text>
+                      </TouchableOpacity>
                     </View>
-                  ))}
-                </ScrollView>
-              )}
-            </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
           )}
-
-          {/* TAB 4 & 5: SERVICE HUB (INCLUDES SETUU CALC PRO SUITES) */}
-          {(activeTab === 'calc' || activeTab === 'services') && (
-            <ServiceHubScreen
-              theme={theme}
-              isPaid={isPaid}
-              vaultBalance={vaultBalance}
-              onDeductVault={(amt, note) => setVaultBalance((v) => Math.max(0, v - amt))}
-              onOpenCalc={() => switchTab('services')}
-              onOpenLogistics={() => setShowLogistics(true)}
-            />
-          )}
-        </>
+        </View>
       )}
 
-      {/* 5-TAB BOTTOM BAR: Trade Feed | Mandi Pulse | + | Calc Pro | Service Hub */}
+      {/* TAB 2: MANDI PULSE */}
+      {activeTab === 'mandi' && (
+        <View style={{ flex: 1 }}>
+          <View style={[styles.subBar, { backgroundColor: T.card, borderBottomColor: T.border }]}>
+            {['india', 'intl'].map((t) => (
+              <TouchableOpacity
+                key={t}
+                onPress={() => setMandiTab(t)}
+                style={[styles.subTabBtn, mandiTab === t && { borderBottomColor: T.accent, borderBottomWidth: 2.5 }]}
+              >
+                <Text style={{ color: mandiTab === t ? T.accent : T.sub, fontSize: 13, fontWeight: '800' }}>
+                  {t === 'india' ? 'Mandi Pulse (India)' : 'International FOB / LME'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {mandiTab === 'india' ? (
+            <ScrollView contentContainerStyle={{ paddingBottom: 85 }}>
+              <ScrollView ref={tickerRef} horizontal showsHorizontalScrollIndicator={false} style={{ paddingVertical: 10, paddingLeft: 12 }}>
+                {mandiList.slice(0, 8).map((m) => (
+                  <TouchableOpacity key={'tk-' + m.id} onPress={() => setSelectedMandi(m)} style={styles.tickerBox}>
+                    <Text style={{ color: '#14B8A6', fontSize: 11, fontWeight: '800' }} numberOfLines={1}>{m.commodity}</Text>
+                    <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '900' }}>₹{m.modal}/Qtl</Text>
+                    <Text style={{ color: '#94A3B8', fontSize: 10 }} numberOfLines={1}>{m.market}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingBottom: 10, paddingLeft: 12 }}>
+                {statesList.map((st) => (
+                  <TouchableOpacity
+                    key={st}
+                    onPress={() => setSelectedState(st)}
+                    style={[styles.filterPill, { backgroundColor: selectedState === st ? T.accent : T.card }]}
+                  >
+                    <Text style={{ color: selectedState === st ? '#FFF' : T.text, fontSize: 11, fontWeight: '800' }}>{st}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {mandiLoading && <ActivityIndicator color={T.accent} style={{ marginVertical: 8 }} />}
+              {filteredMandi.map((m) => (
+                <TouchableOpacity
+                  key={m.id}
+                  onPress={() => setSelectedMandi(m)}
+                  style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}
+                >
+                  <View style={styles.rowBetween}>
+                    <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', flex: 1 }}>{m.commodity} ({m.variety})</Text>
+                    <TouchableOpacity onPress={() => {
+                      setPriceAlerts([...priceAlerts, `${m.commodity} @ ₹${m.modal}/Qtl`]);
+                      Alert.alert('Price Alert Set ✓', `You will be notified on ${m.commodity} rate changes.`);
+                    }}>
+                      <Text style={{ color: T.gold, fontSize: 11, fontWeight: '800', marginRight: 10 }}>🔔 Alert</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => shareText(`${m.commodity} Rate`, `${m.market}, ${m.state}: ₹${m.modal}/Qtl`)}>
+                      <Text style={{ fontSize: 15 }}>📤</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ color: T.sub, fontSize: 12, marginTop: 3 }}>📍 {m.market}, {m.state} • {m.date}</Text>
+                  <Text style={{ color: T.accent, fontSize: 15, fontWeight: '900', marginTop: 5 }}>
+                    Modal: ₹{m.modal}/Qtl  <Text style={{ color: T.sub, fontSize: 12, fontWeight: '600' }}>(Min ₹{m.min} • Max ₹{m.max})</Text>
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <ScrollView contentContainerStyle={{ paddingBottom: 85 }}>
+              {INTL_MARKET.map((f) => (
+                <View key={f.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
+                  <View style={styles.rowBetween}>
+                    <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', flex: 1 }}>{f.item}</Text>
+                    <TouchableOpacity onPress={() => shareText(f.item, `${f.port}: ${f.price}`)}>
+                      <Text style={{ fontSize: 15 }}>📤</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ color: T.sub, fontSize: 12, marginTop: 3 }}>🚢 {f.port}</Text>
+                  <Text style={{ color: T.accent, fontSize: 15, fontWeight: '900', marginTop: 5 }}>{f.price}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
+      {/* TAB 4: GLOBAL LOGISTICS HUB */}
+      {activeTab === 'logistics' && (
+        <GlobalLogisticsHubScreen theme={theme} />
+      )}
+
+      {/* TAB 5: SERVICE HUB */}
+      {activeTab === 'services' && (
+        <ServiceHubScreen
+          theme={theme}
+          isPaid={isPaid}
+          vaultBalance={vaultBalance}
+          onDeductVault={(amt, note) => setVaultBalance((v) => Math.max(0, v - amt))}
+          onOpenCalc={() => switchTab('services')}
+          onOpenLogistics={() => switchTab('logistics')}
+        />
+      )}
+
+      {/* BOTTOM BAR: Trade Feed | Mandi Pulse | + | Logistics | Service Hub */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('feed')}>
           <Text style={{ fontSize: 16 }}>🏠</Text>
@@ -626,9 +611,9 @@ export default function App() {
         <TouchableOpacity style={styles.centerPlus} onPress={() => setModal('post')}>
           <Text style={{ color: '#FFF', fontSize: 24, fontWeight: '900', marginTop: -2 }}>+</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('calc')}>
-          <Text style={{ fontSize: 16 }}>🧮</Text>
-          <Text style={[styles.navLbl, activeTab === 'calc' && { color: '#14B8A6' }]}>Calc Pro</Text>
+        <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('logistics')}>
+          <Text style={{ fontSize: 16 }}>🌐</Text>
+          <Text style={[styles.navLbl, activeTab === 'logistics' && { color: '#14B8A6' }]}>Logistics</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navBtn} onPress={() => switchTab('services')}>
           <Text style={{ fontSize: 16 }}>🛠️</Text>
@@ -683,7 +668,7 @@ export default function App() {
                 style={styles.menuItem}
                 onPress={() => {
                   setDrawerOpen(false);
-                  if (m.id === 'logistics') setShowLogistics(true);
+                  if (m.id === 'logistics') switchTab('logistics');
                   else if (m.id === 'logout') setIsLoggedIn(false);
                   else if (m.id === 'custom_ad') Alert.alert('Custom Ad Manager', 'Available with Paid Subscription (Coming Soon).');
                   else setModal(m.id);
@@ -923,7 +908,6 @@ const hdr = StyleSheet.create({
   iconBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#11161F', alignItems: 'center', justifyContent: 'center', marginLeft: 4, position: 'relative' },
   badge: { position: 'absolute', top: -2, right: -2, backgroundColor: '#0D9488', width: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
   badgeTxt: { color: '#FFF', fontSize: 8, fontWeight: '900' },
-  backBtn: { backgroundColor: '#11161F', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginRight: 6 },
 });
 
 const styles = StyleSheet.create({
