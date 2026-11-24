@@ -434,8 +434,100 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
             </Text>
           </View>
 
-          <View style={[styles.segmentBar, { backgroundColor: C.ca
-                 {/* Step 2: Vehicle / Tonnage Options */}
+          <View style={[styles.segmentBar, { backgroundColor: C.card, borderColor: C.border }]}>
+            <TouchableOpacity
+              onPress={() => { setInlandMode('normal'); setShowIndicativeRates(false); }}
+              style={[styles.segmentBtn, inlandMode === 'normal' && { backgroundColor: C.teal }]}
+            >
+              <Text style={{ color: inlandMode === 'normal' ? '#FFF' : C.text, fontSize: 12, fontWeight: '800' }}>
+                Normal Booking
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setInlandMode('backhaul'); setShowIndicativeRates(false); }}
+              style={[styles.segmentBtn, inlandMode === 'backhaul' && { backgroundColor: C.teal }]}
+            >
+              <Text style={{ color: inlandMode === 'backhaul' ? '#FFF' : C.text, fontSize: 12, fontWeight: '800' }}>
+                Backhaul / Bidding
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.border }]}>
+            <Text style={[styles.label, { color: C.sub }]}>Load Mode</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+              {LOAD_MODES.map((lm) => (
+                <TouchableOpacity
+                  key={lm}
+                  onPress={() => setLoadMode(lm)}
+                  style={[styles.choiceChip, { borderColor: C.border }, loadMode === lm && { backgroundColor: C.teal, borderColor: C.tealBright }]}
+                >
+                  <Text style={{ color: loadMode === lm ? '#FFF' : C.text, fontSize: 11, fontWeight: '800' }}>{lm}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.label, { color: C.sub }]}>Pickup Location</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+              placeholder="City, Plant or Yard"
+              placeholderTextColor={C.sub}
+              value={pickupLoc}
+              onChangeText={setPickupLoc}
+            />
+
+            <Text style={[styles.label, { color: C.sub }]}>Delivery Location / Route</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+              placeholder={inlandMode === 'backhaul' ? 'Return Corridor (e.g. Vizag -> Raipur)' : 'City, Port or Warehouse'}
+              placeholderTextColor={C.sub}
+              value={inlandMode === 'backhaul' ? backhaulRoute : deliveryLoc}
+              onChangeText={inlandMode === 'backhaul' ? setBackhaulRoute : setDeliveryLoc}
+            />
+
+            <View style={styles.rowBetween}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={[styles.label, { color: C.sub }]}>Cargo Weight ({weightUnit})</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                  placeholder="Weight"
+                  placeholderTextColor={C.sub}
+                  keyboardType="numeric"
+                  value={inlandMode === 'backhaul' ? backhaulWeight : inlandWeight}
+                  onChangeText={inlandMode === 'backhaul' ? setBackhaulWeight : setInlandWeight}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.label, { color: C.sub }]}>Est. Distance (KM, Optional)</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+                  placeholder="e.g. 520"
+                  placeholderTextColor={C.sub}
+                  keyboardType="numeric"
+                  value={distanceKm}
+                  onChangeText={setDistanceKm}
+                />
+              </View>
+            </View>
+
+            <Text style={[styles.label, { color: C.sub }]}>Cargo / Commodity</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: C.cardAlt, color: C.text, borderColor: C.border }]}
+              placeholder="e.g. Rice, Maize, Cement, Industrial Goods"
+              placeholderTextColor={C.sub}
+              value={inlandCargo}
+              onChangeText={setInlandCargo}
+            />
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: C.teal }]}
+              onPress={() => { setShowVehicleOptions(true); setShowIndicativeRates(false); }}
+            >
+              <Text style={styles.primaryBtnTxt}>Find Transport Options →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Step 2: Vehicle / Tonnage Options */}
           {showVehicleOptions && (
             <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.tealBright }]}>
               <Text style={[styles.sectionHead, { color: C.text }]}>Select Vehicle / Tonnage Option</Text>
@@ -824,7 +916,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
           4. SAMPLE & TRACKING
       ========================================================= */}
       {activeScreen === 'sample' && (
-   <View style={{ padding: 14 }}>
+        <View style={{ padding: 14 }}>
           <View style={[styles.formCard, { backgroundColor: C.card, borderColor: C.border }]}>
             <Text style={{ color: C.gold, fontSize: 12, fontWeight: '900' }}>
               📦 SAMPLE EXPRESS & LAB TIMELINE
@@ -1089,4 +1181,4 @@ const styles = StyleSheet.create({
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
   modalCard: { borderTopLeftRadius: 18, borderTopRightRadius: 18, borderWidth: 1, padding: 16 },
   countryItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 0.5 },
-});                                     
+});
