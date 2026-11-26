@@ -11,14 +11,16 @@ import {
   Image,
   Share,
 } from 'react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 const TS_LOGO = require('../1795099375380.png');
 
 const REGIONS = [
   { code: 'IN', label: 'India (IN)', currency: 'INR', weightUnit: 'MT', factor: 1.0 },
-  { code: 'GLOBAL', label: 'Global (Auto)', currency: 'USD', weightUnit: 'MT', factor: 1.05 },
+  { code: 'GLOBAL', label: 'Global (Auto)', currency: 'USD', weightUnit: 'MT', factor: 1.06 },
   { code: 'AE', label: 'United Arab Emirates (AE)', currency: 'AED', weightUnit: 'MT', factor: 1.15 },
-  { code: 'US', label: 'United States (US)', currency: 'USD', weightUnit: 'MT', factor: 1.35 },
+  { code: 'US', label: 'United States (US)', currency: 'USD', weightUnit: 'MT', factor: 1.32 },
   { code: 'NL', label: 'Netherlands (NL)', currency: 'EUR', weightUnit: 'MT', factor: 1.22 },
   { code: 'SG', label: 'Singapore (SG)', currency: 'SGD', weightUnit: 'MT', factor: 1.2 },
   { code: 'DE', label: 'Germany (DE)', currency: 'EUR', weightUnit: 'KG', factor: 1.25 },
@@ -35,8 +37,6 @@ const CURRENCIES = [
   { code: 'SGD', label: 'SGD (S$)' },
   { code: 'SAR', label: 'SAR' },
 ];
-
-const WEIGHT_UNITS = ['MT', 'KG', 'LB'];
 
 const FX_TO_INR = {
   INR: 1,
@@ -59,16 +59,16 @@ const INCOTERMS_INFO = [
 ];
 
 const VEHICLE_FLEET = [
-  { id: '16w', name: '16-Wheeler (18–21 MT)', capMt: 21, ratePerKm: 64, availability: 'Available • 4 Trucks near Raipur' },
-  { id: '18w', name: '18-Wheeler (22–25 MT)', capMt: 25, ratePerKm: 72, availability: 'Available • 3 Trucks near Raipur' },
-  { id: '22w', name: '22-Wheeler Multi-Axle (28–35 MT)', capMt: 32, ratePerKm: 84, availability: 'High Availability • 6 Trucks' },
-  { id: 'cont40', name: '40ft Trailer / Container Carrier', capMt: 28, ratePerKm: 88, availability: 'Port Corridor Ready' },
+  { id: '16w', name: '16-Wheeler (18–21 MT)', capMt: 21, ratePerKm: 64, availability: 'Indicative Fleet • 4 Trucks (Raipur)' },
+  { id: '18w', name: '18-Wheeler (22–25 MT)', capMt: 25, ratePerKm: 72, availability: 'Indicative Fleet • 3 Trucks (Raipur)' },
+  { id: '22w', name: '22-Wheeler Multi-Axle (28–32 MT)', capMt: 32, ratePerKm: 84, availability: 'Indicative Fleet • 6 Trucks (Corridor)' },
+  { id: 'cont40', name: '40ft Trailer / Container Carrier', capMt: 28, ratePerKm: 88, availability: 'Indicative Fleet • Port Lane Ready' },
 ];
 
 const RETURN_LOAD_TRIPS = [
-  { id: 'ret1', route: 'Visakhapatnam → Raipur', truck: '22-Wheeler (32 MT)', offerInr: 41500, saving: 'Save ~18% vs Standard' },
-  { id: 'ret2', route: 'Mumbai / Bhiwandi → Raipur', truck: '18-Wheeler (25 MT)', offerInr: 46800, saving: 'Empty Return Match' },
-  { id: 'ret3', route: 'Nagpur → Raipur', truck: '16-Wheeler (21 MT)', offerInr: 16200, saving: 'Lowest Bid Active' },
+  { id: 'ret1', route: 'Visakhapatnam → Raipur', truck: '22-Wheeler (32 MT)', offerInr: 41500, saving: 'Indicative ~18% Return Match' },
+  { id: 'ret2', route: 'Mumbai / Bhiwandi → Raipur', truck: '18-Wheeler (25 MT)', offerInr: 46800, saving: 'Indicative Reverse Corridor' },
+  { id: 'ret3', route: 'Nagpur → Raipur', truck: '16-Wheeler (21 MT)', offerInr: 16200, saving: 'Indicative Return Bid' },
 ];
 
 const CARRIER_QUOTES = [
@@ -79,10 +79,9 @@ const CARRIER_QUOTES = [
     badgeStyle: 'indicative',
     badgeRight: 'Indicative',
     rating: '4.8',
-    usdPrice: 1480,
     inrPrice: 123400,
     tt: '14 - 16 Days',
-    validity: '7 Days',
+    validity: '7 Days (Indicative)',
     serviceType: 'Port-to-Port • Direct',
     included: 'Base Ocean Freight + Origin Documentation',
     excluded: 'Dest. THC, Customs Clearance, Detention',
@@ -90,14 +89,13 @@ const CARRIER_QUOTES = [
   {
     id: 'msc',
     name: 'MSC',
-    badgeLeft: '(Best Value)',
+    badgeLeft: '(Indicative Best Value)',
     badgeStyle: 'bestValue',
     badgeRight: 'Best Value',
     rating: '4.7',
-    usdPrice: 1420,
     inrPrice: 118600,
     tt: '15 - 17 Days',
-    validity: '7 Days',
+    validity: '7 Days (Indicative)',
     serviceType: 'Port-to-Port • Weekly Sailing',
     included: 'Base Ocean Freight + Seal + B/L Fee',
     excluded: 'Dest. Port THC, Import Duty & Local Haulage',
@@ -105,26 +103,43 @@ const CARRIER_QUOTES = [
   {
     id: 'cma',
     name: 'CMA CGM',
-    badgeLeft: '(Confirmed Partner)',
+    badgeLeft: '(Indicative Quote)',
     badgeStyle: 'strike',
-    badgeRight: 'Confirmed Quote',
+    badgeRight: 'Indicative',
     rating: '4.6',
-    usdPrice: 1565,
     inrPrice: 130900,
     tt: '14 - 18 Days',
-    validity: '7 Days',
-    serviceType: 'Priority Equipment Guarantee',
+    validity: '7 Days (Indicative)',
+    serviceType: 'Priority Equipment Estimate',
     included: 'Base Freight + Origin THC + Priority Slot',
     excluded: 'Dest. Customs & Destination THC',
   },
 ];
 
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function convertWeightValue(val, fromUnit, toUnit) {
+  const num = parseFloat(val);
+  if (Number.isNaN(num) || num <= 0 || fromUnit === toUnit) return val;
+  const mt = fromUnit === 'KG' ? num / 1000 : fromUnit === 'LB' ? num / 2204.6226 : num;
+  if (toUnit === 'MT') return String(Number(mt.toFixed(3)));
+  if (toUnit === 'KG') return String(Math.round(mt * 1000));
+  return String(Math.round(mt * 2204.6226));
+}
+
 function formatMoney(inrAmount, curCode) {
-  if (curCode === 'INR') return `₹${Math.round(inrAmount).toLocaleString('en-IN')}`;
   const rate = FX_TO_INR[curCode] || 1;
-  const val = inrAmount / rate;
-  if (curCode === 'USD') return `$${Math.round(val).toLocaleString('en-US')}`;
-  return `${curCode} ${val.toFixed(0)}`;
+  const converted = inrAmount / rate;
+  if (curCode === 'INR') return `₹${Math.round(converted).toLocaleString('en-IN')}`;
+  if (curCode === 'USD') return `$${Math.round(converted).toLocaleString('en-US')}`;
+  return `${curCode} ${converted.toFixed(0)}`;
 }
 
 export default function GlobalLogisticsHub({ theme = 'dark' }) {
@@ -140,65 +155,59 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
     teal: '#20C8C1',
     amber: '#F59E0B',
     greenBadge: '#16A34A',
+    warnRed: '#F87171',
   };
 
-  // Active Screen: 'hub' | 'inland' | 'rail' | 'ocean' | 'air' | 'sample' | 'requests'
   const [screen, setScreen] = useState('hub');
 
-  // Independent Region, Tx Currency, Display Currency & Weight Unit
+  // Region, Tx Currency, Display Currency & Weight Unit
   const [recentRegionCodes, setRecentRegionCodes] = useState(['IN', 'AE', 'US']);
   const [region, setRegion] = useState(REGIONS[0]);
   const [txCurrency, setTxCurrency] = useState('INR');
   const [dispCurrency, setDispCurrency] = useState('INR');
   const [weightUnit, setWeightUnit] = useState('MT');
 
-  // Saved Requests / Shipments History
+  const [idCounter, setIdCounter] = useState(1002);
   const [myRequests, setMyRequests] = useState([
     {
       id: 'TS-REQ-1001',
-      module: 'Inland Transport',
+      module: 'Inland Transport (Demo)',
       route: 'Raipur (492001) → Visakhapatnam (530001)',
-      status: 'Quote Requested',
+      status: 'Indicative Quote Requested',
     },
   ]);
 
-  // Modal Picker: 'region' | 'txCur' | 'dispCur' | 'incoterm' | null
   const [pickerOpen, setPickerOpen] = useState(null);
   const [searchText, setSearchText] = useState('');
 
-  // =========================================================
-  // 1. INLAND TRANSPORT STATE (4-STEP FLOW + SEPARATE RETURN LOAD)
-  // =========================================================
-  const [loadTab, setLoadTab] = useState('book'); // 'book' | 'return'
-  const [inlandStep, setInlandStep] = useState(1); // 1: Details, 2: Vehicle, 3: Rates, 4: Booking
+  // 1. Inland State
+  const [loadTab, setLoadTab] = useState('book');
+  const [inlandStep, setInlandStep] = useState(1);
   const [pickupLoc, setPickupLoc] = useState('Mumbai, India (400001)');
   const [deliveryLoc, setDeliveryLoc] = useState('Ahmedabad, India (380001)');
   const [cargoCategory, setCargoCategory] = useState('Agro / Bulk Grain');
-  const [cargoDims, setCargoDims] = useState('Standard Bags / Palletized');
+  const [cargoPackaging, setCargoPackaging] = useState('50 kg PP Bags / Palletized');
   const [cargoWeightVal, setCargoWeightVal] = useState('20');
   const [distanceKm, setDistanceKm] = useState('524');
   const [selectedVehicleId, setSelectedVehicleId] = useState('22w');
-  const [selectedCarrierId, setSelectedCarrierId] = useState('msc');
+  const [selectedCarrierId, setSelectedCarrierId] = useState('partner-best');
   const [bookingRequestId, setBookingRequestId] = useState('');
   const [selectedReturnTrip, setSelectedReturnTrip] = useState(RETURN_LOAD_TRIPS[0]);
   const [bidOfferAmount, setBidOfferAmount] = useState('40000');
 
-  // =========================================================
-  // 2. RAIL FREIGHT STATE
-  // =========================================================
+  // 2. Rail Freight State (Full Rake / Mini Rake / Two-Point)
   const [railOrigin, setRailOrigin] = useState('Raipur Goods Shed (R)');
   const [railDest, setRailDest] = useState('Bhiwandi / Mumbai Terminal');
   const [railCommodity, setRailCommodity] = useState('1121 Sella Rice / Bulk Grain');
   const [railQtyMt, setRailQtyMt] = useState('500');
-  const [railProduct, setRailProduct] = useState('Full Rake'); // 'Full Rake' | 'Mini Rake' | 'Two-Point' | 'Rail Parcel'
-  const [showRailEstimate, setShowRailEstimate] = useState(true);
+  const [railProduct, setRailProduct] = useState('Full Rake');
+  const [railCalculatedAt, setRailCalculatedAt] = useState('Initial Indicative Estimate');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  // =========================================================
-  // 3. OCEAN & SHIPPING STATE
-  // =========================================================
+  // 3. Ocean State
   const [oceanRoute, setOceanRoute] = useState('Nhava Sheva (INNSA) → Jebel Ali (AEJEA)');
-  const [oceanServiceMode, setOceanServiceMode] = useState('Port-to-Port'); // 'Port-to-Port' | 'Door-to-Door'
-  const [oceanShipmentType, setOceanShipmentType] = useState('FCL'); // 'FCL' | 'LCL' | 'Bulk'
+  const [oceanServiceMode, setOceanServiceMode] = useState('Port-to-Port');
+  const [oceanShipmentType, setOceanShipmentType] = useState('FCL');
   const [oceanContainer, setOceanContainer] = useState("40' HC");
   const [oceanWeightMt, setOceanWeightMt] = useState('24');
   const [oceanCbm, setOceanCbm] = useState('14');
@@ -206,18 +215,18 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
   const [oceanHsCode, setOceanHsCode] = useState('1006.30');
   const [oceanPrefLine, setOceanPrefLine] = useState('MSC / Maersk');
   const [incoterm, setIncoterm] = useState('CIF');
+  const [selectedOceanCarrierId, setSelectedOceanCarrierId] = useState('msc');
   const [showOceanRates, setShowOceanRates] = useState(false);
 
-  // =========================================================
-  // 4. AIR FREIGHT STATE
-  // =========================================================
-  const [airTab, setAirTab] = useState('calculator'); // 'details' | 'calculator' | 'documents'
+  // 4. Air Freight State
+  const [airTab, setAirTab] = useState('calculator');
   const [airRoute, setAirRoute] = useState('DEL (India) → FRA (Germany)');
   const [airActualKg, setAirActualKg] = useState('1000');
   const [airLen, setAirLen] = useState('120');
   const [airWid, setAirWid] = useState('100');
   const [airHei, setAirHei] = useState('104');
-  const [volDivisor, setVolDivisor] = useState('5000'); // '5000' | '6000'
+  const [volDivisor, setVolDivisor] = useState('5000');
+  const [airRatePerKgInr, setAirRatePerKgInr] = useState('195');
   const [airDocs, setAirDocs] = useState({
     invoice: true,
     packingList: true,
@@ -225,27 +234,29 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
     cooPhyto: false,
   });
 
-  // =========================================================
-  // 5. SAMPLE & TRACKING STATE (SEPARATE REQUEST & TRACKING + INDIA TRAIN/ROAD)
-  // =========================================================
-  const [sampleMainTab, setSampleMainTab] = useState('request'); // 'request' | 'tracking'
-  const [sampleScope, setSampleScope] = useState('domestic'); // 'domestic' | 'international'
-  const [domesticMethod, setDomesticMethod] = useState('train'); // 'train' | 'road' | 'courier'
-  const [intlCourier, setIntlCourier] = useState('DHL Express'); // 'DHL Express' | 'FedEx' | 'Other Partner'
+  // 5. Sample & Tracking State
+  const [sampleMainTab, setSampleMainTab] = useState('request');
+  const [sampleScope, setSampleScope] = useState('domestic');
+  const [domesticMethod, setDomesticMethod] = useState('train');
+  const [intlCourier, setIntlCourier] = useState('DHL Express');
   const [sampleCommodity, setSampleCommodity] = useState('1121 Basmati Rice Sample (5 kg)');
   const [samplePickup, setSamplePickup] = useState('Raipur, CG (PIN 492001)');
   const [sampleReceiver, setSampleReceiver] = useState('Mumbai Lab / Buyer (PIN 400001)');
-  // Domestic Train / Parcel Specific Fields
   const [trainStationFrom, setTrainStationFrom] = useState('Raipur Jn (R)');
   const [trainStationTo, setTrainStationTo] = useState('CSMT / LTT Mumbai');
   const [trainServiceType, setTrainServiceType] = useState('Railway Parcel Van / Brake Van');
-  // Domestic Road Transport Specific Fields
   const [transportOperator, setTransportOperator] = useState('VRL / TCI / Local Road Transport');
   const [biltyType, setBiltyType] = useState('Door-to-Door / Godown Delivery');
-  // Separate Tracking Inputs
-  const [sampleRefId] = useState('TS-SMP-2041');
+  const [latestSampleRefId, setLatestSampleRefId] = useState('TS-SMP-2041');
   const [trackingNumber, setTrackingNumber] = useState('');
-  const [trackingCategory, setTrackingCategory] = useState('courier'); // 'courier' | 'lab'
+  const [trackingCategory, setTrackingCategory] = useState('courier');
+
+  const handleWeightUnitChange = (nextUnit) => {
+    if (nextUnit === weightUnit) return;
+    const converted = convertWeightValue(cargoWeightVal, weightUnit, nextUnit);
+    setCargoWeightVal(converted);
+    setWeightUnit(nextUnit);
+  };
 
   const swapInlandRoute = () => {
     const t = pickupLoc;
@@ -258,18 +269,29 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
     [selectedVehicleId]
   );
 
-  // Inland Rate + Transparent Platform Fee (₹25/MT User Service Fee)
   const inlandCalc = useMemo(() => {
     const km = Math.max(20, parseFloat(distanceKm) || 524);
-    const rawWt = Math.max(1, parseFloat(cargoWeightVal) || 20);
-    const wtMt = weightUnit === 'KG' ? rawWt / 1000 : weightUnit === 'LB' ? rawWt / 2204.62 : rawWt;
-    const baseFreightInr = Math.round(km * selectedVehicle.ratePerKm + wtMt * 120);
-    const platformFeeInr = Math.round(wtMt * 25); // ₹25/MT User Service Fee
-    const partnerQuoteInr = Math.round(baseFreightInr * 0.96);
-    return { wtMt, baseFreightInr, platformFeeInr, partnerQuoteInr };
-  }, [distanceKm, cargoWeightVal, weightUnit, selectedVehicle]);
+    const rawWt = Math.max(0, parseFloat(cargoWeightVal) || 0);
+    const wtMt = weightUnit === 'KG' ? rawWt / 1000 : weightUnit === 'LB' ? rawWt / 2204.6226 : rawWt;
+    const exceedsCapacity = wtMt > selectedVehicle.capMt;
+    const suggestedVehicle = VEHICLE_FLEET.find((v) => v.capMt >= wtMt) || VEHICLE_FLEET[VEHICLE_FLEET.length - 1];
 
-  // Rail Freight Calculation
+    const regionFactor = region.factor || 1.0;
+    const txFactor = txCurrency === 'INR' ? 1.0 : 1.01;
+    const baseFreightInr = Math.round((km * selectedVehicle.ratePerKm + Math.max(1, wtMt) * 120) * regionFactor * txFactor);
+    const platformFeeInr = Math.round(Math.max(1, wtMt) * 25);
+    const partnerQuoteInr = Math.round(baseFreightInr * 0.96);
+
+    return {
+      wtMt,
+      exceedsCapacity,
+      suggestedVehicle,
+      baseFreightInr,
+      platformFeeInr,
+      partnerQuoteInr,
+    };
+  }, [distanceKm, cargoWeightVal, weightUnit, selectedVehicle, region, txCurrency]);
+
   const railCalc = useMemo(() => {
     const mt = Math.max(1, parseFloat(railQtyMt) || 500);
     const ratePerMt =
@@ -277,18 +299,15 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
         ? 1450
         : railProduct === 'Mini Rake'
           ? 1620
-          : railProduct === 'Two-Point'
-            ? 1540
-            : 2150;
-    const basicRailInr = mt * ratePerMt;
-    const terminalHandlingInr = mt * 110;
-    const firstLastMileInr = mt * 240;
+          : 1540;
+    const basicRailInr = Math.round(mt * ratePerMt * (region.factor || 1.0));
+    const terminalHandlingInr = Math.round(mt * 110);
+    const firstLastMileInr = Math.round(mt * 240);
     const totalRailInr = basicRailInr + terminalHandlingInr + firstLastMileInr;
     const roadEstInr = Math.round(totalRailInr * 1.15);
-    return { basicRailInr, terminalHandlingInr, firstLastMileInr, totalRailInr, roadEstInr };
-  }, [railQtyMt, railProduct]);
+    return { basicRailInr, terminalHandlingInr, firstLastMileInr, totalRailInr, roadEstInr, ratePerMt };
+  }, [railQtyMt, railProduct, region]);
 
-  // Air Chargeable Weight Calculation
   const airCalc = useMemo(() => {
     const act = Math.max(0, parseFloat(airActualKg) || 0);
     const l = Math.max(0, parseFloat(airLen) || 0);
@@ -297,17 +316,19 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
     const div = Math.max(1000, parseFloat(volDivisor) || 5000);
     const vol = Number(((l * w * h) / div).toFixed(2));
     const chargeable = Number(Math.max(act, vol).toFixed(2));
-    return { act, vol, chargeable, div };
-  }, [airActualKg, airLen, airWid, airHei, volDivisor]);
+    const rateKg = Math.max(1, parseFloat(airRatePerKgInr) || 195);
+    const indicativeAirCostInr = Math.round(chargeable * rateKg * (region.factor || 1.0));
+    return { act, vol, chargeable, div, indicativeAirCostInr };
+  }, [airActualKg, airLen, airWid, airHei, volDivisor, airRatePerKgInr, region]);
 
   const activeIncotermObj = useMemo(
     () => INCOTERMS_INFO.find((item) => item.code === incoterm) || INCOTERMS_INFO[4],
     [incoterm]
   );
 
-  const selectedCarrier = useMemo(
-    () => CARRIER_QUOTES.find((c) => c.id === selectedCarrierId) || CARRIER_QUOTES[1],
-    [selectedCarrierId]
+  const selectedOceanCarrier = useMemo(
+    () => CARRIER_QUOTES.find((c) => c.id === selectedOceanCarrierId) || CARRIER_QUOTES[1],
+    [selectedOceanCarrierId]
   );
 
   const recentRegions = useMemo(
@@ -315,34 +336,108 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
     [recentRegionCodes]
   );
 
-  const addRequest = (moduleName, routeStr, statusStr = 'Quote Requested') => {
-    const reqId = `TS-REQ-${Math.floor(1002 + Math.random() * 8997)}`;
+  const addRequest = (moduleName, routeStr, statusStr = 'Indicative Quote Requested') => {
+    const nextNum = idCounter + 1;
+    setIdCounter(nextNum);
+    const reqId = `TS-REQ-${nextNum}`;
     setMyRequests((prev) => [{ id: reqId, module: moduleName, route: routeStr, status: statusStr }, ...prev]);
     return reqId;
   };
 
-  const shareRailEstimateSheet = async () => {
-    const msg =
-      `TRADE SETUU — Indicative Rail Freight Estimate\n` +
-      `Route: ${railOrigin} → ${railDest}\n` +
-      `Commodity: ${railCommodity} (${railQtyMt} MT)\n` +
-      `Product: ${railProduct}\n` +
-      `Basic Rail: ${formatMoney(railCalc.basicRailInr, dispCurrency)}\n` +
-      `Terminal Handling: ${formatMoney(railCalc.terminalHandlingInr, dispCurrency)}\n` +
-      `1st/Last Mile: ${formatMoney(railCalc.firstLastMileInr, dispCurrency)}\n` +
-      `Total Rail Estimate: ${formatMoney(railCalc.totalRailInr, dispCurrency)}\n` +
-      `Road Comparison Est.: ${formatMoney(railCalc.roadEstInr, dispCurrency)}\n` +
-      `Note: Indicative estimate only; FOIS e-Demand registration applies on Indian Railways.`;
+  const shareRailEstimatePdf = async () => {
+    const docRef = `TS-RAIL-${idCounter}`;
+    const generatedAt = new Date().toLocaleString('en-IN');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <style>
+            body { font-family: Arial, sans-serif; color: #0F172A; padding: 28px; }
+            .letterhead { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0D9488; padding-bottom: 14px; margin-bottom: 20px; }
+            .brand { font-size: 24px; font-weight: 900; color: #071521; letter-spacing: 0.5px; }
+            .brand span { color: #0D9488; }
+            .sub { font-size: 11px; color: #475569; margin-top: 3px; }
+            .meta { text-align: right; font-size: 11px; color: #334155; }
+            .badge { display: inline-block; background: #FEF3C7; color: #92400E; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-size: 11px; margin-bottom: 14px; }
+            .grid { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+            .grid td { border: 1px solid #CBD5E1; padding: 9px 12px; font-size: 12px; }
+            .lbl { font-weight: 700; color: #334155; width: 36%; background: #F8FAFC; }
+            .total-row td { background: #F0FDFA; font-weight: 900; color: #0F172A; font-size: 13px; border-top: 2px solid #0D9488; }
+            .compare-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; font-size: 12px; margin-bottom: 18px; }
+            .note { font-size: 10px; color: #64748B; line-height: 1.5; border-top: 1px solid #E2E8F0; padding-top: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="letterhead">
+            <div>
+              <div class="brand">TRADE <span>SETUU</span></div>
+              <div class="sub">Global Trade • Sourcing • Logistics • Finance</div>
+            </div>
+            <div class="meta">
+              <div><strong>Estimate Ref:</strong> ${escapeHtml(docRef)}</div>
+              <div><strong>Generated:</strong> ${escapeHtml(generatedAt)}</div>
+              <div><strong>Display / Tx:</strong> ${escapeHtml(dispCurrency)} / ${escapeHtml(txCurrency)}</div>
+            </div>
+          </div>
+
+          <div class="badge">INDICATIVE RAIL FREIGHT ESTIMATE (NON-OFFICIAL TARIFF)</div>
+
+          <table class="grid">
+            <tr><td class="lbl">Loading Station / Goods Shed</td><td>${escapeHtml(railOrigin)}</td></tr>
+            <tr><td class="lbl">Unloading Station / Goods Shed</td><td>${escapeHtml(railDest)}</td></tr>
+            <tr><td class="lbl">Commodity</td><td>${escapeHtml(railCommodity)}</td></tr>
+            <tr><td class="lbl">Total Quantity</td><td>${escapeHtml(railQtyMt)} MT</td></tr>
+            <tr><td class="lbl">Rail Mode</td><td>${escapeHtml(railProduct)}</td></tr>
+            <tr><td class="lbl">Basic Rail Freight (Indicative)</td><td>${escapeHtml(formatMoney(railCalc.basicRailInr, dispCurrency))}</td></tr>
+            <tr><td class="lbl">Terminal Handling (Indicative)</td><td>${escapeHtml(formatMoney(railCalc.terminalHandlingInr, dispCurrency))}</td></tr>
+            <tr><td class="lbl">First & Last Mile Road (Indicative)</td><td>${escapeHtml(formatMoney(railCalc.firstLastMileInr, dispCurrency))}</td></tr>
+            <tr class="total-row"><td class="lbl">Estimated Total Rail Cost</td><td>${escapeHtml(formatMoney(railCalc.totalRailInr, dispCurrency))}</td></tr>
+          </table>
+
+          <div class="compare-box">
+            <strong>Smart Road vs Rail Comparison (Indicative):</strong><br/>
+            Road Transport Estimate: <strong>${escapeHtml(formatMoney(railCalc.roadEstInr, dispCurrency))}</strong> vs Rail Estimate: <strong>${escapeHtml(formatMoney(railCalc.totalRailInr, dispCurrency))}</strong>.
+          </div>
+
+          <div class="note">
+            <strong>Disclaimer:</strong> Indicative planning estimate only; not an official Indian Railways tariff or demand receipt. Official FOIS / RailSAHAY rules, registration fees, and live railway tariff apply.<br/>
+            <em>Powered by Apex Sync Technologies</em>
+          </div>
+        </body>
+      </html>
+    `;
+
     try {
-      await Share.share({ message: msg });
+      setIsGeneratingPdf(true);
+      const { uri } = await Print.printToFileAsync({ html });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Trade SETUU Rail Estimate (${docRef})`,
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('PDF Created', `Saved at:\n${uri}`);
+      }
     } catch {
-      Alert.alert('Estimate Sheet', msg);
+      const fallbackText =
+        `TRADE SETUU — Indicative Rail Estimate (${docRef})\n` +
+        `Route: ${railOrigin} → ${railDest}\n` +
+        `Commodity: ${railCommodity} (${railQtyMt} MT) • ${railProduct}\n` +
+        `Total Rail Estimate: ${formatMoney(railCalc.totalRailInr, dispCurrency)}\n` +
+        `Road Comparison: ${formatMoney(railCalc.roadEstInr, dispCurrency)}`;
+      await Share.share({ message: fallbackText });
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: 96 }}>
-      {/* TOP BRAND HEADER WITH ACTUAL LOGO FILE (1795099375380.png) */}
+      {/* TOP BRAND HEADER */}
       <View style={[styles.topHeader, { backgroundColor: C.card, borderBottomColor: C.border }]}>
         <View style={styles.rowBetween}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -374,7 +469,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
 
             <TouchableOpacity
               onPress={() =>
-                setWeightUnit((prev) => (prev === 'MT' ? 'KG' : prev === 'KG' ? 'LB' : 'MT'))
+                handleWeightUnitChange(weightUnit === 'MT' ? 'KG' : weightUnit === 'KG' ? 'LB' : 'MT')
               }
               style={[styles.unitPill, { backgroundColor: C.cardAlt, borderColor: C.border }]}
             >
@@ -385,48 +480,65 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
       </View>
 
       {/* =========================================================
-          0. GLOBAL LOGISTICS HUB DASHBOARD (EXACT 127975_2.png STYLE)
-          Order: 1. Inland | 2. Rail | 3. Ocean | 4. Air + 5. Sample Bar
+          0. GLOBAL LOGISTICS HUB DASHBOARD (2 + 2 + 1 LAYOUT)
+          Row 1: Inland Transport | Rail Freight
+          Row 2: Ocean & Shipping | Air Freight
+          Row 3: Full-width Sample & Tracking Card
       ========================================================= */}
       {screen === 'hub' && (
         <View style={{ padding: 14 }}>
-          <View style={{ marginBottom: 12 }}>
-            <Text style={[styles.hubMainTitle, { color: C.text }]}>GLOBAL LOGISTICS HUB</Text>
-            <Text style={[styles.hubTagline, { color: C.sub }]}>
-              Plan • Compare • Quote • Book • Track
-            </Text>
+          {/* Hero Section with Globe / Trade Corridor Visual */}
+          <View style={[styles.heroCard, { backgroundColor: C.card, borderColor: C.border }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hubMainTitle, { color: C.text }]}>GLOBAL LOGISTICS HUB</Text>
+              <Text style={[styles.hubTagline, { color: C.teal }]}>
+                Plan • Compare • Quote • Book • Track
+              </Text>
+              <Text style={{ color: C.sub, fontSize: 10, marginTop: 4 }}>
+                Corridor: India (IN) ↔ UAE / Global Lanes
+              </Text>
+            </View>
+            <View style={[styles.globeOrb, { backgroundColor: '#0B1D2C', borderColor: C.teal }]}>
+              <Text style={{ fontSize: 22 }}>🌐</Text>
+              <Text style={{ color: C.amber, fontSize: 8, fontWeight: '900', marginTop: 1 }}>LIVE HUB</Text>
+            </View>
           </View>
 
-          {/* Independent Region, Tx Currency & Display Currency Controls */}
+          {/* Large Region, Tx Currency & Display Currency Selectors */}
           <View style={styles.filterRow}>
             <TouchableOpacity
               onPress={() => { setSearchText(''); setPickerOpen('region'); }}
-              style={[styles.filterBox, { flex: 1.3, backgroundColor: C.card, borderColor: C.border }]}
+              style={[styles.largeFilterBox, { flex: 1.35, backgroundColor: C.card, borderColor: C.border }]}
             >
-              <Text style={{ color: C.sub, fontSize: 10 }}>
-                Region: <Text style={{ color: C.text, fontWeight: '800' }}>{region.label}</Text>
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 11 }}>▾</Text>
+              <Text style={{ color: C.sub, fontSize: 10 }}>Region</Text>
+              <View style={[styles.rowBetween, { marginTop: 2 }]}>
+                <Text style={{ color: C.text, fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
+                  {region.label}
+                </Text>
+                <Text style={{ color: C.teal, fontSize: 12 }}>▾</Text>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => { setSearchText(''); setPickerOpen('txCur'); }}
-              style={[styles.filterBox, { flex: 0.85, backgroundColor: C.card, borderColor: C.border }]}
+              style={[styles.largeFilterBox, { flex: 0.85, backgroundColor: C.card, borderColor: C.border }]}
             >
-              <Text style={{ color: C.sub, fontSize: 10 }}>
-                Tx: <Text style={{ color: C.teal, fontWeight: '900' }}>{txCurrency}</Text>
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 11 }}>▾</Text>
+              <Text style={{ color: C.sub, fontSize: 10 }}>Tx Currency</Text>
+              <View style={[styles.rowBetween, { marginTop: 2 }]}>
+                <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900' }}>{txCurrency}</Text>
+                <Text style={{ color: C.sub, fontSize: 12 }}>▾</Text>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => { setSearchText(''); setPickerOpen('dispCur'); }}
-              style={[styles.filterBox, { flex: 0.9, backgroundColor: C.card, borderColor: C.border }]}
+              style={[styles.largeFilterBox, { flex: 0.9, backgroundColor: C.card, borderColor: C.border }]}
             >
-              <Text style={{ color: C.sub, fontSize: 10 }}>
-                Show: <Text style={{ color: C.amber, fontWeight: '900' }}>{dispCurrency}</Text>
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 11 }}>▾</Text>
+              <Text style={{ color: C.sub, fontSize: 10 }}>Display</Text>
+              <View style={[styles.rowBetween, { marginTop: 2 }]}>
+                <Text style={{ color: C.amber, fontSize: 12, fontWeight: '900' }}>{dispCurrency}</Text>
+                <Text style={{ color: C.sub, fontSize: 12 }}>▾</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -434,63 +546,45 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
           <View style={styles.cardsGrid}>
             <TouchableOpacity
               onPress={() => { setInlandStep(1); setScreen('inland'); }}
-              style={[styles.moduleCard, { backgroundColor: C.card, borderColor: C.border }]}
+              style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.border }]}
             >
-              <View style={[styles.visualBanner, { backgroundColor: '#122D42', borderColor: C.border }]}>
-                <Text style={[styles.cardHeadTitle, { color: C.text }]}>INLAND TRANSPORT</Text>
-                <Text style={{ fontSize: 28, marginTop: 4 }}>🚛</Text>
+              <View style={[styles.largeVisualStage, { backgroundColor: '#122D42', borderColor: C.border }]}>
+                <Text style={{ fontSize: 34 }}>🚛</Text>
+                <Text style={{ color: C.teal, fontSize: 9, fontWeight: '900', marginTop: 4 }}>
+                  Road • Truck • Return Load • Bidding
+                </Text>
               </View>
 
-              <View style={styles.routeMiniRow}>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ fontSize: 11 }}>📍</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Pickup</Text>
-                </View>
-                <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>1,240 km</Text>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ fontSize: 11 }}>📌</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Drop</Text>
-                </View>
-              </View>
+              <Text style={[styles.largeCardTitle, { color: C.text }]}>INLAND TRANSPORT</Text>
+              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
+                Pickup → Drop • 1,240 km • 28.0 MT
+              </Text>
 
-              <View style={[styles.cardFooterSplit, { borderTopColor: C.border }]}>
-                <View>
-                  <Text style={{ color: C.text, fontSize: 11, fontWeight: '900' }}>28.0 MT</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Book / Return</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ color: C.teal, fontSize: 11, fontWeight: '900' }}>92%</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Load Utilization</Text>
-                </View>
+              <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
+                <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>92% Util.</Text>
+                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setScreen('rail')}
-              style={[styles.moduleCard, { backgroundColor: C.card, borderColor: C.border }]}
+              style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.teal }]}
             >
-              <View style={[styles.visualBanner, { backgroundColor: '#122D42', borderColor: C.border }]}>
-                <Text style={[styles.cardHeadTitle, { color: C.text }]}>RAIL FREIGHT</Text>
-                <Text style={{ fontSize: 28, marginTop: 4 }}>🚆</Text>
+              <View style={[styles.largeVisualStage, { backgroundColor: '#122D42', borderColor: C.border }]}>
+                <Text style={{ fontSize: 34 }}>🚆</Text>
+                <Text style={{ color: C.amber, fontSize: 9, fontWeight: '900', marginTop: 4 }}>
+                  Full Rake • Mini Rake • Two-Point
+                </Text>
               </View>
 
-              <View style={styles.routeMiniRow}>
-                <View>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Wagon / Rake</Text>
-                  <Text style={{ color: C.teal, fontSize: 11, fontWeight: '900' }}>Full • Mini</Text>
-                </View>
-                <Text style={{ color: C.amber, fontSize: 10, fontWeight: '800' }}>Road vs Rail</Text>
-              </View>
+              <Text style={[styles.largeCardTitle, { color: C.text }]}>RAIL FREIGHT</Text>
+              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
+                Goods Shed • Bulk Rake • Road vs Rail
+              </Text>
 
-              <View style={[styles.cardFooterSplit, { borderTopColor: C.border }]}>
-                <View>
-                  <Text style={{ color: C.text, fontSize: 11, fontWeight: '900' }}>Indicative</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>FOIS Assist</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ color: C.amber, fontSize: 11, fontWeight: '900' }}>Cost Sheet</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Share / PDF</Text>
-                </View>
+              <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
+                <Text style={{ color: C.amber, fontSize: 10, fontWeight: '800' }}>PDF Sheet</Text>
+                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -499,86 +593,65 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
           <View style={styles.cardsGrid}>
             <TouchableOpacity
               onPress={() => setScreen('ocean')}
-              style={[styles.moduleCard, { backgroundColor: C.card, borderColor: C.border }]}
+              style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.border }]}
             >
-              <View style={[styles.visualBanner, { backgroundColor: '#122D42', borderColor: C.border }]}>
-                <Text style={[styles.cardHeadTitle, { color: C.text }]}>OCEAN & SHIPPING</Text>
-                <Text style={{ fontSize: 28, marginTop: 4 }}>🚢</Text>
+              <View style={[styles.largeVisualStage, { backgroundColor: '#122D42', borderColor: C.border }]}>
+                <Text style={{ fontSize: 34 }}>🚢</Text>
+                <Text style={{ color: C.teal, fontSize: 9, fontWeight: '900', marginTop: 4 }}>
+                  FCL • LCL • Bulk • Breakbulk
+                </Text>
               </View>
 
-              <View style={styles.routeMiniRow}>
-                <View>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Origin Port</Text>
-                  <Text style={{ color: C.teal, fontSize: 11, fontWeight: '900' }}>SGP</Text>
-                </View>
-                <Text style={{ color: C.amber, fontSize: 11, fontWeight: '800' }}>── ⚓ ──</Text>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Destination Port</Text>
-                  <Text style={{ color: C.amber, fontSize: 11, fontWeight: '900' }}>ROT</Text>
-                </View>
-              </View>
+              <Text style={[styles.largeCardTitle, { color: C.text }]}>OCEAN & SHIPPING</Text>
+              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
+                INNSA → AEJEA • 40' HC • 14–18d
+              </Text>
 
-              <View style={[styles.cardFooterSplit, { borderTopColor: C.border }]}>
-                <View>
-                  <Text style={{ color: C.text, fontSize: 11, fontWeight: '900' }}>40' HC</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>FCL • LCL • Bulk</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>14 - 18 Days</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>ETA</Text>
-                </View>
+              <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
+                <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>Incoterms</Text>
+                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setScreen('air')}
-              style={[styles.moduleCard, { backgroundColor: C.card, borderColor: C.border }]}
+              style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.border }]}
             >
-              <View style={[styles.visualBanner, { backgroundColor: '#122D42', borderColor: C.border }]}>
-                <Text style={[styles.cardHeadTitle, { color: C.text }]}>AIR FREIGHT</Text>
-                <Text style={{ fontSize: 28, marginTop: 4 }}>✈️</Text>
+              <View style={[styles.largeVisualStage, { backgroundColor: '#122D42', borderColor: C.border }]}>
+                <Text style={{ fontSize: 34 }}>✈️</Text>
+                <Text style={{ color: C.amber, fontSize: 9, fontWeight: '900', marginTop: 4 }}>
+                  Airport • Express • Cargo
+                </Text>
               </View>
 
-              <View style={styles.routeMiniRow}>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ color: C.text, fontSize: 11, fontWeight: '900' }}>DEL</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>(India)</Text>
-                </View>
-                <Text style={{ color: C.amber, fontSize: 11, fontWeight: '800' }}>── ✈ ──</Text>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ color: C.text, fontSize: 11, fontWeight: '900' }}>FRA</Text>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>(Germany)</Text>
-                </View>
-              </View>
+              <Text style={[styles.largeCardTitle, { color: C.text }]}>AIR FREIGHT</Text>
+              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
+                DEL → FRA • Chargeable: 1,250 kg
+              </Text>
 
-              <View style={[styles.cardFooterSplit, { borderTopColor: C.border }]}>
-                <View>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Chargeable Wt:</Text>
-                  <Text style={{ color: C.text, fontSize: 11, fontWeight: '900' }}>1,250 kg</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ color: C.sub, fontSize: 9 }}>Act. / Vol. Wt:</Text>
-                  <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>1,000 / 1,250</Text>
-                </View>
+              <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
+                <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>Vol. Calc</Text>
+                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
               </View>
             </TouchableOpacity>
           </View>
 
-          {/* 5. WIDE HORIZONTAL BAR: SAMPLE & TRACKING */}
+          {/* ROW 3: 5. FULL-WIDTH SAMPLE & TRACKING CARD */}
           <TouchableOpacity
             onPress={() => setScreen('sample')}
-            style={[styles.wideSampleBar, { backgroundColor: C.card, borderColor: C.teal }]}
+            style={[styles.fullWidthSampleCard, { backgroundColor: C.card, borderColor: C.amber }]}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-              <View style={[styles.sampleIconBox, { backgroundColor: 'rgba(32,200,193,0.14)' }]}>
-                <Text style={{ fontSize: 20 }}>📦</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: C.text, fontSize: 13, fontWeight: '900' }}>SAMPLE & TRACKING</Text>
-                <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
-                  India Train / Road Transport • DHL / FedEx • Lab & Shipment Status
-                </Text>
-              </View>
+            <View style={[styles.sampleSideArt, { backgroundColor: '#122D42', borderColor: C.border }]}>
+              <Text style={{ fontSize: 28 }}>📦</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.largeCardTitle, { color: C.text }]}>SAMPLE & TRACKING</Text>
+              <Text style={{ color: C.amber, fontSize: 10, fontWeight: '800', marginTop: 2 }}>
+                Sample • Courier • Lab • Inspection
+              </Text>
+              <Text style={{ color: C.sub, fontSize: 10, marginTop: 3 }}>
+                India Train / Road • DHL / FedEx • Separate Timelines
+              </Text>
             </View>
             <Text style={{ color: C.teal, fontSize: 13, fontWeight: '900' }}>Open ›</Text>
           </TouchableOpacity>
@@ -586,13 +659,12 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
       )}
 
       {/* =========================================================
-          1. INLAND TRANSPORT (EXACT 127976_2.png STYLE + 4-STEP FLOW)
+          1. INLAND TRANSPORT
       ========================================================= */}
       {screen === 'inland' && (
         <View style={{ padding: 14 }}>
           <Text style={[styles.screenHeading, { color: C.text }]}>Inland Transport</Text>
 
-          {/* Book Load / Return Load Tabs */}
           <View style={[styles.tabContainer, { backgroundColor: C.card, borderColor: C.border }]}>
             <TouchableOpacity
               onPress={() => { setLoadTab('book'); setInlandStep(1); }}
@@ -614,7 +686,6 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
 
           {loadTab === 'book' ? (
             <>
-              {/* 4-Step Indicator */}
               <View style={styles.stepStrip}>
                 {[
                   { n: 1, lbl: '1. Details' },
@@ -640,7 +711,6 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 ))}
               </View>
 
-              {/* Step 1: Shipment Details (Matches 127976_2.png layout) */}
               <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.border }]}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: C.sub, fontSize: 11 }}>Pickup Location (City / PIN)</Text>
@@ -683,7 +753,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                   />
                 </View>
                 <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Vehicle</Text>
+                  <Text style={{ color: C.sub, fontSize: 11 }}>Vehicle Cap</Text>
                   <Text style={[styles.specInput, { color: C.text }]} numberOfLines={1}>
                     {selectedVehicle.name.split(' ')[0]} ({selectedVehicle.capMt} MT)
                   </Text>
@@ -692,7 +762,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
 
               <View style={styles.cardsGrid}>
                 <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Distance (km)</Text>
+                  <Text style={{ color: C.sub, fontSize: 11 }}>Distance (km, Indicative)</Text>
                   <TextInput
                     value={distanceKm}
                     onChangeText={setDistanceKm}
@@ -701,21 +771,39 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                   />
                 </View>
                 <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Est. Platform Fee (₹25/MT)</Text>
+                  <Text style={{ color: C.sub, fontSize: 11 }}>Est. Fee (₹25/MT)</Text>
                   <Text style={[styles.specInput, { color: C.amber }]}>
                     {formatMoney(inlandCalc.platformFeeInr, dispCurrency)}
                   </Text>
                 </View>
               </View>
 
-              <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border, marginBottom: 10 }]}>
-                <Text style={{ color: C.sub, fontSize: 11 }}>Cargo Category & Packaging / Dimensions</Text>
-                <TextInput
-                  value={`${cargoCategory} • ${cargoDims}`}
-                  onChangeText={(val) => setCargoCategory(val)}
-                  style={[styles.specInput, { color: C.text }]}
-                />
+              <View style={styles.cardsGrid}>
+                <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
+                  <Text style={{ color: C.sub, fontSize: 11 }}>Cargo Category</Text>
+                  <TextInput
+                    value={cargoCategory}
+                    onChangeText={setCargoCategory}
+                    style={[styles.specInput, { color: C.text }]}
+                  />
+                </View>
+                <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
+                  <Text style={{ color: C.sub, fontSize: 11 }}>Packaging / Dimensions</Text>
+                  <TextInput
+                    value={cargoPackaging}
+                    onChangeText={setCargoPackaging}
+                    style={[styles.specInput, { color: C.text }]}
+                  />
+                </View>
               </View>
+
+              {inlandCalc.exceedsCapacity && (
+                <View style={[styles.warnBox, { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: C.warnRed }]}>
+                  <Text style={{ color: C.warnRed, fontSize: 11, fontWeight: '800' }}>
+                    Capacity Alert: {inlandCalc.wtMt.toFixed(1)} MT exceeds {selectedVehicle.name} ({selectedVehicle.capMt} MT). Suggested: {inlandCalc.suggestedVehicle.name}.
+                  </Text>
+                </View>
+              )}
 
               <TouchableOpacity
                 onPress={() => setInlandStep(2)}
@@ -724,14 +812,14 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 <Text style={{ color: '#071521', fontSize: 14, fontWeight: '900' }}>Find Transport Options</Text>
               </TouchableOpacity>
 
-              {/* Step 2: Vehicle Selection (16W / 18W / 22W / Container) */}
               {inlandStep >= 2 && (
                 <View style={{ marginTop: 16 }}>
                   <Text style={[styles.compareHeading, { color: C.text, marginBottom: 8 }]}>
-                    Step 2: Select Vehicle & Capacity
+                    Step 2: Select Vehicle & Check Capacity
                   </Text>
                   {VEHICLE_FLEET.map((vf) => {
                     const active = selectedVehicleId === vf.id;
+                    const overCap = inlandCalc.wtMt > vf.capMt;
                     return (
                       <TouchableOpacity
                         key={vf.id}
@@ -740,14 +828,16 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                           styles.carrierCard,
                           {
                             backgroundColor: C.card,
-                            borderColor: active ? C.teal : C.border,
+                            borderColor: active ? (overCap ? C.amber : C.teal) : C.border,
                           },
                         ]}
                       >
                         <View style={styles.rowBetween}>
                           <View style={{ flex: 1 }}>
                             <Text style={{ color: C.text, fontSize: 13, fontWeight: '900' }}>{vf.name}</Text>
-                            <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>{vf.availability}</Text>
+                            <Text style={{ color: overCap ? C.amber : C.sub, fontSize: 11, marginTop: 2 }}>
+                              {overCap ? `Exceeds ${vf.capMt} MT for ${inlandCalc.wtMt.toFixed(1)} MT` : vf.availability}
+                            </Text>
                           </View>
                           <Text style={{ color: active ? C.teal : C.sub, fontSize: 12, fontWeight: '900' }}>
                             {active ? 'Selected ✓' : 'Select'}
@@ -768,17 +858,16 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 </View>
               )}
 
-              {/* Step 3: Rate Comparison (Matches 127976_2.png Multi-Carrier style) */}
               {inlandStep >= 3 && (
                 <View style={{ marginTop: 18 }}>
                   <Text style={[styles.compareHeading, { color: C.text }]}>
-                    Step 3: Freight Rate Comparison
+                    Step 3: Freight Rate Comparison (Indicative)
                   </Text>
                   <Text style={{ color: C.text, fontSize: 13, fontWeight: '800', marginTop: 4 }}>
                     {pickupLoc} → {deliveryLoc}
                   </Text>
                   <Text style={{ color: C.sub, fontSize: 11, marginTop: 2, marginBottom: 10 }}>
-                    {selectedVehicle.name} | {inlandCalc.wtMt.toFixed(1)} MT | User Service Fee: ₹25/MT
+                    {selectedVehicle.name} | {inlandCalc.wtMt.toFixed(1)} MT | Region: {region.code} | Fee: ₹25/MT (Indicative User Fee)
                   </Text>
 
                   {[
@@ -794,7 +883,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                     },
                     {
                       id: 'partner-best',
-                      name: 'VERIFIED FLEET PARTNER',
+                      name: 'PARTNER RATE (INDICATIVE)',
                       badgeLeft: '(Best Value)',
                       badgeStyle: 'bestValue',
                       badgeRight: 'Best Value',
@@ -819,7 +908,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                       >
                         <View style={styles.rowBetween}>
                           <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <Text style={{ color: C.text, fontSize: 13, fontWeight: '900' }}>{opt.name}</Text>
                               <Text style={{ color: isBest ? '#4ADE80' : C.amber, fontSize: 11, fontWeight: '800' }}>
                                 {opt.badgeLeft}
@@ -848,7 +937,11 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                   <View style={styles.bottomActionRow}>
                     <TouchableOpacity
                       onPress={() => {
-                        const id = addRequest('Inland Transport', `${pickupLoc} → ${deliveryLoc}`, 'Quote Requested');
+                        const id = addRequest(
+                          `Inland (${selectedVehicle.name})`,
+                          `${pickupLoc} → ${deliveryLoc}`,
+                          'Indicative Quote Requested'
+                        );
                         setBookingRequestId(id);
                         setInlandStep(4);
                       }}
@@ -859,7 +952,11 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
 
                     <TouchableOpacity
                       onPress={() => {
-                        const id = addRequest('Inland Booking', `${pickupLoc} → ${deliveryLoc}`, 'Pending Vehicle Assignment');
+                        const id = addRequest(
+                          `Inland (${selectedVehicle.name})`,
+                          `${pickupLoc} → ${deliveryLoc}`,
+                          'Booking Request Logged (Pending Confirmation)'
+                        );
                         setBookingRequestId(id);
                         setInlandStep(4);
                       }}
@@ -871,11 +968,10 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 </View>
               )}
 
-              {/* Step 4: Booking Confirmation & Request ID */}
               {inlandStep === 4 && bookingRequestId ? (
                 <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.teal, flexDirection: 'column', marginTop: 14 }]}>
                   <Text style={{ color: C.teal, fontSize: 11, fontWeight: '900' }}>
-                    STEP 4: BOOKING REQUEST REGISTERED
+                    STEP 4: REQUEST LOGGED (LOCAL SESSION)
                   </Text>
                   <Text style={{ color: C.text, fontSize: 16, fontWeight: '900', marginTop: 4 }}>
                     Request ID: {bookingRequestId}
@@ -884,16 +980,15 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                     Route: {pickupLoc} → {deliveryLoc} • Vehicle: {selectedVehicle.name}
                   </Text>
                   <Text style={{ color: C.amber, fontSize: 11, fontWeight: '800', marginTop: 4 }}>
-                    Status: Awaiting Partner Confirmation & Vehicle Assignment
+                    Status: Saved in Session Requests • Backend DB sync pending integration
                   </Text>
                 </View>
               ) : null}
             </>
           ) : (
-            /* SEPARATE RETURN LOAD / BIDDING WORKFLOW */
             <View>
               <Text style={{ color: C.amber, fontSize: 11, fontWeight: '900', marginBottom: 8 }}>
-                AVAILABLE RETURN TRIPS • EMPTY TRUCK CORRIDORS & BIDDING
+                RETURN LOAD / BIDDING (INDICATIVE CORRIDORS)
               </Text>
               {RETURN_LOAD_TRIPS.map((rt) => {
                 const active = selectedReturnTrip.id === rt.id;
@@ -926,7 +1021,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               })}
 
               <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.border, flexDirection: 'column', marginTop: 6 }]}>
-                <Text style={{ color: C.sub, fontSize: 11 }}>Place Your Counter Bid ({dispCurrency}) for {selectedReturnTrip.route}</Text>
+                <Text style={{ color: C.sub, fontSize: 11 }}>Indicative Bid Offer ({dispCurrency}) for {selectedReturnTrip.route}</Text>
                 <TextInput
                   value={bidOfferAmount}
                   onChangeText={setBidOfferAmount}
@@ -935,8 +1030,8 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 />
                 <TouchableOpacity
                   onPress={() => {
-                    const id = addRequest('Return Load Bid', selectedReturnTrip.route, 'Bid Submitted');
-                    Alert.alert('Bid Submitted', `Ref: ${id}\nCorridor: ${selectedReturnTrip.route}`);
+                    const id = addRequest('Return Load Bid (Indicative)', selectedReturnTrip.route, 'Bid Logged');
+                    Alert.alert('Bid Logged', `Ref: ${id}\nCorridor: ${selectedReturnTrip.route}`);
                   }}
                   style={[styles.tealActionBtn, { backgroundColor: C.teal }]}
                 >
@@ -951,11 +1046,11 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
       )}
 
       {/* =========================================================
-          2. RAIL FREIGHT MODULE (RAKE / WAGON / ROAD VS RAIL / SHARE PDF)
+          2. RAIL FREIGHT MODULE (EXISTING RAIL SCREEN)
       ========================================================= */}
       {screen === 'rail' && (
         <View style={{ padding: 14 }}>
-          <Text style={[styles.screenHeading, { color: C.text }]}>Rail Freight & Rake Estimate</Text>
+          <Text style={[styles.screenHeading, { color: C.text }]}>Rail Freight (Indicative Estimate)</Text>
 
           <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.border, flexDirection: 'column' }]}>
             <Text style={{ color: C.sub, fontSize: 11 }}>Loading Station / Goods Shed</Text>
@@ -972,7 +1067,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               style={[styles.inlineInput, { color: C.text, marginTop: 3, marginBottom: 10 }]}
             />
 
-            <Text style={{ color: C.sub, fontSize: 11 }}>Commodity & Total Quantity (MT)</Text>
+            <Text style={{ color: C.sub, fontSize: 11 }}>Commodity & Quantity (MT)</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 10 }}>
               <TextInput
                 value={railCommodity}
@@ -987,9 +1082,9 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               />
             </View>
 
-            <Text style={{ color: C.sub, fontSize: 11, marginBottom: 6 }}>Rail Transportation Product</Text>
+            <Text style={{ color: C.sub, fontSize: 11, marginBottom: 6 }}>Rail Rake / Movement Mode</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-              {['Full Rake', 'Mini Rake', 'Two-Point', 'Rail Parcel'].map((rp) => {
+              {['Full Rake', 'Mini Rake', 'Two-Point'].map((rp) => {
                 const active = railProduct === rp;
                 return (
                   <TouchableOpacity
@@ -1007,7 +1102,9 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
             </View>
 
             <TouchableOpacity
-              onPress={() => setShowRailEstimate(true)}
+              onPress={() => {
+                setRailCalculatedAt(`Calculated at ${new Date().toLocaleTimeString('en-IN')}`);
+              }}
               style={[styles.tealActionBtn, { backgroundColor: C.teal }]}
             >
               <Text style={{ color: '#071521', fontSize: 14, fontWeight: '900' }}>
@@ -1016,52 +1113,53 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
             </TouchableOpacity>
           </View>
 
-          {showRailEstimate && (
-            <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.teal, flexDirection: 'column' }]}>
-              <Text style={{ color: C.amber, fontSize: 11, fontWeight: '900' }}>
-                INDICATIVE COST BREAKDOWN ({railProduct.toUpperCase()})
-              </Text>
-              <Text style={{ color: C.text, fontSize: 18, fontWeight: '900', marginTop: 4 }}>
-                {formatMoney(railCalc.totalRailInr, dispCurrency)}
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>
-                • Basic Rail Freight: {formatMoney(railCalc.basicRailInr, dispCurrency)}
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
-                • Terminal / Loading & Unloading: {formatMoney(railCalc.terminalHandlingInr, dispCurrency)}
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
-                • First & Last Mile Road: {formatMoney(railCalc.firstLastMileInr, dispCurrency)}
-              </Text>
-              <Text style={{ color: C.teal, fontSize: 11, fontWeight: '800', marginTop: 6 }}>
-                Smart Road vs Rail: Road Estimate ~ {formatMoney(railCalc.roadEstInr, dispCurrency)}
-              </Text>
+          <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.teal, flexDirection: 'column' }]}>
+            <Text style={{ color: C.amber, fontSize: 11, fontWeight: '900' }}>
+              INDICATIVE COST BREAKDOWN ({railProduct.toUpperCase()}) • {railCalculatedAt}
+            </Text>
+            <Text style={{ color: C.text, fontSize: 18, fontWeight: '900', marginTop: 4 }}>
+              {formatMoney(railCalc.totalRailInr, dispCurrency)}
+            </Text>
+            <Text style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>
+              • Basic Rail (Indicative ₹{railCalc.ratePerMt}/MT base): {formatMoney(railCalc.basicRailInr, dispCurrency)}
+            </Text>
+            <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
+              • Terminal Handling (Indicative ₹110/MT base): {formatMoney(railCalc.terminalHandlingInr, dispCurrency)}
+            </Text>
+            <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
+              • First & Last Mile (Indicative ₹240/MT base): {formatMoney(railCalc.firstLastMileInr, dispCurrency)}
+            </Text>
+            <Text style={{ color: C.teal, fontSize: 11, fontWeight: '800', marginTop: 6 }}>
+              Road vs Rail (Indicative): Road ~ {formatMoney(railCalc.roadEstInr, dispCurrency)} vs Rail ~ {formatMoney(railCalc.totalRailInr, dispCurrency)}
+            </Text>
 
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                <TouchableOpacity
-                  onPress={shareRailEstimateSheet}
-                  style={[styles.secondaryActionBtn, { backgroundColor: C.cardAlt, borderColor: C.border }]}
-                >
-                  <Text style={{ color: C.text, fontSize: 12, fontWeight: '800' }}>Share / Save Estimate</Text>
-                </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              <TouchableOpacity
+                onPress={shareRailEstimatePdf}
+                disabled={isGeneratingPdf}
+                style={[styles.secondaryActionBtn, { backgroundColor: C.cardAlt, borderColor: C.teal }]}
+              >
+                <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900' }}>
+                  {isGeneratingPdf ? 'Creating PDF...' : 'Share Estimate PDF'}
+                </Text>
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                  onPress={() => {
-                    const id = addRequest(`Rail (${railProduct})`, `${railOrigin} → ${railDest}`, 'FOIS Assistance Requested');
-                    Alert.alert('Assisted Booking Logged', `Ref: ${id}\nFOIS e-Demand requires customer registration on Indian Railways.`);
-                  }}
-                  style={[styles.primaryProceedBtn, { backgroundColor: C.teal }]}
-                >
-                  <Text style={{ color: '#071521', fontSize: 12, fontWeight: '900' }}>Request Assistance</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  const id = addRequest(`Rail (${railProduct})`, `${railOrigin} → ${railDest}`, 'FOIS Assistance Logged');
+                  Alert.alert('Assisted Request Logged', `Ref: ${id}\nIndicative estimate only; FOIS registration applies on Indian Railways.`);
+                }}
+                style={[styles.primaryProceedBtn, { backgroundColor: C.teal }]}
+              >
+                <Text style={{ color: '#071521', fontSize: 12, fontWeight: '900' }}>Request Assistance</Text>
+              </TouchableOpacity>
             </View>
-          )}
+          </View>
         </View>
       )}
 
       {/* =========================================================
-          3. OCEAN & SHIPPING (BULK/LCL LOGIC + INCOTERMS BREAKDOWN + RATE COMPARE)
+          3. OCEAN & SHIPPING
       ========================================================= */}
       {screen === 'ocean' && (
         <View style={{ padding: 14 }}>
@@ -1107,7 +1205,6 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               ))}
             </View>
 
-            {/* FCL shows Container Size; LCL shows CBM; Bulk hides Container Size */}
             {oceanShipmentType === 'FCL' && (
               <>
                 <Text style={{ color: C.sub, fontSize: 11 }}>Container Size</Text>
@@ -1189,23 +1286,28 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               onPress={() => setShowOceanRates(true)}
               style={[styles.tealActionBtn, { backgroundColor: C.teal }]}
             >
-              <Text style={{ color: '#071521', fontSize: 14, fontWeight: '900' }}>Get Freight Quotes →</Text>
+              <Text style={{ color: '#071521', fontSize: 14, fontWeight: '900' }}>Get Indicative Freight Quotes →</Text>
             </TouchableOpacity>
           </View>
 
           {showOceanRates && (
             <View style={{ marginTop: 8 }}>
               <Text style={[styles.compareHeading, { color: C.text, marginBottom: 8 }]}>
-                Ocean Rate Comparison ({oceanRoute})
+                Indicative Ocean Rate Comparison ({oceanRoute})
               </Text>
               {CARRIER_QUOTES.map((q) => {
                 const isBest = q.badgeStyle === 'bestValue';
+                const isSelected = selectedOceanCarrierId === q.id;
                 return (
-                  <View
+                  <TouchableOpacity
                     key={q.id}
+                    onPress={() => setSelectedOceanCarrierId(q.id)}
                     style={[
                       styles.carrierCard,
-                      { backgroundColor: isBest ? '#0E2F2E' : C.card, borderColor: isBest ? C.teal : C.border },
+                      {
+                        backgroundColor: isBest ? '#0E2F2E' : C.card,
+                        borderColor: isSelected ? C.teal : C.border,
+                      },
                     ]}
                   >
                     <View style={styles.rowBetween}>
@@ -1221,16 +1323,49 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                     </Text>
                     <Text style={{ color: C.teal, fontSize: 10, marginTop: 4 }}>Included: {q.included}</Text>
                     <Text style={{ color: C.amber, fontSize: 10, marginTop: 2 }}>Excluded: {q.excluded}</Text>
-                  </View>
+                    <Text style={{ color: isSelected ? C.teal : C.sub, fontSize: 10, fontWeight: '800', marginTop: 6 }}>
+                      {isSelected ? 'Selected Carrier ✓' : 'Tap to Select Carrier'}
+                    </Text>
+                  </TouchableOpacity>
                 );
               })}
+
+              <View style={styles.bottomActionRow}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const id = addRequest(
+                      `Ocean ${selectedOceanCarrier.name} (${incoterm})`,
+                      oceanRoute,
+                      'Indicative Quote Requested'
+                    );
+                    Alert.alert('Quote Logged', `Ref: ${id}\nCarrier: ${selectedOceanCarrier.name}`);
+                  }}
+                  style={[styles.secondaryActionBtn, { backgroundColor: C.card, borderColor: C.border }]}
+                >
+                  <Text style={{ color: C.text, fontSize: 12, fontWeight: '800' }}>Request Final Quote</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    const id = addRequest(
+                      `Ocean ${selectedOceanCarrier.name} (${oceanShipmentType})`,
+                      oceanRoute,
+                      'Booking Inquiry Logged'
+                    );
+                    Alert.alert('Proceeded', `Ref: ${id}\nSelected: ${selectedOceanCarrier.name}`);
+                  }}
+                  style={[styles.primaryProceedBtn, { backgroundColor: C.teal }]}
+                >
+                  <Text style={{ color: '#071521', fontSize: 12, fontWeight: '900' }}>Proceed →</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
       )}
 
       {/* =========================================================
-          4. AIR FREIGHT (CONFIGURABLE DIVISOR + DIRECT QUOTE + CHECKLIST)
+          4. AIR FREIGHT
       ========================================================= */}
       {screen === 'air' && (
         <View style={{ padding: 14 }}>
@@ -1262,13 +1397,26 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 style={[styles.inlineInput, { color: C.text, marginTop: 3, marginBottom: 10 }]}
               />
 
-              <Text style={{ color: C.sub, fontSize: 11 }}>Actual Weight (KG)</Text>
-              <TextInput
-                value={airActualKg}
-                onChangeText={setAirActualKg}
-                keyboardType="numeric"
-                style={[styles.inlineInput, { color: C.text, marginTop: 3, marginBottom: 10 }]}
-              />
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: C.sub, fontSize: 11 }}>Actual Weight (KG)</Text>
+                  <TextInput
+                    value={airActualKg}
+                    onChangeText={setAirActualKg}
+                    keyboardType="numeric"
+                    style={[styles.inlineInput, { color: C.text, marginTop: 3 }]}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: C.sub, fontSize: 11 }}>Indicative Rate / KG (INR base)</Text>
+                  <TextInput
+                    value={airRatePerKgInr}
+                    onChangeText={setAirRatePerKgInr}
+                    keyboardType="numeric"
+                    style={[styles.inlineInput, { color: C.text, marginTop: 3 }]}
+                  />
+                </View>
+              </View>
 
               <Text style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>Dimensions (L × W × H in cm)</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
@@ -1321,14 +1469,21 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               <Text style={{ color: C.sub, fontSize: 11 }}>
                 Formula: (L × W × H) / {airCalc.div} = {airCalc.vol} kg vs Actual {airCalc.act} kg
               </Text>
-              <Text style={{ color: C.teal, fontSize: 15, fontWeight: '900', marginTop: 4, marginBottom: 12 }}>
+              <Text style={{ color: C.teal, fontSize: 15, fontWeight: '900', marginTop: 4 }}>
                 Chargeable Weight: {airCalc.chargeable} kg
+              </Text>
+              <Text style={{ color: C.amber, fontSize: 13, fontWeight: '800', marginTop: 2, marginBottom: 12 }}>
+                Indicative Air Estimate: {formatMoney(airCalc.indicativeAirCostInr, dispCurrency)}
               </Text>
 
               <TouchableOpacity
                 onPress={() => {
-                  const id = addRequest(`Air (${airCalc.chargeable} kg)`, airRoute, 'Quote Requested');
-                  Alert.alert('Air Quote Requested', `Ref: ${id}\nRoute: ${airRoute}\nChargeable Wt: ${airCalc.chargeable} kg`);
+                  const id = addRequest(
+                    `Air (${airCalc.chargeable} kg)`,
+                    airRoute,
+                    'Indicative Air Quote Requested'
+                  );
+                  Alert.alert('Air Quote Logged', `Ref: ${id}\nChargeable Wt: ${airCalc.chargeable} kg`);
                 }}
                 style={[styles.tealActionBtn, { backgroundColor: C.teal }]}
               >
@@ -1363,16 +1518,12 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
       )}
 
       {/* =========================================================
-          5. SAMPLE & TRACKING:
-          - Separate Sample Request vs Tracking Timelines
-          - Dedicated India Domestic Workflow (Train / Rail Parcel + Road Transport)
-          - International Workflow (DHL Express / FedEx)
+          5. SAMPLE & TRACKING
       ========================================================= */}
       {screen === 'sample' && (
         <View style={{ padding: 14 }}>
           <Text style={[styles.screenHeading, { color: C.text }]}>Sample & Tracking</Text>
 
-          {/* Separate Process Tabs: Sample Request vs Shipment & Lab Tracking */}
           <View style={[styles.tabContainer, { backgroundColor: C.card, borderColor: C.border }]}>
             <TouchableOpacity
               onPress={() => setSampleMainTab('request')}
@@ -1387,7 +1538,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               style={[styles.tabPill, sampleMainTab === 'tracking' && { backgroundColor: C.teal }]}
             >
               <Text style={{ color: sampleMainTab === 'tracking' ? '#071521' : C.text, fontSize: 13, fontWeight: '900' }}>
-                Shipment Tracking
+                Shipment Tracking (Demo)
               </Text>
             </TouchableOpacity>
           </View>
@@ -1543,6 +1694,8 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
 
               <TouchableOpacity
                 onPress={() => {
+                  const uniqueSmp = `TS-SMP-${Date.now().toString().slice(-5)}`;
+                  setLatestSampleRefId(uniqueSmp);
                   const modeUsed =
                     sampleScope === 'domestic'
                       ? domesticMethod === 'train'
@@ -1551,21 +1704,20 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                           ? `Road Transport (${transportOperator})`
                           : 'Domestic Courier'
                       : intlCourier;
-                  const reqId = addRequest(`Sample (${modeUsed})`, `${samplePickup} → ${sampleReceiver}`, 'Sample Request Created');
+                  const reqId = addRequest(`Sample (${modeUsed})`, `${samplePickup} → ${sampleReceiver}`, `Sample Ref: ${uniqueSmp}`);
                   Alert.alert(
-                    'Sample Request Created',
-                    `Sample Ref ID: ${sampleRefId}\nRequest ID: ${reqId}\nMode: ${modeUsed}`
+                    'Sample Request Logged',
+                    `Unique Sample Ref ID: ${uniqueSmp}\nRequest ID: ${reqId}\nMode: ${modeUsed}`
                   );
                 }}
                 style={[styles.tealActionBtn, { backgroundColor: C.teal }]}
               >
                 <Text style={{ color: '#071521', fontSize: 14, fontWeight: '900' }}>
-                  Create Sample Request ({sampleRefId})
+                  Create Sample Request
                 </Text>
               </TouchableOpacity>
             </View>
           ) : (
-            /* SEPARATE TRACKING TIMELINES: COURIER / TRANSIT vs LAB TESTING */
             <View>
               <View style={[styles.tabContainer, { backgroundColor: C.card, borderColor: C.border }]}>
                 <TouchableOpacity
@@ -1573,7 +1725,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                   style={[styles.tabPill, trackingCategory === 'courier' && { backgroundColor: C.amber }]}
                 >
                   <Text style={{ color: trackingCategory === 'courier' ? '#071521' : C.text, fontSize: 12, fontWeight: '900' }}>
-                    Courier / Transit Timeline
+                    Transit Timeline (Demo)
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1581,14 +1733,14 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                   style={[styles.tabPill, trackingCategory === 'lab' && { backgroundColor: C.amber }]}
                 >
                   <Text style={{ color: trackingCategory === 'lab' ? '#071521' : C.text, fontSize: 12, fontWeight: '900' }}>
-                    Lab Testing Timeline
+                    Lab Timeline (Demo)
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.border, flexDirection: 'column' }]}>
                 <Text style={{ color: C.sub, fontSize: 11 }}>
-                  AWB / Railway RR No. / Transport Bilty (Separate from {sampleRefId})
+                  AWB / Railway RR No. / Bilty (Latest Sample Ref: {latestSampleRefId})
                 </Text>
                 <TextInput
                   value={trackingNumber}
@@ -1601,9 +1753,9 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 {trackingCategory === 'courier' ? (
                   <View>
                     <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900', marginBottom: 8 }}>
-                      TRANSIT TIMELINE ({sampleRefId})
+                      DEMO TRANSIT MILESTONES ({latestSampleRefId})
                     </Text>
-                    {['1. Sample Pickup Completed', '2. In Transit (Rail / Road / Air)', '3. Customs / Destination Hub', '4. Delivered to Receiver / Lab'].map(
+                    {['1. Sample Pickup Logged', '2. In Transit (Rail / Road / Air)', '3. Destination / Customs Check', '4. Delivered to Receiver / Lab'].map(
                       (st, idx) => (
                         <Text key={st} style={{ color: idx < 2 ? C.text : C.sub, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>
                           {idx < 2 ? '● ' : '○ '} {st}
@@ -1614,9 +1766,9 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 ) : (
                   <View>
                     <Text style={{ color: C.amber, fontSize: 12, fontWeight: '900', marginBottom: 8 }}>
-                      LAB TESTING TIMELINE ({sampleRefId})
+                      DEMO LAB MILESTONES ({latestSampleRefId})
                     </Text>
-                    {['1. Sample Received at Lab', '2. Moisture & Grain / Quality Analysis', '3. Purity & Lab Verification', '4. Digital Lab Report (e-Certificate)'].map(
+                    {['1. Sample Received at Lab', '2. Quality & Moisture Check', '3. Lab Verification', '4. Digital Lab Report (e-Certificate)'].map(
                       (st, idx) => (
                         <Text key={st} style={{ color: idx === 0 ? C.text : C.sub, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>
                           {idx === 0 ? '● ' : '○ '} {st}
@@ -1626,8 +1778,8 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                   </View>
                 )}
 
-                <Text style={{ color: C.sub, fontSize: 10, marginTop: 8 }}>
-                  Note: Live carrier API auto-sync will connect once carrier tracking credentials are linked.
+                <Text style={{ color: C.amber, fontSize: 10, fontWeight: '700', marginTop: 8 }}>
+                  Demo Status Preview: Live carrier/lab API integration is not yet connected.
                 </Text>
               </View>
             </View>
@@ -1640,7 +1792,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
       ========================================================= */}
       {screen === 'requests' && (
         <View style={{ padding: 14 }}>
-          <Text style={[styles.screenHeading, { color: C.text }]}>My Shipments & Requests</Text>
+          <Text style={[styles.screenHeading, { color: C.text }]}>My Shipments & Requests (Session)</Text>
           {myRequests.map((req) => (
             <View key={req.id} style={[styles.carrierCard, { backgroundColor: C.card, borderColor: C.border }]}>
               <View style={styles.rowBetween}>
@@ -1796,9 +1948,33 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     borderWidth: 1,
   },
-  hubMainTitle: { fontSize: 20, fontWeight: '900', letterSpacing: 0.3 },
-  hubTagline: { fontSize: 12, fontWeight: '600', marginTop: 2 },
+  heroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+  },
+  globeOrb: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+  hubMainTitle: { fontSize: 19, fontWeight: '900', letterSpacing: 0.3 },
+  hubTagline: { fontSize: 11, fontWeight: '800', marginTop: 2 },
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  largeFilterBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
   filterBox: {
     borderWidth: 1,
     borderRadius: 10,
@@ -1809,42 +1985,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardsGrid: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  moduleCard: { flex: 1, borderWidth: 1, borderRadius: 14, padding: 10 },
-  visualBanner: {
+  largeModuleCard: { flex: 1, borderWidth: 1.2, borderRadius: 14, padding: 10 },
+  largeVisualStage: {
     borderWidth: 1,
     borderRadius: 10,
-    paddingVertical: 9,
+    paddingVertical: 14,
     paddingHorizontal: 6,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 8,
   },
-  cardHeadTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 0.3, textAlign: 'center' },
-  routeMiniRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 3,
-    marginBottom: 6,
-  },
+  largeCardTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
   cardFooterSplit: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
     paddingTop: 6,
   },
-  wideSampleBar: {
-    borderWidth: 1,
+  fullWidthSampleCard: {
+    borderWidth: 1.2,
     borderRadius: 14,
-    padding: 12,
+    padding: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 12,
     marginTop: 2,
   },
-  sampleIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+  sampleSideArt: {
+    width: 58,
+    height: 58,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1880,6 +2051,7 @@ const styles = StyleSheet.create({
   },
   specBox: { flex: 1, borderWidth: 1, borderRadius: 12, padding: 12 },
   specInput: { fontSize: 13, fontWeight: '800', marginTop: 3, paddingVertical: 0 },
+  warnBox: { borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 10 },
   choicePill: {
     paddingHorizontal: 10,
     paddingVertical: 7,
