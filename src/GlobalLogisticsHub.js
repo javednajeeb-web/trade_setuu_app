@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,20 @@ import {
   Modal,
   Image,
   Share,
+  BackHandler,
 } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 const TS_LOGO = require('../1795099375380.png');
+
+const HUB_CARD_IMAGES = {
+  inland: require('../1795683642779.png'),
+  rail: require('../1795683639128.png'),
+  ocean: require('../1795683637056.png'),
+  air: require('../1795683624593.png'),
+  sample: require('../1795683633309.png'),
+};
 
 const REGIONS = [
   { code: 'IN', label: 'India (IN)', currency: 'INR', weightUnit: 'MT', factor: 1.0 },
@@ -142,7 +151,18 @@ function formatMoney(inrAmount, curCode) {
   return `${curCode} ${converted.toFixed(0)}`;
 }
 
-export default function GlobalLogisticsHub({ theme = 'dark' }) {
+function ModuleVisual({ kind, isLarge = true }) {
+  const assetSource = HUB_CARD_IMAGES[kind];
+  return (
+    <Image
+      source={assetSource}
+      style={isLarge ? styles.cardArtworkLarge : styles.cardArtworkWide}
+      resizeMode="cover"
+    />
+  );
+}
+
+export default function GlobalLogisticsHub({ theme = 'dark', onExitHub }) {
   const isDark = theme !== 'light';
 
   const C = {
@@ -159,8 +179,63 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
   };
 
   const [screen, setScreen] = useState('hub');
+  const [navStack, setNavStack] = useState([]);
 
-  // Region, Tx Currency, Display Currency & Weight Unit
+  const [loadTab, setLoadTab] = useState('book');
+  const [inlandStep, setInlandStep] = useState(1);
+
+  const navigateTo = useCallback(
+    (nextScreen, nextStep = 1, nextLoadTab = loadTab) => {
+      setNavStack((prev) => [...prev, { screen, inlandStep, loadTab }]);
+      setScreen(nextScreen);
+      if (nextScreen === 'inland') {
+        setInlandStep(nextStep);
+        setLoadTab(nextLoadTab);
+      }
+    },
+    [screen, inlandStep, loadTab]
+  );
+
+  const goToInlandStep = useCallback(
+    (targetStep) => {
+      if (targetStep === inlandStep) return;
+      setNavStack((prev) => [...prev, { screen: 'inland', inlandStep, loadTab }]);
+      setInlandStep(targetStep);
+    },
+    [inlandStep, loadTab]
+  );
+
+  const handleBackStep = useCallback(() => {
+    if (screen === 'inland' && loadTab === 'book' && inlandStep > 1) {
+      setInlandStep((s) => Math.max(1, s - 1));
+      return true;
+    }
+    if (navStack.length > 0) {
+      const last = navStack[navStack.length - 1];
+      setNavStack((prev) => prev.slice(0, -1));
+      setScreen(last.screen);
+      setInlandStep(last.inlandStep);
+      setLoadTab(last.loadTab);
+      return true;
+    }
+    if (screen !== 'hub') {
+      setScreen('hub');
+      return true;
+    }
+    if (typeof onExitHub === 'function') {
+      onExitHub();
+      return true;
+    }
+    return false;
+  }, [screen, loadTab, inlandStep, navStack, onExitHub]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      return handleBackStep();
+    });
+    return () => sub.remove();
+  }, [handleBackStep]);
+
   const [recentRegionCodes, setRecentRegionCodes] = useState(['IN', 'AE', 'US']);
   const [region, setRegion] = useState(REGIONS[0]);
   const [txCurrency, setTxCurrency] = useState('INR');
@@ -180,9 +255,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
   const [pickerOpen, setPickerOpen] = useState(null);
   const [searchText, setSearchText] = useState('');
 
-  // 1. Inland State
-  const [loadTab, setLoadTab] = useState('book');
-  const [inlandStep, setInlandStep] = useState(1);
+  // Inland Form Fields
   const [pickupLoc, setPickupLoc] = useState('Mumbai, India (400001)');
   const [deliveryLoc, setDeliveryLoc] = useState('Ahmedabad, India (380001)');
   const [cargoCategory, setCargoCategory] = useState('Agro / Bulk Grain');
@@ -191,11 +264,12 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
   const [distanceKm, setDistanceKm] = useState('524');
   const [selectedVehicleId, setSelectedVehicleId] = useState('22w');
   const [selectedCarrierId, setSelectedCarrierId] = useState('partner-best');
+  const [bookingActionType, setBookingActionType] = useState('Booking Request');
   const [bookingRequestId, setBookingRequestId] = useState('');
   const [selectedReturnTrip, setSelectedReturnTrip] = useState(RETURN_LOAD_TRIPS[0]);
   const [bidOfferAmount, setBidOfferAmount] = useState('40000');
 
-  // 2. Rail Freight State (Full Rake / Mini Rake / Two-Point)
+  // Rail State
   const [railOrigin, setRailOrigin] = useState('Raipur Goods Shed (R)');
   const [railDest, setRailDest] = useState('Bhiwandi / Mumbai Terminal');
   const [railCommodity, setRailCommodity] = useState('1121 Sella Rice / Bulk Grain');
@@ -204,7 +278,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
   const [railCalculatedAt, setRailCalculatedAt] = useState('Initial Indicative Estimate');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-  // 3. Ocean State
+  // Ocean State
   const [oceanRoute, setOceanRoute] = useState('Nhava Sheva (INNSA) → Jebel Ali (AEJEA)');
   const [oceanServiceMode, setOceanServiceMode] = useState('Port-to-Port');
   const [oceanShipmentType, setOceanShipmentType] = useState('FCL');
@@ -218,7 +292,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
   const [selectedOceanCarrierId, setSelectedOceanCarrierId] = useState('msc');
   const [showOceanRates, setShowOceanRates] = useState(false);
 
-  // 4. Air Freight State
+  // Air State
   const [airTab, setAirTab] = useState('calculator');
   const [airRoute, setAirRoute] = useState('DEL (India) → FRA (Germany)');
   const [airActualKg, setAirActualKg] = useState('1000');
@@ -234,7 +308,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
     cooPhyto: false,
   });
 
-  // 5. Sample & Tracking State
+  // Sample & Tracking State
   const [sampleMainTab, setSampleMainTab] = useState('request');
   const [sampleScope, setSampleScope] = useState('domestic');
   const [domesticMethod, setDomesticMethod] = useState('train');
@@ -294,12 +368,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
 
   const railCalc = useMemo(() => {
     const mt = Math.max(1, parseFloat(railQtyMt) || 500);
-    const ratePerMt =
-      railProduct === 'Full Rake'
-        ? 1450
-        : railProduct === 'Mini Rake'
-          ? 1620
-          : 1540;
+    const ratePerMt = railProduct === 'Full Rake' ? 1450 : railProduct === 'Mini Rake' ? 1620 : 1540;
     const basicRailInr = Math.round(mt * ratePerMt * (region.factor || 1.0));
     const terminalHandlingInr = Math.round(mt * 110);
     const firstLastMileInr = Math.round(mt * 240);
@@ -437,29 +506,21 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: 96 }}>
-      {/* TOP BRAND HEADER */}
+      {/* COMPACT HEADER: LOGO ONLY (NO FULL BRAND TEXT / NO BIG BANNER) */}
       <View style={[styles.topHeader, { backgroundColor: C.card, borderBottomColor: C.border }]}>
         <View style={styles.rowBetween}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {screen !== 'hub' && (
-              <TouchableOpacity onPress={() => setScreen('hub')} style={styles.backBtn}>
-                <Text style={{ color: C.text, fontSize: 19, fontWeight: '800' }}>‹</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            {(screen !== 'hub' || navStack.length > 0) && (
+              <TouchableOpacity onPress={handleBackStep} style={styles.backBtn}>
+                <Text style={{ color: C.teal, fontSize: 20, fontWeight: '900' }}>‹</Text>
               </TouchableOpacity>
             )}
             <Image source={TS_LOGO} style={styles.logoImg} resizeMode="contain" />
-            <View>
-              <Text style={[styles.brandTitle, { color: C.text }]}>
-                TRADE <Text style={{ color: C.teal }}>SETUU</Text>
-              </Text>
-              <Text style={[styles.brandSub, { color: C.sub }]}>
-                Global Trade • Sourcing • Logistics • Finance
-              </Text>
-            </View>
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
             <TouchableOpacity
-              onPress={() => setScreen(screen === 'requests' ? 'hub' : 'requests')}
+              onPress={() => navigateTo(screen === 'requests' ? 'hub' : 'requests')}
               style={[styles.unitPill, { backgroundColor: C.cardAlt, borderColor: C.border }]}
             >
               <Text style={{ color: C.amber, fontSize: 10, fontWeight: '900' }}>
@@ -480,37 +541,23 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
       </View>
 
       {/* =========================================================
-          0. GLOBAL LOGISTICS HUB DASHBOARD (2 + 2 + 1 LAYOUT)
-          Row 1: Inland Transport | Rail Freight
-          Row 2: Ocean & Shipping | Air Freight
-          Row 3: Full-width Sample & Tracking Card
+          0. GLOBAL LOGISTICS HUB DASHBOARD
       ========================================================= */}
       {screen === 'hub' && (
         <View style={{ padding: 14 }}>
-          {/* Hero Section with Globe / Trade Corridor Visual */}
-          <View style={[styles.heroCard, { backgroundColor: C.card, borderColor: C.border }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.hubMainTitle, { color: C.text }]}>GLOBAL LOGISTICS HUB</Text>
-              <Text style={[styles.hubTagline, { color: C.teal }]}>
-                Plan • Compare • Quote • Book • Track
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 10, marginTop: 4 }}>
-                Corridor: India (IN) ↔ UAE / Global Lanes
-              </Text>
-            </View>
-            <View style={[styles.globeOrb, { backgroundColor: '#0B1D2C', borderColor: C.teal }]}>
-              <Text style={{ fontSize: 22 }}>🌐</Text>
-              <Text style={{ color: C.amber, fontSize: 8, fontWeight: '900', marginTop: 1 }}>LIVE HUB</Text>
-            </View>
+          <View style={{ marginBottom: 12 }}>
+            <Text style={[styles.hubMainTitle, { color: C.text }]}>GLOBAL LOGISTICS HUB</Text>
+            <Text style={[styles.hubTagline, { color: C.sub }]}>
+              Plan • Compare • Quote • Book • Track
+            </Text>
           </View>
 
-          {/* Large Region, Tx Currency & Display Currency Selectors */}
           <View style={styles.filterRow}>
             <TouchableOpacity
               onPress={() => { setSearchText(''); setPickerOpen('region'); }}
               style={[styles.largeFilterBox, { flex: 1.35, backgroundColor: C.card, borderColor: C.border }]}
             >
-              <Text style={{ color: C.sub, fontSize: 10 }}>Region</Text>
+              <Text style={{ color: C.sub, fontSize: 10 }}>REGION</Text>
               <View style={[styles.rowBetween, { marginTop: 2 }]}>
                 <Text style={{ color: C.text, fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
                   {region.label}
@@ -523,7 +570,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               onPress={() => { setSearchText(''); setPickerOpen('txCur'); }}
               style={[styles.largeFilterBox, { flex: 0.85, backgroundColor: C.card, borderColor: C.border }]}
             >
-              <Text style={{ color: C.sub, fontSize: 10 }}>Tx Currency</Text>
+              <Text style={{ color: C.sub, fontSize: 10 }}>TX CURRENCY</Text>
               <View style={[styles.rowBetween, { marginTop: 2 }]}>
                 <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900' }}>{txCurrency}</Text>
                 <Text style={{ color: C.sub, fontSize: 12 }}>▾</Text>
@@ -534,7 +581,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               onPress={() => { setSearchText(''); setPickerOpen('dispCur'); }}
               style={[styles.largeFilterBox, { flex: 0.9, backgroundColor: C.card, borderColor: C.border }]}
             >
-              <Text style={{ color: C.sub, fontSize: 10 }}>Display</Text>
+              <Text style={{ color: C.sub, fontSize: 10 }}>DISPLAY</Text>
               <View style={[styles.rowBetween, { marginTop: 2 }]}>
                 <Text style={{ color: C.amber, fontSize: 12, fontWeight: '900' }}>{dispCurrency}</Text>
                 <Text style={{ color: C.sub, fontSize: 12 }}>▾</Text>
@@ -542,118 +589,88 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
             </TouchableOpacity>
           </View>
 
-          {/* ROW 1: 1. INLAND TRANSPORT & 2. RAIL FREIGHT */}
+          {/* Row 1: Inland Transport & Ocean & Shipping */}
           <View style={styles.cardsGrid}>
             <TouchableOpacity
-              onPress={() => { setInlandStep(1); setScreen('inland'); }}
+              onPress={() => navigateTo('inland', 1, 'book')}
               style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.border }]}
             >
-              <View style={[styles.largeVisualStage, { backgroundColor: '#122D42', borderColor: C.border }]}>
-                <Text style={{ fontSize: 34 }}>🚛</Text>
-                <Text style={{ color: C.teal, fontSize: 9, fontWeight: '900', marginTop: 4 }}>
-                  Road • Truck • Return Load • Bidding
-                </Text>
-              </View>
-
+              <ModuleVisual kind="inland" isLarge />
               <Text style={[styles.largeCardTitle, { color: C.text }]}>INLAND TRANSPORT</Text>
               <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
-                Pickup → Drop • 1,240 km • 28.0 MT
+                Road • Truck • Return Load
               </Text>
-
               <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
-                <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>92% Util.</Text>
+                <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>1,240 km</Text>
                 <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => setScreen('rail')}
-              style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.teal }]}
-            >
-              <View style={[styles.largeVisualStage, { backgroundColor: '#122D42', borderColor: C.border }]}>
-                <Text style={{ fontSize: 34 }}>🚆</Text>
-                <Text style={{ color: C.amber, fontSize: 9, fontWeight: '900', marginTop: 4 }}>
-                  Full Rake • Mini Rake • Two-Point
-                </Text>
-              </View>
-
-              <Text style={[styles.largeCardTitle, { color: C.text }]}>RAIL FREIGHT</Text>
-              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
-                Goods Shed • Bulk Rake • Road vs Rail
-              </Text>
-
-              <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
-                <Text style={{ color: C.amber, fontSize: 10, fontWeight: '800' }}>PDF Sheet</Text>
-                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* ROW 2: 3. OCEAN & SHIPPING & 4. AIR FREIGHT */}
-          <View style={styles.cardsGrid}>
-            <TouchableOpacity
-              onPress={() => setScreen('ocean')}
+              onPress={() => navigateTo('ocean')}
               style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.border }]}
             >
-              <View style={[styles.largeVisualStage, { backgroundColor: '#122D42', borderColor: C.border }]}>
-                <Text style={{ fontSize: 34 }}>🚢</Text>
-                <Text style={{ color: C.teal, fontSize: 9, fontWeight: '900', marginTop: 4 }}>
-                  FCL • LCL • Bulk • Breakbulk
-                </Text>
-              </View>
-
+              <ModuleVisual kind="ocean" isLarge />
               <Text style={[styles.largeCardTitle, { color: C.text }]}>OCEAN & SHIPPING</Text>
               <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
-                INNSA → AEJEA • 40' HC • 14–18d
+                FCL • LCL • Bulk • Breakbulk
               </Text>
-
               <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
-                <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>Incoterms</Text>
-                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setScreen('air')}
-              style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.border }]}
-            >
-              <View style={[styles.largeVisualStage, { backgroundColor: '#122D42', borderColor: C.border }]}>
-                <Text style={{ fontSize: 34 }}>✈️</Text>
-                <Text style={{ color: C.amber, fontSize: 9, fontWeight: '900', marginTop: 4 }}>
-                  Airport • Express • Cargo
-                </Text>
-              </View>
-
-              <Text style={[styles.largeCardTitle, { color: C.text }]}>AIR FREIGHT</Text>
-              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
-                DEL → FRA • Chargeable: 1,250 kg
-              </Text>
-
-              <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
-                <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>Vol. Calc</Text>
+                <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>INNSA → AEJEA</Text>
                 <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
               </View>
             </TouchableOpacity>
           </View>
 
-          {/* ROW 3: 5. FULL-WIDTH SAMPLE & TRACKING CARD */}
-          <TouchableOpacity
-            onPress={() => setScreen('sample')}
-            style={[styles.fullWidthSampleCard, { backgroundColor: C.card, borderColor: C.amber }]}
-          >
-            <View style={[styles.sampleSideArt, { backgroundColor: '#122D42', borderColor: C.border }]}>
-              <Text style={{ fontSize: 28 }}>📦</Text>
-            </View>
-            <View style={{ flex: 1 }}>
+          {/* Row 2: Air Freight & Sample & Tracking */}
+          <View style={styles.cardsGrid}>
+            <TouchableOpacity
+              onPress={() => navigateTo('air')}
+              style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.border }]}
+            >
+              <ModuleVisual kind="air" isLarge />
+              <Text style={[styles.largeCardTitle, { color: C.text }]}>AIR FREIGHT</Text>
+              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
+                Airport • Express • Cargo
+              </Text>
+              <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
+                <Text style={{ color: C.text, fontSize: 10, fontWeight: '800' }}>DEL → FRA</Text>
+                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => navigateTo('sample')}
+              style={[styles.largeModuleCard, { backgroundColor: C.card, borderColor: C.border }]}
+            >
+              <ModuleVisual kind="sample" isLarge />
               <Text style={[styles.largeCardTitle, { color: C.text }]}>SAMPLE & TRACKING</Text>
-              <Text style={{ color: C.amber, fontSize: 10, fontWeight: '800', marginTop: 2 }}>
-                Sample • Courier • Lab • Inspection
+              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
+                India Train / Road • Courier
               </Text>
-              <Text style={{ color: C.sub, fontSize: 10, marginTop: 3 }}>
-                India Train / Road • DHL / FedEx • Separate Timelines
+              <View style={[styles.cardFooterSplit, { borderTopColor: C.border, marginTop: 8 }]}>
+                <Text style={{ color: C.amber, fontSize: 10, fontWeight: '800' }}>Timelines</Text>
+                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>Open ›</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Rail Freight Card */}
+          <TouchableOpacity
+            onPress={() => navigateTo('rail')}
+            style={[styles.fullWidthSampleCard, { backgroundColor: C.card, borderColor: C.teal }]}
+          >
+            <ModuleVisual kind="rail" isLarge={false} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.largeCardTitle, { color: C.text }]}>RAIL FREIGHT & RAKE ESTIMATE</Text>
+              <Text style={{ color: C.teal, fontSize: 10, fontWeight: '800', marginTop: 2 }}>
+                Full Rake • Mini Rake • Two-Point
+              </Text>
+              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
+                Cost Breakdown • Road vs Rail • Share Estimate PDF
               </Text>
             </View>
-            <Text style={{ color: C.teal, fontSize: 13, fontWeight: '900' }}>Open ›</Text>
+            <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900' }}>Open ›</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -688,14 +705,14 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
             <>
               <View style={styles.stepStrip}>
                 {[
-                  { n: 1, lbl: '1. Details' },
-                  { n: 2, lbl: '2. Vehicle' },
-                  { n: 3, lbl: '3. Rates' },
-                  { n: 4, lbl: '4. Booking' },
+                  { n: 1, lbl: 'Step 1: Details' },
+                  { n: 2, lbl: 'Step 2: Vehicle' },
+                  { n: 3, lbl: 'Step 3: Rates' },
+                  { n: 4, lbl: 'Step 4: Booking' },
                 ].map((st) => (
                   <TouchableOpacity
                     key={st.n}
-                    onPress={() => setInlandStep(st.n)}
+                    onPress={() => goToInlandStep(st.n)}
                     style={[
                       styles.stepChip,
                       {
@@ -711,111 +728,107 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 ))}
               </View>
 
-              <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.border }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Pickup Location (City / PIN)</Text>
-                  <TextInput
-                    value={pickupLoc}
-                    onChangeText={setPickupLoc}
-                    placeholder="Enter Pickup City / PIN"
-                    placeholderTextColor={C.sub}
-                    style={[styles.inlineInput, { color: C.text }]}
-                  />
-
-                  <View style={[styles.hairline, { backgroundColor: C.border }]} />
-
-                  <Text style={{ color: C.sub, fontSize: 11, marginTop: 8 }}>Delivery Location (City / PIN)</Text>
-                  <TextInput
-                    value={deliveryLoc}
-                    onChangeText={setDeliveryLoc}
-                    placeholder="Enter Delivery City / PIN"
-                    placeholderTextColor={C.sub}
-                    style={[styles.inlineInput, { color: C.text }]}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  onPress={swapInlandRoute}
-                  style={[styles.swapBtn, { backgroundColor: C.cardAlt, borderColor: C.border }]}
-                >
-                  <Text style={{ color: C.text, fontSize: 15, fontWeight: '800' }}>⇅</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.cardsGrid}>
-                <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Cargo Weight ({weightUnit})</Text>
-                  <TextInput
-                    value={cargoWeightVal}
-                    onChangeText={setCargoWeightVal}
-                    keyboardType="numeric"
-                    style={[styles.specInput, { color: C.text }]}
-                  />
-                </View>
-                <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Vehicle Cap</Text>
-                  <Text style={[styles.specInput, { color: C.text }]} numberOfLines={1}>
-                    {selectedVehicle.name.split(' ')[0]} ({selectedVehicle.capMt} MT)
+              {inlandStep > 1 && (
+                <View style={[styles.summaryStrip, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+                  <Text style={{ color: C.teal, fontSize: 11, fontWeight: '800', flex: 1 }} numberOfLines={1}>
+                    {pickupLoc} → {deliveryLoc} • {inlandCalc.wtMt.toFixed(1)} MT • {distanceKm} km
                   </Text>
-                </View>
-              </View>
-
-              <View style={styles.cardsGrid}>
-                <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Distance (km, Indicative)</Text>
-                  <TextInput
-                    value={distanceKm}
-                    onChangeText={setDistanceKm}
-                    keyboardType="numeric"
-                    style={[styles.specInput, { color: C.text }]}
-                  />
-                </View>
-                <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Est. Fee (₹25/MT)</Text>
-                  <Text style={[styles.specInput, { color: C.amber }]}>
-                    {formatMoney(inlandCalc.platformFeeInr, dispCurrency)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.cardsGrid}>
-                <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Cargo Category</Text>
-                  <TextInput
-                    value={cargoCategory}
-                    onChangeText={setCargoCategory}
-                    style={[styles.specInput, { color: C.text }]}
-                  />
-                </View>
-                <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 11 }}>Packaging / Dimensions</Text>
-                  <TextInput
-                    value={cargoPackaging}
-                    onChangeText={setCargoPackaging}
-                    style={[styles.specInput, { color: C.text }]}
-                  />
-                </View>
-              </View>
-
-              {inlandCalc.exceedsCapacity && (
-                <View style={[styles.warnBox, { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: C.warnRed }]}>
-                  <Text style={{ color: C.warnRed, fontSize: 11, fontWeight: '800' }}>
-                    Capacity Alert: {inlandCalc.wtMt.toFixed(1)} MT exceeds {selectedVehicle.name} ({selectedVehicle.capMt} MT). Suggested: {inlandCalc.suggestedVehicle.name}.
-                  </Text>
+                  <TouchableOpacity onPress={() => goToInlandStep(1)}>
+                    <Text style={{ color: C.amber, fontSize: 11, fontWeight: '900' }}>Edit</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
-              <TouchableOpacity
-                onPress={() => setInlandStep(2)}
-                style={[styles.tealActionBtn, { backgroundColor: C.teal }]}
-              >
-                <Text style={{ color: '#071521', fontSize: 14, fontWeight: '900' }}>Find Transport Options</Text>
-              </TouchableOpacity>
+              {inlandStep === 1 && (
+                <View>
+                  <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.border }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: C.sub, fontSize: 11 }}>Pickup Location (City / PIN)</Text>
+                      <TextInput
+                        value={pickupLoc}
+                        onChangeText={setPickupLoc}
+                        placeholder="Enter Pickup City / PIN"
+                        placeholderTextColor={C.sub}
+                        style={[styles.inlineInput, { color: C.text }]}
+                      />
+                      <View style={[styles.hairline, { backgroundColor: C.border }]} />
+                      <Text style={{ color: C.sub, fontSize: 11, marginTop: 8 }}>Delivery Location (City / PIN)</Text>
+                      <TextInput
+                        value={deliveryLoc}
+                        onChangeText={setDeliveryLoc}
+                        placeholder="Enter Delivery City / PIN"
+                        placeholderTextColor={C.sub}
+                        style={[styles.inlineInput, { color: C.text }]}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      onPress={swapInlandRoute}
+                      style={[styles.swapBtn, { backgroundColor: C.cardAlt, borderColor: C.border }]}
+                    >
+                      <Text style={{ color: C.text, fontSize: 15, fontWeight: '800' }}>⇅</Text>
+                    </TouchableOpacity>
+                  </View>
 
-              {inlandStep >= 2 && (
-                <View style={{ marginTop: 16 }}>
+                  <View style={styles.cardsGrid}>
+                    <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
+                      <Text style={{ color: C.sub, fontSize: 11 }}>Cargo Weight ({weightUnit})</Text>
+                      <TextInput
+                        value={cargoWeightVal}
+                        onChangeText={setCargoWeightVal}
+                        keyboardType="numeric"
+                        style={[styles.specInput, { color: C.text }]}
+                      />
+                    </View>
+                    <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
+                      <Text style={{ color: C.sub, fontSize: 11 }}>Est. Platform Fee (₹25/MT)</Text>
+                      <Text style={[styles.specInput, { color: C.amber }]}>
+                        {formatMoney(inlandCalc.platformFeeInr, dispCurrency)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.cardsGrid}>
+                    <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
+                      <Text style={{ color: C.sub, fontSize: 11 }}>Distance (km, Indicative)</Text>
+                      <TextInput
+                        value={distanceKm}
+                        onChangeText={setDistanceKm}
+                        keyboardType="numeric"
+                        style={[styles.specInput, { color: C.text }]}
+                      />
+                    </View>
+                    <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border }]}>
+                      <Text style={{ color: C.sub, fontSize: 11 }}>Cargo Category</Text>
+                      <TextInput
+                        value={cargoCategory}
+                        onChangeText={setCargoCategory}
+                        style={[styles.specInput, { color: C.text }]}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={[styles.specBox, { backgroundColor: C.card, borderColor: C.border, marginBottom: 12 }]}>
+                    <Text style={{ color: C.sub, fontSize: 11 }}>Packaging / Dimensions</Text>
+                    <TextInput
+                      value={cargoPackaging}
+                      onChangeText={setCargoPackaging}
+                      style={[styles.specInput, { color: C.text }]}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => goToInlandStep(2)}
+                    style={[styles.tealActionBtn, { backgroundColor: C.teal }]}
+                  >
+                    <Text style={{ color: '#071521', fontSize: 14, fontWeight: '900' }}>Find Transport Options →</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {inlandStep === 2 && (
+                <View>
                   <Text style={[styles.compareHeading, { color: C.text, marginBottom: 8 }]}>
-                    Step 2: Select Vehicle & Check Capacity
+                    Step 2: Vehicle Selection & Capacity Check
                   </Text>
                   {VEHICLE_FLEET.map((vf) => {
                     const active = selectedVehicleId === vf.id;
@@ -847,27 +860,30 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                     );
                   })}
 
+                  {inlandCalc.exceedsCapacity && (
+                    <View style={[styles.warnBox, { backgroundColor: 'rgba(248,113,113,0.12)', borderColor: C.warnRed }]}>
+                      <Text style={{ color: C.warnRed, fontSize: 11, fontWeight: '800' }}>
+                        Capacity Alert: Selected load is {inlandCalc.wtMt.toFixed(1)} MT. Suggested: {inlandCalc.suggestedVehicle.name}.
+                      </Text>
+                    </View>
+                  )}
+
                   <TouchableOpacity
-                    onPress={() => setInlandStep(3)}
+                    onPress={() => goToInlandStep(3)}
                     style={[styles.tealActionBtn, { backgroundColor: C.teal }]}
                   >
-                    <Text style={{ color: '#071521', fontSize: 14, fontWeight: '900' }}>
-                      Compare Indicative & Partner Rates →
-                    </Text>
+                    <Text style={{ color: '#071521', fontSize: 14, fontWeight: '900' }}>Compare Rates →</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
-              {inlandStep >= 3 && (
-                <View style={{ marginTop: 18 }}>
+              {inlandStep === 3 && (
+                <View>
                   <Text style={[styles.compareHeading, { color: C.text }]}>
                     Step 3: Freight Rate Comparison (Indicative)
                   </Text>
-                  <Text style={{ color: C.text, fontSize: 13, fontWeight: '800', marginTop: 4 }}>
-                    {pickupLoc} → {deliveryLoc}
-                  </Text>
                   <Text style={{ color: C.sub, fontSize: 11, marginTop: 2, marginBottom: 10 }}>
-                    {selectedVehicle.name} | {inlandCalc.wtMt.toFixed(1)} MT | Region: {region.code} | Fee: ₹25/MT (Indicative User Fee)
+                    {selectedVehicle.name} • {inlandCalc.wtMt.toFixed(1)} MT • Fee: ₹25/MT (Indicative User Fee)
                   </Text>
 
                   {[
@@ -942,8 +958,9 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                           `${pickupLoc} → ${deliveryLoc}`,
                           'Indicative Quote Requested'
                         );
+                        setBookingActionType('Final Quote Request');
                         setBookingRequestId(id);
-                        setInlandStep(4);
+                        goToInlandStep(4);
                       }}
                       style={[styles.secondaryActionBtn, { backgroundColor: C.card, borderColor: C.border }]}
                     >
@@ -957,8 +974,9 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                           `${pickupLoc} → ${deliveryLoc}`,
                           'Booking Request Logged (Pending Confirmation)'
                         );
+                        setBookingActionType('Booking Request');
                         setBookingRequestId(id);
-                        setInlandStep(4);
+                        goToInlandStep(4);
                       }}
                       style={[styles.primaryProceedBtn, { backgroundColor: C.teal }]}
                     >
@@ -968,22 +986,28 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                 </View>
               )}
 
-              {inlandStep === 4 && bookingRequestId ? (
-                <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.teal, flexDirection: 'column', marginTop: 14 }]}>
+              {inlandStep === 4 && (
+                <View style={[styles.routeCard, { backgroundColor: C.card, borderColor: C.teal, flexDirection: 'column' }]}>
                   <Text style={{ color: C.teal, fontSize: 11, fontWeight: '900' }}>
-                    STEP 4: REQUEST LOGGED (LOCAL SESSION)
+                    STEP 4: {bookingActionType.toUpperCase()} LOGGED (SESSION)
                   </Text>
                   <Text style={{ color: C.text, fontSize: 16, fontWeight: '900', marginTop: 4 }}>
-                    Request ID: {bookingRequestId}
+                    Request ID: {bookingRequestId || `TS-REQ-${idCounter}`}
                   </Text>
                   <Text style={{ color: C.sub, fontSize: 12, marginTop: 4 }}>
                     Route: {pickupLoc} → {deliveryLoc} • Vehicle: {selectedVehicle.name}
                   </Text>
                   <Text style={{ color: C.amber, fontSize: 11, fontWeight: '800', marginTop: 4 }}>
-                    Status: Saved in Session Requests • Backend DB sync pending integration
+                    Status: Saved in Session Requests • Live confirmation & backend DB pending
                   </Text>
+                  <TouchableOpacity
+                    onPress={() => goToInlandStep(1)}
+                    style={[styles.secondaryActionBtn, { backgroundColor: C.cardAlt, borderColor: C.border, marginTop: 12 }]}
+                  >
+                    <Text style={{ color: C.text, fontSize: 12, fontWeight: '800' }}>New Inland Search</Text>
+                  </TouchableOpacity>
                 </View>
-              ) : null}
+              )}
             </>
           ) : (
             <View>
@@ -1046,7 +1070,7 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
       )}
 
       {/* =========================================================
-          2. RAIL FREIGHT MODULE (EXISTING RAIL SCREEN)
+          2. RAIL FREIGHT MODULE
       ========================================================= */}
       {screen === 'rail' && (
         <View style={{ padding: 14 }}>
@@ -1067,23 +1091,28 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
               style={[styles.inlineInput, { color: C.text, marginTop: 3, marginBottom: 10 }]}
             />
 
-            <Text style={{ color: C.sub, fontSize: 11 }}>Commodity & Quantity (MT)</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 10 }}>
-              <TextInput
-                value={railCommodity}
-                onChangeText={setRailCommodity}
-                style={[styles.specBox, { flex: 1.5, backgroundColor: C.cardAlt, color: C.text, fontSize: 12 }]}
-              />
-              <TextInput
-                value={railQtyMt}
-                onChangeText={setRailQtyMt}
-                keyboardType="numeric"
-                style={[styles.specBox, { flex: 0.7, backgroundColor: C.cardAlt, color: C.text, fontSize: 12 }]}
-              />
+            <View style={styles.cardsGrid}>
+              <View style={[styles.specBox, { backgroundColor: C.cardAlt, borderColor: C.border, flex: 1.5 }]}>
+                <Text style={{ color: C.sub, fontSize: 11 }}>Commodity</Text>
+                <TextInput
+                  value={railCommodity}
+                  onChangeText={setRailCommodity}
+                  style={[styles.specInput, { color: C.text, fontSize: 12 }]}
+                />
+              </View>
+              <View style={[styles.specBox, { backgroundColor: C.cardAlt, borderColor: C.border, flex: 0.8 }]}>
+                <Text style={{ color: C.sub, fontSize: 11 }}>Quantity (MT)</Text>
+                <TextInput
+                  value={railQtyMt}
+                  onChangeText={setRailQtyMt}
+                  keyboardType="numeric"
+                  style={[styles.specInput, { color: C.text, fontSize: 12 }]}
+                />
+              </View>
             </View>
 
             <Text style={{ color: C.sub, fontSize: 11, marginBottom: 6 }}>Rail Rake / Movement Mode</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
               {['Full Rake', 'Mini Rake', 'Two-Point'].map((rp) => {
                 const active = railProduct === rp;
                 return (
@@ -1092,10 +1121,10 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                     onPress={() => setRailProduct(rp)}
                     style={[
                       styles.choicePill,
-                      { backgroundColor: active ? C.teal : C.cardAlt, borderColor: active ? C.teal : C.border },
+                      { flex: 1, alignItems: 'center', backgroundColor: active ? C.teal : C.cardAlt, borderColor: active ? C.teal : C.border },
                     ]}
                   >
-                    <Text style={{ color: active ? '#071521' : C.text, fontSize: 11, fontWeight: '800' }}>{rp}</Text>
+                    <Text style={{ color: active ? '#071521' : C.text, fontSize: 11, fontWeight: '900' }}>{rp}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -1120,16 +1149,23 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
             <Text style={{ color: C.text, fontSize: 18, fontWeight: '900', marginTop: 4 }}>
               {formatMoney(railCalc.totalRailInr, dispCurrency)}
             </Text>
-            <Text style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>
-              • Basic Rail (Indicative ₹{railCalc.ratePerMt}/MT base): {formatMoney(railCalc.basicRailInr, dispCurrency)}
-            </Text>
-            <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
-              • Terminal Handling (Indicative ₹110/MT base): {formatMoney(railCalc.terminalHandlingInr, dispCurrency)}
-            </Text>
-            <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
-              • First & Last Mile (Indicative ₹240/MT base): {formatMoney(railCalc.firstLastMileInr, dispCurrency)}
-            </Text>
-            <Text style={{ color: C.teal, fontSize: 11, fontWeight: '800', marginTop: 6 }}>
+
+            <View style={[styles.breakdownTable, { borderColor: C.border, backgroundColor: C.cardAlt }]}>
+              <View style={styles.breakdownRow}>
+                <Text style={{ color: C.sub, fontSize: 11 }}>Basic Rail (₹{railCalc.ratePerMt}/MT base)</Text>
+                <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>{formatMoney(railCalc.basicRailInr, dispCurrency)}</Text>
+              </View>
+              <View style={styles.breakdownRow}>
+                <Text style={{ color: C.sub, fontSize: 11 }}>Terminal Handling (₹110/MT base)</Text>
+                <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>{formatMoney(railCalc.terminalHandlingInr, dispCurrency)}</Text>
+              </View>
+              <View style={styles.breakdownRow}>
+                <Text style={{ color: C.sub, fontSize: 11 }}>1st & Last Mile Road (₹240/MT base)</Text>
+                <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>{formatMoney(railCalc.firstLastMileInr, dispCurrency)}</Text>
+              </View>
+            </View>
+
+            <Text style={{ color: C.teal, fontSize: 11, fontWeight: '800', marginTop: 8 }}>
               Road vs Rail (Indicative): Road ~ {formatMoney(railCalc.roadEstInr, dispCurrency)} vs Rail ~ {formatMoney(railCalc.totalRailInr, dispCurrency)}
             </Text>
 
@@ -1578,9 +1614,9 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
                   </Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                     {[
-                      { id: 'train', lbl: '🚆 Train / Rail Parcel' },
-                      { id: 'road', lbl: '🚛 Road Transport' },
-                      { id: 'courier', lbl: '📦 Domestic Courier' },
+                      { id: 'train', lbl: 'Train / Rail Parcel' },
+                      { id: 'road', lbl: 'Road Transport' },
+                      { id: 'courier', lbl: 'Domestic Courier' },
                     ].map((dm) => (
                       <TouchableOpacity
                         key={dm.id}
@@ -1938,36 +1974,16 @@ export default function GlobalLogisticsHub({ theme = 'dark' }) {
 const styles = StyleSheet.create({
   topHeader: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  backBtn: { paddingRight: 4, paddingVertical: 2 },
+  backBtn: { paddingRight: 6, paddingVertical: 2 },
   logoImg: { width: 32, height: 32, borderRadius: 16 },
-  brandTitle: { fontSize: 17, fontWeight: '900', letterSpacing: 0.4 },
-  brandSub: { fontSize: 10, fontWeight: '600', marginTop: 1 },
   unitPill: {
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 9,
     borderWidth: 1,
   },
-  heroCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-  },
-  globeOrb: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 10,
-  },
-  hubMainTitle: { fontSize: 19, fontWeight: '900', letterSpacing: 0.3 },
-  hubTagline: { fontSize: 11, fontWeight: '800', marginTop: 2 },
+  hubMainTitle: { fontSize: 20, fontWeight: '900', letterSpacing: 0.3 },
+  hubTagline: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   largeFilterBox: {
     borderWidth: 1,
@@ -1986,14 +2002,16 @@ const styles = StyleSheet.create({
   },
   cardsGrid: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   largeModuleCard: { flex: 1, borderWidth: 1.2, borderRadius: 14, padding: 10 },
-  largeVisualStage: {
-    borderWidth: 1,
+  cardArtworkLarge: {
+    width: '100%',
+    height: 82,
     borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 8,
+  },
+  cardArtworkWide: {
+    width: 68,
+    height: 54,
+    borderRadius: 10,
   },
   largeCardTitle: { fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
   cardFooterSplit: {
@@ -2011,14 +2029,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 2,
   },
-  sampleSideArt: {
-    width: 58,
-    height: 58,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   screenHeading: { fontSize: 20, fontWeight: '900', marginBottom: 12 },
   tabContainer: {
     flexDirection: 'row',
@@ -2028,8 +2038,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tabPill: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
-  stepStrip: { flexDirection: 'row', gap: 6, marginBottom: 10 },
+  stepStrip: { flexDirection: 'row', gap: 5, marginBottom: 10 },
   stepChip: { flex: 1, paddingVertical: 6, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  summaryStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 10,
+  },
   routeCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2052,6 +2072,18 @@ const styles = StyleSheet.create({
   specBox: { flex: 1, borderWidth: 1, borderRadius: 12, padding: 12 },
   specInput: { fontSize: 13, fontWeight: '800', marginTop: 3, paddingVertical: 0 },
   warnBox: { borderWidth: 1, borderRadius: 10, padding: 10, marginBottom: 10 },
+  breakdownTable: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 8,
+    gap: 6,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   choicePill: {
     paddingHorizontal: 10,
     paddingVertical: 7,
