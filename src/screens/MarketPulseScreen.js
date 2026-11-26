@@ -10,16 +10,22 @@ import {
   Share,
   Alert,
   BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  ActivityIndicator,
 } from 'react-native';
 
-const SAMPLE_MARKET_ITEMS = [
+const AGMARKNET_API_KEY = '579b464db66ec23bdd00000126e3ad53d0e049c374bb6bbccfee0b03';
+const AGMARKNET_URL = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${AGMARKNET_API_KEY}&format=json&limit=45`;
+
+const FALLBACK_ITEMS = [
   {
     id: 'mp-1',
     commodity: 'Maize (Hybrid)',
     category: 'Grains',
     market: 'Nagpur APMC',
     state: 'Maharashtra',
-    country: 'India',
     marketScope: 'local',
     price: 2300,
     unit: '/ Qtl',
@@ -29,9 +35,10 @@ const SAMPLE_MARKET_ITEMS = [
     minPrice: 2200,
     modalPrice: 2300,
     maxPrice: 2500,
-    source: 'Agmarknet / Mandi Feed (Sample)',
+    dataTag: 'Sample / Indicative',
+    source: 'Fallback Snapshot (API Unavailable)',
     dataUpdatedAt: '26 Nov 2026, 04:30 PM IST',
-    analysisGeneratedAt: '26 Nov 2026, 07:30 PM IST',
+    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
     history: {
       '7D': [2210, 2225, 2240, 2235, 2260, 2258, 2300],
       '30D': [2140, 2175, 2200, 2255, 2300],
@@ -47,75 +54,104 @@ const SAMPLE_MARKET_ITEMS = [
   },
   {
     id: 'mp-2',
-    commodity: 'Wheat (Sharbati / FAQ)',
-    category: 'Grains',
-    market: 'Indore Mandi',
-    state: 'Madhya Pradesh',
-    country: 'India',
+    commodity: 'Tomato (Hybrid)',
+    category: 'Vegetables',
+    market: 'Raipur Mandi',
+    state: 'Chhattisgarh',
     marketScope: 'local',
-    price: 2520,
+    price: 1850,
     unit: '/ Qtl',
     currency: '₹',
-    changePct: '+2.4%',
+    changePct: '+3.1%',
     isPositive: true,
-    minPrice: 2440,
-    modalPrice: 2520,
-    maxPrice: 2610,
-    source: 'MP Mandi Board Feed (Sample)',
-    dataUpdatedAt: '26 Nov 2026, 03:45 PM IST',
-    analysisGeneratedAt: '26 Nov 2026, 07:30 PM IST',
+    minPrice: 1650,
+    modalPrice: 1850,
+    maxPrice: 2050,
+    dataTag: 'Sample / Indicative',
+    source: 'Fallback Snapshot (API Unavailable)',
+    dataUpdatedAt: '26 Nov 2026, 05:10 PM IST',
+    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
     history: {
-      '7D': [2420, 2435, 2450, 2465, 2480, 2461, 2520],
-      '30D': [2360, 2395, 2430, 2475, 2520],
-      '90D': [2290, 2340, 2410, 2485, 2520],
-      '1Y': [2180, 2260, 2350, 2440, 2520],
+      '7D': [1620, 1680, 1710, 1740, 1790, 1794, 1850],
+      '30D': [1450, 1560, 1690, 1780, 1850],
+      '90D': [1320, 1480, 1620, 1750, 1850],
+      '1Y': [1180, 1390, 1580, 1720, 1850],
     },
     nearbyMarkets: [
-      { name: 'Indore Mandi', price: '₹2,520 / Qtl' },
-      { name: 'Bhopal APMC', price: '₹2,495 / Qtl' },
-      { name: 'Kota Mandi', price: '₹2,510 / Qtl' },
+      { name: 'Raipur Mandi', price: '₹1,850 / Qtl' },
+      { name: 'Nagpur Veg Market', price: '₹1,790 / Qtl' },
+      { name: 'Indore Mandi', price: '₹1,820 / Qtl' },
     ],
-    fobReference: 'Domestic Mill & Flour Demand — Check Export Policy / Port Lane',
+    fobReference: 'Regional Fresh Produce — Short Shelf-Life Domestic / Nearby Lane',
   },
   {
     id: 'mp-3',
-    commodity: 'Rice (1121 Sella / Raw)',
-    category: 'Agriculture',
-    market: 'Raipur Market',
-    state: 'Chhattisgarh',
-    country: 'India',
+    commodity: 'Banana (Grand Naine)',
+    category: 'Fruits',
+    market: 'Jalgaon Mandi',
+    state: 'Maharashtra',
     marketScope: 'local',
-    price: 3100,
+    price: 1620,
     unit: '/ Qtl',
     currency: '₹',
-    changePct: '−0.8%',
+    changePct: '−1.2%',
     isPositive: false,
-    minPrice: 3020,
-    modalPrice: 3100,
-    maxPrice: 3210,
-    source: 'CG Market Feed (Sample)',
-    dataUpdatedAt: '26 Nov 2026, 05:00 PM IST',
-    analysisGeneratedAt: '26 Nov 2026, 07:30 PM IST',
+    minPrice: 1480,
+    modalPrice: 1620,
+    maxPrice: 1750,
+    dataTag: 'Sample / Indicative',
+    source: 'Fallback Snapshot (API Unavailable)',
+    dataUpdatedAt: '26 Nov 2026, 04:50 PM IST',
+    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
     history: {
-      '7D': [3160, 3150, 3140, 3130, 3125, 3125, 3100],
-      '30D': [3040, 3080, 3135, 3120, 3100],
-      '90D': [2960, 3020, 3090, 3125, 3100],
-      '1Y': [2850, 2940, 3010, 3080, 3100],
+      '7D': [1690, 1680, 1665, 1650, 1645, 1640, 1620],
+      '30D': [1540, 1590, 1655, 1640, 1620],
+      '90D': [1460, 1520, 1600, 1645, 1620],
+      '1Y': [1350, 1450, 1550, 1610, 1620],
     },
     nearbyMarkets: [
-      { name: 'Raipur Market', price: '₹3,100 / Qtl' },
-      { name: 'Dhamtari Mandi', price: '₹3,065 / Qtl' },
-      { name: 'Bhatapara Mandi', price: '₹3,080 / Qtl' },
+      { name: 'Jalgaon Mandi', price: '₹1,620 / Qtl' },
+      { name: 'Nagpur Market', price: '₹1,660 / Qtl' },
     ],
-    fobReference: 'Parboiled / Basmati FOB Mundra & Kandla — Buyer Quote Basis',
+    fobReference: 'Fresh Banana Export Lane (JNPT -> Gulf) — Reefer & Quality Check',
   },
   {
     id: 'mp-4',
+    commodity: 'Turmeric Finger',
+    category: 'Spices',
+    market: 'Sangli Mandi',
+    state: 'Maharashtra',
+    marketScope: 'local',
+    price: 14200,
+    unit: '/ Qtl',
+    currency: '₹',
+    changePct: '+1.4%',
+    isPositive: true,
+    minPrice: 13400,
+    modalPrice: 14200,
+    maxPrice: 14950,
+    dataTag: 'Sample / Indicative',
+    source: 'Fallback Snapshot (API Unavailable)',
+    dataUpdatedAt: '26 Nov 2026, 04:15 PM IST',
+    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
+    history: {
+      '7D': [13850, 13920, 13980, 14050, 14110, 14004, 14200],
+      '30D': [13200, 13550, 13880, 14080, 14200],
+      '90D': [12600, 13100, 13650, 14000, 14200],
+      '1Y': [11400, 12200, 13100, 13800, 14200],
+    },
+    nearbyMarkets: [
+      { name: 'Sangli Mandi', price: '₹14,200 / Qtl' },
+      { name: 'Nizamabad Mandi', price: '₹14,050 / Qtl' },
+    ],
+    fobReference: 'Spice Export Reference — Moisture & Curcumin Spec Check',
+  },
+  {
+    id: 'mp-5',
     commodity: 'Copper Cathode (LME Ref)',
     category: 'Metals',
     market: 'LME Global Benchmark',
     state: 'Global',
-    country: 'Global',
     marketScope: 'global',
     price: 9140,
     unit: '/ MT',
@@ -125,9 +161,10 @@ const SAMPLE_MARKET_ITEMS = [
     minPrice: 8990,
     modalPrice: 9140,
     maxPrice: 9230,
-    source: 'Global Metal Benchmark (Sample)',
+    dataTag: 'Sample / Indicative',
+    source: 'Fallback Snapshot (API Unavailable)',
     dataUpdatedAt: '26 Nov 2026, 06:15 PM IST',
-    analysisGeneratedAt: '26 Nov 2026, 07:30 PM IST',
+    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
     history: {
       '7D': [8960, 9010, 8995, 9050, 9080, 9031, 9140],
       '30D': [8810, 8890, 8950, 9040, 9140],
@@ -142,7 +179,98 @@ const SAMPLE_MARKET_ITEMS = [
   },
 ];
 
-const CATEGORIES = ['All', 'Agriculture', 'Grains', 'Vegetables', 'Spices', 'Metals', 'Energy'];
+const CATEGORIES = ['All', 'Grains', 'Vegetables', 'Fruits', 'Spices', 'Metals'];
+
+function guessCategory(commodityName = '') {
+  const c = String(commodityName).toLowerCase();
+  if (
+    c.includes('tomato') ||
+    c.includes('potato') ||
+    c.includes('onion') ||
+    c.includes('gourd') ||
+    c.includes('brinjal') ||
+    c.includes('cabbage') ||
+    c.includes('cauliflower') ||
+    c.includes('vegetable')
+  ) {
+    return 'Vegetables';
+  }
+  if (
+    c.includes('banana') ||
+    c.includes('apple') ||
+    c.includes('mango') ||
+    c.includes('orange') ||
+    c.includes('papaya') ||
+    c.includes('guava') ||
+    c.includes('pomegranate') ||
+    c.includes('fruit')
+  ) {
+    return 'Fruits';
+  }
+  if (
+    c.includes('turmeric') ||
+    c.includes('chilli') ||
+    c.includes('coriander') ||
+    c.includes('cumin') ||
+    c.includes('garlic') ||
+    c.includes('ginger') ||
+    c.includes('pepper') ||
+    c.includes('cardamom')
+  ) {
+    return 'Spices';
+  }
+  return 'Grains';
+}
+
+function mapAgmarknetRecords(records = []) {
+  const generatedStamp = new Date().toLocaleString('en-IN');
+  return records.map((r, idx) => {
+    const modalNum = Number(r.modal_price || r.min_price || r.max_price || 0);
+    const minNum = Number(r.min_price || modalNum || 0);
+    const maxNum = Number(r.max_price || modalNum || 0);
+    const diffPct = minNum > 0 ? (((modalNum - minNum) / minNum) * 100).toFixed(1) : '0.0';
+    const isPos = Number(diffPct) >= 0;
+    const baseName = r.commodity || 'Commodity';
+    const fullCommodity = r.variety ? `${baseName} (${r.variety})` : baseName;
+    const marketName = r.market || 'APMC Mandi';
+    const stateName = r.state || 'India';
+    const updatedStamp = r.arrival_date || new Date().toISOString().slice(0, 10);
+
+    return {
+      id: `ag-${idx}-${marketName}-${updatedStamp}`,
+      commodity: fullCommodity,
+      category: guessCategory(baseName),
+      market: marketName,
+      state: stateName,
+      marketScope: 'local',
+      price: modalNum,
+      unit: '/ Qtl',
+      currency: '₹',
+      changePct: `${isPos ? '+' : ''}${diffPct}%`,
+      isPositive: isPos,
+      minPrice: minNum,
+      modalPrice: modalNum,
+      maxPrice: maxNum,
+      dataTag: 'Live',
+      source: 'Agmarknet (data.gov.in)',
+      dataUpdatedAt: updatedStamp,
+      analysisGeneratedAt: generatedStamp,
+      history: {
+        '7D': [minNum, modalNum, maxNum || modalNum],
+        '30D': [minNum, modalNum, maxNum || modalNum],
+        '90D': [minNum, modalNum, maxNum || modalNum],
+        '1Y': [minNum, modalNum, maxNum || modalNum],
+      },
+      nearbyMarkets: [
+        {
+          name: `${marketName} (${stateName})`,
+          price: `₹${modalNum.toLocaleString('en-IN')} / Qtl`,
+        },
+      ],
+      fobReference: 'Check export policy, port logistics & quality specs for this commodity',
+    };
+  });
+}
 
 export default function MarketPulseScreen({ theme = 'dark', externalItems, onBackToApp }) {
   const isDark = theme !== 'light';
@@ -160,27 +288,54 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
     warn: '#F87171',
   };
 
-  const items = Array.isArray(externalItems) && externalItems.length > 0 ? externalItems : SAMPLE_MARKET_ITEMS;
+  const [liveItems, setLiveItems] = useState([]);
+  const [loadingLive, setLoadingLive] = useState(false);
 
-  // Sub-view state inside MarketPulseScreen ('list' | 'detail')
+  useEffect(() => {
+    if (Array.isArray(externalItems) && externalItems.length > 0) return;
+    let active = true;
+    setLoadingLive(true);
+    fetch(AGMARKNET_URL)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!active) return;
+        if (Array.isArray(data?.records) && data.records.length > 0) {
+          setLiveItems(mapAgmarknetRecords(data.records));
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingLive(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [externalItems]);
+
+  const items = useMemo(() => {
+    if (Array.isArray(externalItems) && externalItems.length > 0) {
+      return externalItems;
+    }
+    if (liveItems.length > 0) {
+      return [...liveItems, ...FALLBACK_ITEMS.filter((f) => f.marketScope === 'global')];
+    }
+    return FALLBACK_ITEMS;
+  }, [externalItems, liveItems]);
+
   const [subView, setSubView] = useState('list');
-  const [selectedItemId, setSelectedItemId] = useState(items[0]?.id || 'mp-1');
+  const [selectedItemId, setSelectedItemId] = useState(null);
   const [historyRange, setHistoryRange] = useState('7D');
 
-  // Filters & Search
-  const [marketTab, setMarketTab] = useState('local'); // 'local' | 'global'
+  const [marketTab, setMarketTab] = useState('local');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedStateFilter, setSelectedStateFilter] = useState('All States');
   const [searchQuery, setSearchQuery] = useState('');
   const [tickerCollapsed, setTickerCollapsed] = useState(false);
 
-  // Share Report & Price Alert Modals
   const [shareModalItem, setShareModalItem] = useState(null);
-  const [shareFormat, setShareFormat] = useState('image_card'); // 'image_card' | 'full_report'
+  const [shareFormat, setShareFormat] = useState('image_card');
   const [alertModalItem, setAlertModalItem] = useState(null);
-  const [alertDirection, setAlertDirection] = useState('Falls Below'); // 'Falls Below' | 'Rises Above' | '% Move'
+  const [alertDirection, setAlertDirection] = useState('Falls Below');
   const [alertTargetVal, setAlertTargetVal] = useState('');
-  const [alertFrequency, setAlertFrequency] = useState('Once'); // 'Once' | 'Every time'
   const [savedAlerts, setSavedAlerts] = useState([]);
 
   const handleBack = useCallback(() => {
@@ -208,29 +363,17 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
     return () => sub.remove();
   }, [handleBack]);
 
-  const stateOptions = useMemo(() => {
-    const set = new Set(['All States']);
-    items.forEach((it) => {
-      if (it.state && it.state !== 'Global') set.add(it.state);
-    });
-    return Array.from(set);
-  }, [items]);
-
   const filteredItems = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return items.filter((it) => {
       const scopeMatch =
-        q.length > 0 || selectedStateFilter !== 'All States'
+        q.length > 0 || selectedCategory !== 'All'
           ? true
           : marketTab === 'local'
             ? it.marketScope !== 'global'
             : it.marketScope === 'global';
 
       const catMatch = selectedCategory === 'All' || it.category === selectedCategory;
-      const stateMatch =
-        selectedStateFilter === 'All States' ||
-        (it.state && it.state.toLowerCase() === selectedStateFilter.toLowerCase());
-
       const textMatch =
         !q ||
         (it.commodity && it.commodity.toLowerCase().includes(q)) ||
@@ -238,9 +381,9 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
         (it.state && it.state.toLowerCase().includes(q)) ||
         (it.category && it.category.toLowerCase().includes(q));
 
-      return scopeMatch && catMatch && stateMatch && textMatch;
+      return scopeMatch && catMatch && textMatch;
     });
-  }, [items, searchQuery, selectedStateFilter, marketTab, selectedCategory]);
+  }, [items, searchQuery, selectedCategory, marketTab]);
 
   const selectedItem = useMemo(
     () => items.find((i) => i.id === selectedItemId) || filteredItems[0] || items[0],
@@ -248,25 +391,27 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
   );
 
   const openCommodityDetail = (item) => {
+    Keyboard.dismiss();
     setSelectedItemId(item.id);
     setSubView('detail');
   };
 
   const openShareForItem = (item) => {
+    Keyboard.dismiss();
     setShareFormat('image_card');
     setShareModalItem(item);
   };
 
   const openAlertForItem = (item) => {
+    Keyboard.dismiss();
     setAlertDirection('Falls Below');
     setAlertTargetVal(String(item.price || ''));
-    setAlertFrequency('Once');
     setAlertModalItem(item);
   };
 
   const confirmCreateAlert = () => {
     if (!alertModalItem || !alertTargetVal.trim()) {
-      Alert.alert('Enter Target', 'Please enter a target value or percentage.');
+      Alert.alert('Enter Target', 'Please enter a target value.');
       return;
     }
     const rule = {
@@ -274,27 +419,22 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
       commodity: alertModalItem.commodity,
       market: alertModalItem.market,
       condition: `${alertDirection} ${alertTargetVal.trim()} ${alertModalItem.currency}`,
-      frequency: alertFrequency,
     };
     setSavedAlerts((prev) => [rule, ...prev]);
     setAlertModalItem(null);
-    Alert.alert(
-      'Alert Rule Saved',
-      `${rule.commodity} (${rule.market})\nRule: ${rule.condition} • ${rule.frequency}\nLive push alerts require backend price monitoring.`
-    );
+    Alert.alert('Alert Rule Saved', `${rule.commodity} (${rule.market})\nRule: ${rule.condition}`);
   };
 
   const shareReportPayload = async (item, mode) => {
     const body =
-      `TRADE SETUU — Market Pulse Report (${mode === 'full_report' ? 'Full Report' : 'Market Snapshot'})\n` +
-      `Commodity: ${item.commodity} (${item.market})\n` +
+      `TRADE SETUU — Market Pulse (${mode === 'full_report' ? 'Full Report' : 'Market Card'})\n` +
+      `Commodity: ${item.commodity} [${item.category}]\n` +
+      `Market: ${item.market}, ${item.state}\n` +
       `Rate: ${item.currency}${Number(item.price).toLocaleString('en-IN')} ${item.unit} (${item.changePct})\n` +
-      `Min / Modal / Max: ${item.currency}${item.minPrice} / ${item.currency}${item.modalPrice} / ${item.currency}${item.maxPrice}\n` +
+      `Data status: ${item.dataTag}\n` +
       `Data updated at: ${item.dataUpdatedAt}\n` +
       `Analysis generated at: ${item.analysisGeneratedAt}\n` +
-      `Source: ${item.source}\n` +
-      `Indicative market information — verify before trade execution.`;
-
+      `Source: ${item.source}`;
     try {
       await Share.share({ message: body });
     } catch {
@@ -307,519 +447,556 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
   const minVal = Math.min(...series);
   const spread = Math.max(1, maxVal - minVal);
 
+  const activeFilterCount =
+    (searchQuery.trim() ? 1 : 0) + (selectedCategory !== 'All' ? 1 : 0);
+
+  const hasLiveFeed = liveItems.length > 0 || (Array.isArray(externalItems) && externalItems.length > 0);
+
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: 96 }}
-      keyboardShouldPersistTaps="handled"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* TOP HEADER */}
-      <View style={[styles.header, { backgroundColor: C.card, borderBottomColor: C.border }]}>
-        <View style={styles.rowBetween}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {subView === 'detail' && (
-              <TouchableOpacity onPress={() => setSubView('list')} style={styles.backBtn}>
-                <Text style={{ color: C.teal, fontSize: 22, fontWeight: '900' }}>‹</Text>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 90 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* HEADER */}
+        <View style={[styles.header, { backgroundColor: C.card, borderBottomColor: C.border }]}>
+          <View style={styles.rowBetween}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {subView === 'detail' && (
+                <TouchableOpacity onPress={() => setSubView('list')} style={styles.backBtn}>
+                  <Text style={{ color: C.teal, fontSize: 22, fontWeight: '900' }}>‹</Text>
+                </TouchableOpacity>
+              )}
+              <View>
+                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900', letterSpacing: 0.6 }}>
+                  TRADE SETUU
+                </Text>
+                <Text style={{ color: C.text, fontSize: 16, fontWeight: '900' }}>Market Pulse</Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {savedAlerts.length > 0 && (
+                <View style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.amber }]}>
+                  <Text style={{ color: C.amber, fontSize: 10, fontWeight: '900' }}>
+                    Alerts ({savedAlerts.length})
+                  </Text>
+                </View>
+              )}
+              <TouchableOpacity
+                onPress={() => setTickerCollapsed((c) => !c)}
+                style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.border }]}
+              >
+                <Text style={{ color: C.sub, fontSize: 10, fontWeight: '800' }}>
+                  {tickerCollapsed ? 'Show Ticker' : 'Hide Ticker'}
+                </Text>
               </TouchableOpacity>
-            )}
-            <View>
-              <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900', letterSpacing: 0.6 }}>
-                TRADE SETUU
-              </Text>
-              <Text style={{ color: C.text, fontSize: 16, fontWeight: '900' }}>
-                Market Pulse
-              </Text>
             </View>
           </View>
+        </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {savedAlerts.length > 0 && (
-              <View style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.amber }]}>
-                <Text style={{ color: C.amber, fontSize: 10, fontWeight: '900' }}>
-                  Alerts ({savedAlerts.length})
+        {/* MAIN LIST */}
+        {subView === 'list' && (
+          <View style={{ padding: 14 }}>
+            {!tickerCollapsed && (
+              <View style={[styles.tickerWrap, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+                <Text style={{ color: hasLiveFeed ? C.ok : C.amber, fontSize: 9, fontWeight: '900', marginBottom: 5 }}>
+                  MARKET WATCH • {hasLiveFeed ? 'LIVE AGMARKNET FEED' : 'SAMPLE / INDICATIVE SNAPSHOT'}
                 </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {items.slice(0, 5).map((t) => (
+                      <TouchableOpacity
+                        key={`tk-${t.id}`}
+                        onPress={() => openCommodityDetail(t)}
+                        style={[styles.tickerPill, { backgroundColor: C.card, borderColor: C.border }]}
+                      >
+                        <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }} numberOfLines={1}>
+                          {t.commodity.split(' ')[0]}
+                        </Text>
+                        <Text style={{ color: C.teal, fontSize: 11, fontWeight: '900', marginLeft: 5 }}>
+                          {t.currency}{Number(t.price).toLocaleString('en-IN')}
+                        </Text>
+                        <Text
+                          style={{
+                            color: t.isPositive ? C.ok : C.warn,
+                            fontSize: 10,
+                            fontWeight: '800',
+                            marginLeft: 4,
+                          }}
+                        >
+                          {t.changePct}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
               </View>
             )}
-            <TouchableOpacity
-              onPress={() => setTickerCollapsed((c) => !c)}
-              style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.border }]}
-            >
-              <Text style={{ color: C.sub, fontSize: 10, fontWeight: '800' }}>
-                {tickerCollapsed ? 'Show Ticker' : 'Hide Ticker'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
 
-      {/* =========================================================
-          MAIN LIST VIEW — COMPACT RATES, SEARCH & FILTERS
-      ========================================================= */}
-      {subView === 'list' && (
-        <View style={{ padding: 14 }}>
-          {/* Compact Ticker Strip */}
-          {!tickerCollapsed && (
-            <View style={[styles.tickerWrap, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
-              <Text style={{ color: C.amber, fontSize: 9, fontWeight: '900', marginBottom: 5 }}>
-                MARKET WATCH • INDICATIVE / SAMPLE SNAPSHOT
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {items.slice(0, 4).map((t) => (
+            {/* Search Bar */}
+            <View style={[styles.searchRow, { backgroundColor: C.card, borderColor: C.border }]}>
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search commodity, state (e.g. Raipur, Maharashtra), mandi..."
+                placeholderTextColor={C.sub}
+                returnKeyType="search"
+                onSubmitEditing={() => Keyboard.dismiss()}
+                style={{ flex: 1, color: C.text, fontSize: 12, fontWeight: '700', paddingVertical: 4 }}
+              />
+              {activeFilterCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('All');
+                    Keyboard.dismiss();
+                  }}
+                >
+                  <Text style={{ color: C.amber, fontSize: 11, fontWeight: '900' }}>
+                    Clear ({activeFilterCount})
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Local vs Global Tab */}
+            <View style={[styles.segRow, { backgroundColor: C.card, borderColor: C.border }]}>
+              <TouchableOpacity
+                onPress={() => setMarketTab('local')}
+                style={[styles.segBtn, marketTab === 'local' && { backgroundColor: C.teal }]}
+              >
+                <Text
+                  style={{
+                    color: marketTab === 'local' ? '#071521' : C.text,
+                    fontSize: 12,
+                    fontWeight: '900',
+                  }}
+                >
+                  Local Markets
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setMarketTab('global')}
+                style={[styles.segBtn, marketTab === 'global' && { backgroundColor: C.teal }]}
+              >
+                <Text
+                  style={{
+                    color: marketTab === 'global' ? '#071521' : C.text,
+                    fontSize: 12,
+                    fontWeight: '900',
+                  }}
+                >
+                  Global Markets
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Category Chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {CATEGORIES.map((cat) => {
+                  const active = selectedCategory === cat;
+                  return (
                     <TouchableOpacity
-                      key={`tk-${t.id}`}
-                      onPress={() => openCommodityDetail(t)}
-                      style={[styles.tickerPill, { backgroundColor: C.card, borderColor: C.border }]}
+                      key={cat}
+                      onPress={() => setSelectedCategory(cat)}
+                      style={[
+                        styles.filterChip,
+                        { backgroundColor: active ? C.teal : C.card, borderColor: active ? C.teal : C.border },
+                      ]}
                     >
-                      <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }} numberOfLines={1}>
-                        {t.commodity.split(' ')[0]}
+                      <Text style={{ color: active ? '#071521' : C.text, fontSize: 11, fontWeight: '800' }}>
+                        {cat}
                       </Text>
-                      <Text style={{ color: C.teal, fontSize: 11, fontWeight: '900', marginLeft: 5 }}>
-                        {t.currency}{Number(t.price).toLocaleString('en-IN')}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            {loadingLive && <ActivityIndicator color={C.teal} style={{ marginVertical: 10 }} />}
+
+            {/* Rate Cards */}
+            {filteredItems.map((item) => (
+              <View
+                key={item.id}
+                style={[styles.rateCard, { backgroundColor: C.card, borderColor: C.border }]}
+              >
+                <TouchableOpacity onPress={() => openCommodityDetail(item)} activeOpacity={0.85}>
+                  <View style={styles.rowBetween}>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text
+                        style={{
+                          color: item.dataTag === 'Live' ? C.ok : C.amber,
+                          fontSize: 10,
+                          fontWeight: '900',
+                        }}
+                      >
+                        {item.category.toUpperCase()} • {item.dataTag}
+                      </Text>
+                      <Text style={{ color: C.text, fontSize: 14, fontWeight: '900', marginTop: 1 }}>
+                        {item.commodity}
+                      </Text>
+                      <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
+                        {item.market} • {item.state}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ color: C.teal, fontSize: 16, fontWeight: '900' }}>
+                        {item.currency}{Number(item.price).toLocaleString('en-IN')}
+                        <Text style={{ color: C.sub, fontSize: 11, fontWeight: '700' }}> {item.unit}</Text>
                       </Text>
                       <Text
                         style={{
-                          color: t.isPositive ? C.ok : C.warn,
-                          fontSize: 10,
+                          color: item.isPositive ? C.ok : C.warn,
+                          fontSize: 11,
                           fontWeight: '800',
-                          marginLeft: 4,
+                          marginTop: 1,
                         }}
                       >
-                        {t.changePct}
+                        {item.changePct}
                       </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Search Bar + Clear */}
-          <View style={[styles.searchRow, { backgroundColor: C.card, borderColor: C.border }]}>
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search commodity, mandi, state (e.g. Nagpur)..."
-              placeholderTextColor={C.sub}
-              style={{ flex: 1, color: C.text, fontSize: 12, fontWeight: '700', paddingVertical: 4 }}
-            />
-            {(searchQuery.length > 0 || selectedStateFilter !== 'All States' || selectedCategory !== 'All') && (
-              <TouchableOpacity
-                onPress={() => {
-                  setSearchQuery('');
-                  setSelectedStateFilter('All States');
-                  setSelectedCategory('All');
-                }}
-              >
-                <Text style={{ color: C.amber, fontSize: 11, fontWeight: '900' }}>Reset</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Local Markets vs Global Markets */}
-          <View style={[styles.segRow, { backgroundColor: C.card, borderColor: C.border }]}>
-            <TouchableOpacity
-              onPress={() => setMarketTab('local')}
-              style={[styles.segBtn, marketTab === 'local' && { backgroundColor: C.teal }]}
-            >
-              <Text style={{ color: marketTab === 'local' ? '#071521' : C.text, fontSize: 12, fontWeight: '900' }}>
-                Local Markets (Mandi / APMC)
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setMarketTab('global')}
-              style={[styles.segBtn, marketTab === 'global' && { backgroundColor: C.teal }]}
-            >
-              <Text style={{ color: marketTab === 'global' ? '#071521' : C.text, fontSize: 12, fontWeight: '900' }}>
-                Global Markets (FOB / LME)
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* State Filter Chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              {stateOptions.map((st) => {
-                const active = selectedStateFilter === st;
-                return (
-                  <TouchableOpacity
-                    key={st}
-                    onPress={() => setSelectedStateFilter(st)}
-                    style={[
-                      styles.filterChip,
-                      { backgroundColor: active ? C.amber : C.card, borderColor: active ? C.amber : C.border },
-                    ]}
-                  >
-                    <Text style={{ color: active ? '#071521' : C.text, fontSize: 11, fontWeight: '800' }}>{st}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
-
-          {/* Category Filter Chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              {CATEGORIES.map((cat) => {
-                const active = selectedCategory === cat;
-                return (
-                  <TouchableOpacity
-                    key={cat}
-                    onPress={() => setSelectedCategory(cat)}
-                    style={[
-                      styles.filterChip,
-                      { backgroundColor: active ? C.teal : C.card, borderColor: active ? C.teal : C.border },
-                    ]}
-                  >
-                    <Text style={{ color: active ? '#071521' : C.text, fontSize: 11, fontWeight: '800' }}>{cat}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
-
-          {/* Compact Clickable Price Cards */}
-          {filteredItems.map((item) => (
-            <View
-              key={item.id}
-              style={[styles.rateCard, { backgroundColor: C.card, borderColor: C.border }]}
-            >
-              <TouchableOpacity onPress={() => openCommodityDetail(item)} activeOpacity={0.85}>
-                <View style={styles.rowBetween}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={{ color: C.text, fontSize: 14, fontWeight: '900' }}>{item.commodity}</Text>
-                    <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
-                      {item.market} • {item.state}
-                    </Text>
+                    </View>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ color: C.teal, fontSize: 16, fontWeight: '900' }}>
-                      {item.currency}{Number(item.price).toLocaleString('en-IN')}
-                      <Text style={{ color: C.sub, fontSize: 11, fontWeight: '700' }}> {item.unit}</Text>
-                    </Text>
-                    <Text
-                      style={{
-                        color: item.isPositive ? C.ok : C.warn,
-                        fontSize: 11,
-                        fontWeight: '800',
-                        marginTop: 1,
-                      }}
-                    >
-                      {item.changePct} Today
-                    </Text>
-                  </View>
-                </View>
 
-                <Text style={{ color: C.sub, fontSize: 10, marginTop: 6 }}>
-                  Data updated: {item.dataUpdatedAt} • {item.source}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Separate Share & Alert Actions */}
-              <View style={[styles.cardActionBar, { borderTopColor: C.border }]}>
-                <TouchableOpacity onPress={() => openCommodityDetail(item)}>
-                  <Text style={{ color: C.teal, fontSize: 11, fontWeight: '800' }}>Details & Trend ›</Text>
+                  <Text style={{ color: C.sub, fontSize: 10, marginTop: 6 }}>
+                    Updated: {item.dataUpdatedAt} • {item.source}
+                  </Text>
                 </TouchableOpacity>
 
-                <View style={{ flexDirection: 'row', gap: 14 }}>
-                  <TouchableOpacity onPress={() => openShareForItem(item)}>
-                    <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>Share ↗</Text>
+                <View style={[styles.cardActionBar, { borderTopColor: C.border }]}>
+                  <TouchableOpacity onPress={() => openCommodityDetail(item)}>
+                    <Text style={{ color: C.teal, fontSize: 11, fontWeight: '800' }}>Details & Trend ›</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => openAlertForItem(item)}>
-                    <Text style={{ color: C.amber, fontSize: 11, fontWeight: '800' }}>Alert 🔔</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          ))}
-
-          {filteredItems.length === 0 && (
-            <View style={[styles.rateCard, { backgroundColor: C.card, borderColor: C.border }]}>
-              <Text style={{ color: C.text, fontSize: 13, fontWeight: '800' }}>No matching market entries</Text>
-              <Text style={{ color: C.sub, fontSize: 11, marginTop: 3 }}>
-                Try clearing search text or resetting State / Category filters.
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* =========================================================
-          COMMODITY DETAIL SCREEN — GRAPH, ANALYSIS, COMPARISON
-      ========================================================= */}
-      {subView === 'detail' && selectedItem && (
-        <View style={{ padding: 14 }}>
-          <View style={[styles.detailCard, { backgroundColor: C.card, borderColor: C.border }]}>
-            <View style={styles.rowBetween}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: C.text, fontSize: 18, fontWeight: '900' }}>{selectedItem.commodity}</Text>
-                <Text style={{ color: C.sub, fontSize: 12, marginTop: 2 }}>
-                  {selectedItem.market} • {selectedItem.state}
-                </Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ color: C.teal, fontSize: 18, fontWeight: '900' }}>
-                  {selectedItem.currency}{Number(selectedItem.price).toLocaleString('en-IN')} {selectedItem.unit}
-                </Text>
-                <Text style={{ color: selectedItem.isPositive ? C.ok : C.warn, fontSize: 12, fontWeight: '800' }}>
-                  {selectedItem.changePct}
-                </Text>
-              </View>
-            </View>
-
-            {/* Dual Timestamps */}
-            <View style={[styles.metaBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
-              <Text style={{ color: C.sub, fontSize: 10 }}>
-                Data updated at: <Text style={{ color: C.text, fontWeight: '800' }}>{selectedItem.dataUpdatedAt}</Text>
-              </Text>
-              <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
-                Analysis generated at: <Text style={{ color: C.teal, fontWeight: '800' }}>{selectedItem.analysisGeneratedAt}</Text>
-              </Text>
-            </View>
-
-            {/* Min / Modal / Max */}
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-              {[
-                { lbl: 'Min', val: `${selectedItem.currency}${selectedItem.minPrice}` },
-                { lbl: 'Modal', val: `${selectedItem.currency}${selectedItem.modalPrice}` },
-                { lbl: 'Max', val: `${selectedItem.currency}${selectedItem.maxPrice}` },
-              ].map((m) => (
-                <View key={m.lbl} style={[styles.statBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
-                  <Text style={{ color: C.sub, fontSize: 10 }}>{m.lbl}</Text>
-                  <Text style={{ color: C.text, fontSize: 13, fontWeight: '900', marginTop: 2 }}>{m.val}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Price History Range & Bar Visual */}
-            <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900', marginTop: 14, marginBottom: 6 }}>
-              Price History ({historyRange})
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
-              {['7D', '30D', '90D', '1Y'].map((rng) => {
-                const active = historyRange === rng;
-                return (
-                  <TouchableOpacity
-                    key={rng}
-                    onPress={() => setHistoryRange(rng)}
-                    style={[
-                      styles.filterChip,
-                      { backgroundColor: active ? C.teal : C.cardAlt, borderColor: active ? C.teal : C.border },
-                    ]}
-                  >
-                    <Text style={{ color: active ? '#071521' : C.text, fontSize: 11, fontWeight: '900' }}>{rng}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <View style={[styles.chartArea, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
-              {series.map((v, idx) => {
-                const pct = Math.max(18, Math.round(((v - minVal) / spread) * 82) + 18);
-                return (
-                  <View key={`${historyRange}-${idx}`} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <Text style={{ color: C.sub, fontSize: 9, marginBottom: 3 }}>{v}</Text>
-                    <View style={{ width: '64%', height: `${pct}%`, backgroundColor: C.teal, borderRadius: 4 }} />
+                  <View style={{ flexDirection: 'row', gap: 14 }}>
+                    <TouchableOpacity onPress={() => openShareForItem(item)}>
+                      <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>Share ↗</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => openAlertForItem(item)}>
+                      <Text style={{ color: C.amber, fontSize: 11, fontWeight: '800' }}>Alert 🔔</Text>
+                    </TouchableOpacity>
                   </View>
-                );
-              })}
-            </View>
-
-            {/* Market Analysis */}
-            <Text style={{ color: C.amber, fontSize: 12, fontWeight: '900', marginTop: 14 }}>
-              Market Analysis & Direction
-            </Text>
-            <Text style={{ color: C.text, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
-              • Trend ({historyRange}): {selectedItem.isPositive ? 'Firm / upward movement in recent points' : 'Soft / range-bound movement in recent points'}.{'\n'}
-              • Supply & Arrivals: Track mandi arrivals, local stock, and weather signals alongside verified feed data.{'\n'}
-              • Disclaimer: Scenario guidance only; not a price guarantee.
-            </Text>
-
-            {/* Nearby Market Comparison */}
-            <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900', marginTop: 12 }}>
-              Nearby Market Comparison
-            </Text>
-            {selectedItem.nearbyMarkets.map((nm) => (
-              <View key={nm.name} style={[styles.compareRow, { borderBottomColor: C.border }]}>
-                <Text style={{ color: C.text, fontSize: 12, fontWeight: '700' }}>{nm.name}</Text>
-                <Text style={{ color: C.amber, fontSize: 12, fontWeight: '900' }}>{nm.price}</Text>
+                </View>
               </View>
             ))}
 
-            {/* Global / FOB Opportunity */}
-            <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900', marginTop: 12 }}>
-              Global Market & Export Reference
-            </Text>
-            <Text style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>
-              {selectedItem.fobReference}
-            </Text>
-
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <TouchableOpacity
-                onPress={() => openShareForItem(selectedItem)}
-                style={[styles.secondaryAction, { backgroundColor: C.cardAlt, borderColor: C.teal }]}
-              >
-                <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900' }}>Share Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => openAlertForItem(selectedItem)}
-                style={[styles.primaryAction, { backgroundColor: C.amber }]}
-              >
-                <Text style={{ color: '#071521', fontSize: 12, fontWeight: '900' }}>Set Price Alert</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* =========================================================
-          SHARE REPORT MODAL
-      ========================================================= */}
-      <Modal visible={!!shareModalItem} transparent animationType="slide">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalSheet, { backgroundColor: C.card, borderColor: C.border }]}>
-            <View style={styles.rowBetween}>
-              <Text style={{ color: C.text, fontSize: 15, fontWeight: '900' }}>Share Market Report</Text>
-              <TouchableOpacity onPress={() => setShareModalItem(null)}>
-                <Text style={{ color: C.teal, fontSize: 13, fontWeight: '900' }}>Close</Text>
-              </TouchableOpacity>
-            </View>
-
-            {shareModalItem && (
-              <>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 10 }}>
-                  <TouchableOpacity
-                    onPress={() => setShareFormat('image_card')}
-                    style={[
-                      styles.filterChip,
-                      {
-                        flex: 1,
-                        alignItems: 'center',
-                        backgroundColor: shareFormat === 'image_card' ? C.teal : C.cardAlt,
-                        borderColor: shareFormat === 'image_card' ? C.teal : C.border,
-                      },
-                    ]}
-                  >
-                    <Text style={{ color: shareFormat === 'image_card' ? '#071521' : C.text, fontSize: 11, fontWeight: '900' }}>
-                      Share Market Card
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setShareFormat('full_report')}
-                    style={[
-                      styles.filterChip,
-                      {
-                        flex: 1,
-                        alignItems: 'center',
-                        backgroundColor: shareFormat === 'full_report' ? C.teal : C.cardAlt,
-                        borderColor: shareFormat === 'full_report' ? C.teal : C.border,
-                      },
-                    ]}
-                  >
-                    <Text style={{ color: shareFormat === 'full_report' ? '#071521' : C.text, fontSize: 11, fontWeight: '900' }}>
-                      Full Market Report
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={[styles.previewCard, { backgroundColor: C.cardAlt, borderColor: C.teal }]}>
-                  <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>
-                    TRADE SETUU • MARKET PULSE
-                  </Text>
-                  <Text style={{ color: C.text, fontSize: 16, fontWeight: '900', marginTop: 3 }}>
-                    {shareModalItem.commodity}
-                  </Text>
-                  <Text style={{ color: C.amber, fontSize: 17, fontWeight: '900', marginTop: 4 }}>
-                    {shareModalItem.currency}{Number(shareModalItem.price).toLocaleString('en-IN')} {shareModalItem.unit} ({shareModalItem.changePct})
-                  </Text>
-                  <Text style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>
-                    {shareModalItem.market} • {shareModalItem.state}
-                  </Text>
-                  <Text style={{ color: C.sub, fontSize: 10, marginTop: 6 }}>
-                    Data updated at: {shareModalItem.dataUpdatedAt}
-                  </Text>
-                  <Text style={{ color: C.teal, fontSize: 10, marginTop: 2 }}>
-                    Analysis generated at: {shareModalItem.analysisGeneratedAt}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => shareReportPayload(shareModalItem, shareFormat)}
-                  style={[styles.primaryAction, { backgroundColor: C.teal, marginTop: 12 }]}
-                >
-                  <Text style={{ color: '#071521', fontSize: 13, fontWeight: '900' }}>
-                    Share via WhatsApp / LinkedIn / More →
-                  </Text>
-                </TouchableOpacity>
-              </>
+            {!loadingLive && filteredItems.length === 0 && (
+              <View style={[styles.rateCard, { backgroundColor: C.card, borderColor: C.border }]}>
+                <Text style={{ color: C.text, fontSize: 13, fontWeight: '800' }}>No matching market entries</Text>
+                <Text style={{ color: C.sub, fontSize: 11, marginTop: 3 }}>
+                  Try searching another commodity/state or tap Clear filters.
+                </Text>
+              </View>
             )}
           </View>
-        </View>
-      </Modal>
+        )}
 
-      {/* =========================================================
-          CREATE PRICE ALERT MODAL
-      ========================================================= */}
-      <Modal visible={!!alertModalItem} transparent animationType="slide">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalSheet, { backgroundColor: C.card, borderColor: C.border }]}>
-            <View style={styles.rowBetween}>
-              <Text style={{ color: C.text, fontSize: 15, fontWeight: '900' }}>Create Price Alert</Text>
-              <TouchableOpacity onPress={() => setAlertModalItem(null)}>
-                <Text style={{ color: C.teal, fontSize: 13, fontWeight: '900' }}>Close</Text>
-              </TouchableOpacity>
-            </View>
+        {/* DETAIL VIEW */}
+        {subView === 'detail' && selectedItem && (
+          <View style={{ padding: 14 }}>
+            <View style={[styles.detailCard, { backgroundColor: C.card, borderColor: C.border }]}>
+              <Text
+                style={{
+                  color: selectedItem.dataTag === 'Live' ? C.ok : C.amber,
+                  fontSize: 10,
+                  fontWeight: '900',
+                }}
+              >
+                {selectedItem.category.toUpperCase()} • {selectedItem.dataTag}
+              </Text>
+              <View style={[styles.rowBetween, { marginTop: 2 }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: C.text, fontSize: 18, fontWeight: '900' }}>{selectedItem.commodity}</Text>
+                  <Text style={{ color: C.sub, fontSize: 12, marginTop: 2 }}>
+                    {selectedItem.market} • {selectedItem.state}
+                  </Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ color: C.teal, fontSize: 18, fontWeight: '900' }}>
+                    {selectedItem.currency}{Number(selectedItem.price).toLocaleString('en-IN')} {selectedItem.unit}
+                  </Text>
+                  <Text style={{ color: selectedItem.isPositive ? C.ok : C.warn, fontSize: 12, fontWeight: '800' }}>
+                    {selectedItem.changePct}
+                  </Text>
+                </View>
+              </View>
 
-            {alertModalItem && (
-              <>
-                <Text style={{ color: C.teal, fontSize: 12, fontWeight: '800', marginTop: 8 }}>
-                  {alertModalItem.commodity} • {alertModalItem.market}
+              <View style={[styles.metaBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+                <Text style={{ color: C.sub, fontSize: 10 }}>
+                  Data updated at: <Text style={{ color: C.text, fontWeight: '800' }}>{selectedItem.dataUpdatedAt}</Text>
                 </Text>
+                <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
+                  Analysis generated at:{' '}
+                  <Text style={{ color: C.teal, fontWeight: '800' }}>{selectedItem.analysisGeneratedAt}</Text>
+                </Text>
+              </View>
 
-                <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, marginBottom: 10 }}>
-                  {['Falls Below', 'Rises Above', '% Move'].map((dir) => (
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                {[
+                  { lbl: 'Min', val: `${selectedItem.currency}${selectedItem.minPrice}` },
+                  { lbl: 'Modal', val: `${selectedItem.currency}${selectedItem.modalPrice}` },
+                  { lbl: 'Max', val: `${selectedItem.currency}${selectedItem.maxPrice}` },
+                ].map((m) => (
+                  <View key={m.lbl} style={[styles.statBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+                    <Text style={{ color: C.sub, fontSize: 10 }}>{m.lbl}</Text>
+                    <Text style={{ color: C.text, fontSize: 13, fontWeight: '900', marginTop: 2 }}>{m.val}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900', marginTop: 14, marginBottom: 6 }}>
+                Price History ({historyRange})
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
+                {['7D', '30D', '90D', '1Y'].map((rng) => {
+                  const active = historyRange === rng;
+                  return (
                     <TouchableOpacity
-                      key={dir}
-                      onPress={() => setAlertDirection(dir)}
+                      key={rng}
+                      onPress={() => setHistoryRange(rng)}
+                      style={[
+                        styles.filterChip,
+                        { backgroundColor: active ? C.teal : C.cardAlt, borderColor: active ? C.teal : C.border },
+                      ]}
+                    >
+                      <Text style={{ color: active ? '#071521' : C.text, fontSize: 11, fontWeight: '900' }}>
+                        {rng}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <View style={[styles.chartArea, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
+                {series.map((v, idx) => {
+                  const pct = Math.max(18, Math.round(((v - minVal) / spread) * 82) + 18);
+                  return (
+                    <View
+                      key={`${historyRange}-${idx}`}
+                      style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}
+                    >
+                      <Text style={{ color: C.sub, fontSize: 9, marginBottom: 3 }}>{v}</Text>
+                      <View style={{ width: '64%', height: `${pct}%`, backgroundColor: C.teal, borderRadius: 4 }} />
+                    </View>
+                  );
+                })}
+              </View>
+
+              <Text style={{ color: C.amber, fontSize: 12, fontWeight: '900', marginTop: 14 }}>
+                Market Analysis & Direction
+              </Text>
+              <Text style={{ color: C.text, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
+                • Trend ({historyRange}):{' '}
+                {selectedItem.isPositive ? 'Firm / upward movement' : 'Soft / range-bound movement'}.{'\n'}
+                • Source: {selectedItem.source} ({selectedItem.dataTag}).{'\n'}
+                • Note: Multi-day historical series will connect via backend snapshot database.
+              </Text>
+
+              <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900', marginTop: 12 }}>
+                Nearby Market Comparison
+              </Text>
+              {selectedItem.nearbyMarkets.map((nm) => (
+                <View key={nm.name} style={[styles.compareRow, { borderBottomColor: C.border }]}>
+                  <Text style={{ color: C.text, fontSize: 12, fontWeight: '700' }}>{nm.name}</Text>
+                  <Text style={{ color: C.amber, fontSize: 12, fontWeight: '900' }}>{nm.price}</Text>
+                </View>
+              ))}
+
+              <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900', marginTop: 12 }}>
+                Global / Export Reference
+              </Text>
+              <Text style={{ color: C.sub, fontSize: 12, marginTop: 3 }}>{selectedItem.fobReference}</Text>
+
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                <TouchableOpacity
+                  onPress={() => openShareForItem(selectedItem)}
+                  style={[styles.secondaryAction, { backgroundColor: C.cardAlt, borderColor: C.teal }]}
+                >
+                  <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900' }}>Share Report</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => openAlertForItem(selectedItem)}
+                  style={[styles.primaryAction, { backgroundColor: C.amber }]}
+                >
+                  <Text style={{ color: '#071521', fontSize: 12, fontWeight: '900' }}>Set Price Alert</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* SHARE MODAL */}
+        <Modal visible={!!shareModalItem} transparent animationType="slide">
+          <View style={styles.modalBackdrop}>
+            <View style={[styles.modalSheet, { backgroundColor: C.card, borderColor: C.border }]}>
+              <View style={styles.rowBetween}>
+                <Text style={{ color: C.text, fontSize: 15, fontWeight: '900' }}>Share Market Report</Text>
+                <TouchableOpacity onPress={() => setShareModalItem(null)}>
+                  <Text style={{ color: C.teal, fontSize: 13, fontWeight: '900' }}>Close</Text>
+                </TouchableOpacity>
+              </View>
+
+              {shareModalItem && (
+                <>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => setShareFormat('image_card')}
                       style={[
                         styles.filterChip,
                         {
                           flex: 1,
                           alignItems: 'center',
-                          backgroundColor: alertDirection === dir ? C.amber : C.cardAlt,
-                          borderColor: alertDirection === dir ? C.amber : C.border,
+                          backgroundColor: shareFormat === 'image_card' ? C.teal : C.cardAlt,
+                          borderColor: shareFormat === 'image_card' ? C.teal : C.border,
                         },
                       ]}
                     >
-                      <Text style={{ color: alertDirection === dir ? '#071521' : C.text, fontSize: 11, fontWeight: '900' }}>
-                        {dir}
+                      <Text
+                        style={{
+                          color: shareFormat === 'image_card' ? '#071521' : C.text,
+                          fontSize: 11,
+                          fontWeight: '900',
+                        }}
+                      >
+                        Share Market Card
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
+                    <TouchableOpacity
+                      onPress={() => setShareFormat('full_report')}
+                      style={[
+                        styles.filterChip,
+                        {
+                          flex: 1,
+                          alignItems: 'center',
+                          backgroundColor: shareFormat === 'full_report' ? C.teal : C.cardAlt,
+                          borderColor: shareFormat === 'full_report' ? C.teal : C.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: shareFormat === 'full_report' ? '#071521' : C.text,
+                          fontSize: 11,
+                          fontWeight: '900',
+                        }}
+                      >
+                        Full Market Report
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
-                <Text style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>Target Price / Threshold</Text>
-                <TextInput
-                  value={alertTargetVal}
-                  onChangeText={setAlertTargetVal}
-                  keyboardType="numeric"
-                  placeholder="Enter target"
-                  placeholderTextColor={C.sub}
-                  style={[styles.searchRow, { backgroundColor: C.cardAlt, borderColor: C.border, color: C.text, marginBottom: 10 }]}
-                />
+                  <View style={[styles.previewCard, { backgroundColor: C.cardAlt, borderColor: C.teal }]}>
+                    <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>
+                      TRADE SETUU • MARKET PULSE ({shareModalItem.dataTag})
+                    </Text>
+                    <Text style={{ color: C.text, fontSize: 16, fontWeight: '900', marginTop: 3 }}>
+                      {shareModalItem.commodity}
+                    </Text>
+                    <Text style={{ color: C.amber, fontSize: 17, fontWeight: '900', marginTop: 4 }}>
+                      {shareModalItem.currency}{Number(shareModalItem.price).toLocaleString('en-IN')}{' '}
+                      {shareModalItem.unit} ({shareModalItem.changePct})
+                    </Text>
+                    <Text style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>
+                      {shareModalItem.market} • {shareModalItem.state}
+                    </Text>
+                    <Text style={{ color: C.sub, fontSize: 10, marginTop: 6 }}>
+                      Data updated at: {shareModalItem.dataUpdatedAt}
+                    </Text>
+                    <Text style={{ color: C.teal, fontSize: 10, marginTop: 2 }}>
+                      Analysis generated at: {shareModalItem.analysisGeneratedAt}
+                    </Text>
+                  </View>
 
-                <TouchableOpacity
-                  onPress={confirmCreateAlert}
-                  style={[styles.primaryAction, { backgroundColor: C.teal }]}
-                >
-                  <Text style={{ color: '#071521', fontSize: 13, fontWeight: '900' }}>Save Alert Rule</Text>
-                </TouchableOpacity>
-              </>
-            )}
+                  <TouchableOpacity
+                    onPress={() => shareReportPayload(shareModalItem, shareFormat)}
+                    style={[styles.primaryAction, { backgroundColor: C.teal, marginTop: 12 }]}
+                  >
+                    <Text style={{ color: '#071521', fontSize: 13, fontWeight: '900' }}>
+                      Share via WhatsApp / LinkedIn / More →
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
-        </View>
-      </Modal>
-    </ScrollView>
+        </Modal>
+
+        {/* ALERT MODAL */}
+        <Modal visible={!!alertModalItem} transparent animationType="slide">
+          <View style={styles.modalBackdrop}>
+            <View style={[styles.modalSheet, { backgroundColor: C.card, borderColor: C.border }]}>
+              <View style={styles.rowBetween}>
+                <Text style={{ color: C.text, fontSize: 15, fontWeight: '900' }}>Create Price Alert</Text>
+                <TouchableOpacity onPress={() => setAlertModalItem(null)}>
+                  <Text style={{ color: C.teal, fontSize: 13, fontWeight: '900' }}>Close</Text>
+                </TouchableOpacity>
+              </View>
+
+              {alertModalItem && (
+                <>
+                  <Text style={{ color: C.teal, fontSize: 12, fontWeight: '800', marginTop: 8 }}>
+                    {alertModalItem.commodity} • {alertModalItem.market}
+                  </Text>
+
+                  <View style={{ flexDirection: 'row', gap: 6, marginTop: 10, marginBottom: 10 }}>
+                    {['Falls Below', 'Rises Above', '% Move'].map((dir) => (
+                      <TouchableOpacity
+                        key={dir}
+                        onPress={() => setAlertDirection(dir)}
+                        style={[
+                          styles.filterChip,
+                          {
+                            flex: 1,
+                            alignItems: 'center',
+                            backgroundColor: alertDirection === dir ? C.amber : C.cardAlt,
+                            borderColor: alertDirection === dir ? C.amber : C.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: alertDirection === dir ? '#071521' : C.text,
+                            fontSize: 11,
+                            fontWeight: '900',
+                          }}
+                        >
+                          {dir}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>Target Price / Threshold</Text>
+                  <TextInput
+                    value={alertTargetVal}
+                    onChangeText={setAlertTargetVal}
+                    keyboardType="numeric"
+                    placeholder="Enter target"
+                    placeholderTextColor={C.sub}
+                    style={[
+                      styles.searchRow,
+                      { backgroundColor: C.cardAlt, borderColor: C.border, color: C.text, marginBottom: 10 },
+                    ]}
+                  />
+
+                  <TouchableOpacity
+                    onPress={confirmCreateAlert}
+                    style={[styles.primaryAction, { backgroundColor: C.teal }]}
+                  >
+                    <Text style={{ color: '#071521', fontSize: 13, fontWeight: '900' }}>Save Alert Rule</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
