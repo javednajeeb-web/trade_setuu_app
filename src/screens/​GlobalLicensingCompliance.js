@@ -14,8 +14,8 @@ import {
   BackHandler,
 } from 'react-native';
 
-const TILE_COVER_IMAGE = require('../1795697528724.jpg');
-const DASHBOARD_COVER_IMAGE = require('../1795697543454.jpg');
+const TILE_COVER_IMAGE = require('../../1795697528724.jpg');
+const DASHBOARD_COVER_IMAGE = require('../../1795697543454.jpg');
 
 /**
  * Services Hub mein is tile ko render karne ke liye:
