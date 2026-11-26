@@ -160,14 +160,30 @@ export default function ServiceHubScreen({ onOpenService }) {
   if (openScreenKey === 'SETU_VERIFY') {
     return <SetuVerifyScreen onBack={() => setOpenScreenKey(null)} />;
   }
-  if (openScreenKey === 'GLOBAL_LICENSING_COMPLIANCE') {
-    return (
-      <GlobalLicensingCompliance
-        theme="dark"
-        onExitModule={() => setOpenScreenKey(null)}
-      />
-    );
+    if (openScreenKey === 'GLOBAL_LICENSING_COMPLIANCE') {
+    let GlobalLicensingComplianceMod = null;
+    try {
+      GlobalLicensingComplianceMod = require('./GlobalLicensingCompliance')?.default;
+    } catch (e) {
+      try {
+      GlobalLicensingComplianceMod = require('../GlobalLicensingCompliance')?.default;
+      } catch (e2) {
+      GlobalLicensingComplianceMod = null;
+      }
+    }
+
+    if (GlobalLicensingComplianceMod) {
+      const Comp = GlobalLicensingComplianceMod;
+      return (
+        <Comp
+          theme="dark"
+          onExitModule={() => setOpenScreenKey(null)}
+        />
+      );
+    }
   }
+
+
 
   return (
     <View style={styles.root}>
