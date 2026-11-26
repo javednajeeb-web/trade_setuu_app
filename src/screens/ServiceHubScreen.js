@@ -16,6 +16,7 @@ import TradeFinanceDeskScreen from './TradeFinanceDeskScreen';
 import BlindDealRoomScreen from './BlindDealRoomScreen';
 import SetuCalcProSuiteScreen from './SetuCalcProSuiteScreen';
 import SetuVerifyScreen from './SetuVerifyScreen';
+import GlobalLicensingCompliance from './GlobalLicensingCompliance';
 
 const ACTIVE_HUB_TILES = [
   {
@@ -37,7 +38,7 @@ const ACTIVE_HUB_TILES = [
     badge: 'NEW',
     accent: '#F3D27A',
     actionType: 'CHA_CUSTOMS',
-  },  
+  },
   {
     id: 'pre_post_credit',
     code: '03',
@@ -68,7 +69,9 @@ const ACTIVE_HUB_TILES = [
     accent: '#2DD4BF',
     actionType: 'MARINE_INSURANCE',
   },
-  { 
+  {
+    id: 'trade_finance_desk',
+    code: '06',
     title: 'Trade Finance Desk',
     subtitle: 'LC, BG/SBLC, buyer/supply credit & partner brief',
     category: 'Trade Finance',
@@ -77,6 +80,8 @@ const ACTIVE_HUB_TILES = [
     actionType: 'TRADE_FINANCE_DESK',
   },
   {
+    id: 'blind_deal_room',
+    code: '07',
     title: 'Blind Deal Room',
     subtitle: 'Protected deal workspace',
     category: 'Deal Room',
@@ -84,8 +89,8 @@ const ACTIVE_HUB_TILES = [
     accent: '#F3D27A',
     actionType: 'BLIND_DEAL_ROOM',
     enabled: true,
-   },
-   {
+  },
+  {
     id: 'setu_calc_pro_suite',
     code: '08',
     title: 'Setu CalcPro Suite',
@@ -94,8 +99,8 @@ const ACTIVE_HUB_TILES = [
     badge: 'NEW',
     accent: '#2DD4BF',
     actionType: 'SETU_CALCPRO_SUITE',
-   },
-   {
+  },
+  {
     id: 'setu_verify',
     code: '35',
     title: 'SetuVerify',
@@ -105,7 +110,16 @@ const ACTIVE_HUB_TILES = [
     accent: '#38BDF8',
     actionType: 'SETU_VERIFY',
   },
-    
+  {
+    id: 'global_licensing_compliance',
+    code: '36',
+    title: 'Global Licensing & Compliance',
+    subtitle: 'Country registrations, eligibility, vault & 30/15/7d renewal alerts',
+    category: 'Licensing & Legal',
+    badge: 'NEW',
+    accent: '#2DD4BF',
+    actionType: 'GLOBAL_LICENSING_COMPLIANCE',
+  },
 ];
 
 export default function ServiceHubScreen({ onOpenService }) {
@@ -138,15 +152,23 @@ export default function ServiceHubScreen({ onOpenService }) {
     return <TradeFinanceDeskScreen onBack={() => setOpenScreenKey(null)} />;
   }
   if (openScreenKey === 'BLIND_DEAL_ROOM') {
-  return <BlindDealRoomScreen onBack={() => setOpenScreenKey(null)} />;
+    return <BlindDealRoomScreen onBack={() => setOpenScreenKey(null)} />;
   }
   if (openScreenKey === 'SETU_CALCPRO_SUITE') {
     return <SetuCalcProSuiteScreen onBack={() => setOpenScreenKey(null)} />;
   }
   if (openScreenKey === 'SETU_VERIFY') {
     return <SetuVerifyScreen onBack={() => setOpenScreenKey(null)} />;
-}
- 
+  }
+  if (openScreenKey === 'GLOBAL_LICENSING_COMPLIANCE') {
+    return (
+      <GlobalLicensingCompliance
+        theme="dark"
+        onExitModule={() => setOpenScreenKey(null)}
+      />
+    );
+  }
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#050811" />
