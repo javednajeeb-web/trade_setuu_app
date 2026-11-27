@@ -15,7 +15,8 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
-import TradeSetuuHeader from '../components/TradeSetuuHeader';
+import TradeSetuuHeader from '../src/components/TradeSetuuHeader';
+
 
 const AGMARKNET_API_KEY = '579b464db66ec23bdd00000126e3ad53d0e049c374bb6bbccfee0b03';
 const AGMARKNET_URL = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${AGMARKNET_API_KEY}&format=json&limit=45`;
