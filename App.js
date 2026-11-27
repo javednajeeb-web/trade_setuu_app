@@ -21,7 +21,7 @@ import GlobalLogisticsHubScreen from './src/GlobalLogisticsHub';
 import ServiceHubScreen from './src/screens/ServiceHubScreen';
 import MarketPulseScreen from './src/screens/MarketPulseScreen';
 import CreatePostScreen from './src/screens/CreatePostScreen';
-import { fetchEximNews } from './src/services/exim-news-service';
+import { fetchEximNews } from './src/services/eximNewsService';
 import { translateText } from './src/services/translationService';
 
 const TS_LOGO = require('./1795099375380.png');
