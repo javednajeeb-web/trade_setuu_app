@@ -15,6 +15,7 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
+import TradeSetuuHeader from './TradeSetuuHeader';
 
 const AGMARKNET_API_KEY = '579b464db66ec23bdd00000126e3ad53d0e049c374bb6bbccfee0b03';
 const AGMARKNET_URL = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${AGMARKNET_API_KEY}&format=json&limit=45`;
@@ -534,6 +535,10 @@ export default function MarketPulseScreen({
   externalItems,
   userProfile,
   onBackToApp,
+  onOpenMenu,
+  onOpenChat,
+  onOpenNotifications,
+  onOpenSettings,
 }) {
   const isDark = theme !== 'light';
 
@@ -792,75 +797,80 @@ export default function MarketPulseScreen({
       ? activeLangCopy.outlookSoft
       : activeLangCopy.outlookUp;
 
+  const headerBackAction =
+    subView === 'detail'
+      ? () => setSubView('list')
+      : typeof onBackToApp === 'function'
+        ? onBackToApp
+        : undefined;
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: C.bg }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <TradeSetuuHeader
+        title="Market Pulse"
+        onBack={headerBackAction}
+        searchQuery={searchQuery}
+        onChangeSearch={setSearchQuery}
+        onOpenMenu={onOpenMenu}
+        onOpenChat={onOpenChat}
+        onOpenNotifications={onOpenNotifications}
+        onOpenSettings={onOpenSettings}
+      />
+
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 90 }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* HEADER */}
-        <View style={[styles.header, { backgroundColor: C.card, borderBottomColor: C.border }]}>
-          <View style={styles.rowBetween}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {subView === 'detail' && (
-                <TouchableOpacity onPress={() => setSubView('list')} style={styles.backBtn}>
-                  <Text style={{ color: C.teal, fontSize: 22, fontWeight: '900' }}>‹</Text>
-                </TouchableOpacity>
-              )}
-              <View>
-                <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900', letterSpacing: 0.6 }}>
-                  TRADE SETUU
-                </Text>
-                <Text style={{ color: C.text, fontSize: 16, fontWeight: '900' }}>Market Pulse</Text>
-              </View>
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              {savedAlerts.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => {
-                    const first = savedAlerts[0];
-                    Alert.alert(
-                      `Saved Alerts (${savedAlerts.length})`,
-                      savedAlerts.map((a) => `• ${a.commodity}: ${a.condition}`).join('\n'),
-                      [
-                        { text: 'OK', style: 'cancel' },
-                        first
-                          ? {
-                              text: `Remove "${first.commodity.split(' ')[0]}"`,
-                              style: 'destructive',
-                              onPress: () => removeAlertRule(first.id),
-                            }
-                          : undefined,
-                      ].filter(Boolean)
-                    );
-                  }}
-                  style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.amber }]}
-                >
-                  <Text style={{ color: C.amber, fontSize: 10, fontWeight: '900' }}>
-                    Alerts ({savedAlerts.length})
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                onPress={() => setTickerCollapsed((c) => !c)}
-                style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.border }]}
-              >
-                <Text style={{ color: C.sub, fontSize: 10, fontWeight: '800' }}>
-                  {tickerCollapsed ? 'Show Ticker' : 'Hide Ticker'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
         {/* MAIN LIST */}
         {subView === 'list' && (
           <View style={{ padding: 14 }}>
+            {/* Quick Controls Strip */}
+            <View style={[styles.rowBetween, { marginBottom: 10, gap: 6 }]}>
+              <Text style={{ color: C.sub, fontSize: 11, fontWeight: '800' }}>
+                Market Pulse • {filteredItems.length} items
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                {savedAlerts.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      const first = savedAlerts[0];
+                      Alert.alert(
+                        `Saved Alerts (${savedAlerts.length})`,
+                        savedAlerts.map((a) => `• ${a.commodity}: ${a.condition}`).join('\n'),
+                        [
+                          { text: 'OK', style: 'cancel' },
+                          first
+                            ? {
+                                text: `Remove "${first.commodity.split(' ')[0]}"`,
+                                style: 'destructive',
+                                onPress: () => removeAlertRule(first.id),
+                              }
+                            : undefined,
+                        ].filter(Boolean)
+                      );
+                    }}
+                    style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.amber }]}
+                  >
+                    <Text style={{ color: C.amber, fontSize: 10, fontWeight: '900' }}>
+                      Alerts ({savedAlerts.length})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={() => setTickerCollapsed((c) => !c)}
+                  style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.border }]}
+                >
+                  <Text style={{ color: C.sub, fontSize: 10, fontWeight: '800' }}>
+                    {tickerCollapsed ? 'Show Ticker' : 'Hide Ticker'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {!tickerCollapsed && (
               <View style={[styles.tickerWrap, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
                 <View style={[styles.rowBetween, { marginBottom: 5 }]}>
@@ -1497,9 +1507,7 @@ export default function MarketPulseScreen({
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  backBtn: { paddingRight: 6, paddingVertical: 2 },
   badgeChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
   tickerWrap: { borderWidth: 1, borderRadius: 12, padding: 8, marginBottom: 10 },
   noticeBanner: {
