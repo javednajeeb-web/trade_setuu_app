@@ -15,11 +15,11 @@ export default function TradeSetuuHeader({
 }) {
   const renderLogo = () => (
     <View style={styles.logoCircle}>
-      <Image
-        source={require('../../1795099375380.png')}
-        style={styles.logoImage}
-        resizeMode="contain"
-      />
+<Image
+  source={require('../../../trade_setuu_app/1795099375380.png')}
+  style={styles.logoImage}
+  resizeMode="contain"
+   />     
     </View>
   );
 
