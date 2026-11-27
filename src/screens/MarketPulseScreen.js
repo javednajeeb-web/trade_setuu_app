@@ -18,6 +18,110 @@ import {
 
 const AGMARKNET_API_KEY = '579b464db66ec23bdd00000126e3ad53d0e049c374bb6bbccfee0b03';
 const AGMARKNET_URL = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${AGMARKNET_API_KEY}&format=json&limit=45`;
+const TRADE_SETUU_APP_LINK = 'https://tradesetuu.app/download';
+
+const CATEGORIES = [
+  'All',
+  'Grains',
+  'Pulses',
+  'Oilseeds',
+  'Spices',
+  'Fruits',
+  'Vegetables',
+  'Metals',
+  'Energy',
+  'Petroleum',
+  'Chemicals',
+  'Fertilizers',
+  'Machinery',
+  'Other',
+];
+
+const SHARE_LANGUAGES = [
+  { code: 'HI', label: 'हिंदी' },
+  { code: 'EN', label: 'English' },
+  { code: 'CG', label: 'छत्तीसगढ़ी' },
+  { code: 'MR', label: 'मराठी' },
+  { code: 'BN', label: 'বাংলা' },
+];
+
+const LANG_COPY = {
+  HI: {
+    header: 'TRADE SETUU — मार्केट पल्स',
+    commodityLbl: 'कमोडिटी',
+    marketLbl: 'मंडी / मार्केट',
+    rateLbl: 'भाव',
+    statusLbl: 'डेटा स्थिति',
+    sourceLbl: 'स्रोत',
+    updatedLbl: 'अपडेट',
+    generatedLbl: 'रिपोर्ट समय',
+    analystTitle: 'मार्केट एनालिस्ट व्यू (रुझान व आगे की दिशा)',
+    outlookUp: 'बाज़ार में फ़िलहाल मज़बूती/खरीद रुझान दिख रहा है; आवक और डिमांड पर नज़र रखें।',
+    outlookSoft: 'बाज़ार में फ़िलहाल नरमी या सीमित दायरे का रुझान दिख रहा है; सौदे से पहले ताज़ा भाव जांचें।',
+    disclaimer: 'नोट: यह मार्केट एनालिसिस व इंडिकेटिव जानकारी है, गारंटीड ट्रेडिंग/निवेश सलाह नहीं।',
+    cta: `पूरी जानकारी और रेगुलर मार्केट भाव के लिए Trade SETUU ऐप देखें: ${TRADE_SETUU_APP_LINK}`,
+  },
+  EN: {
+    header: 'TRADE SETUU — MARKET PULSE',
+    commodityLbl: 'Commodity',
+    marketLbl: 'Market',
+    rateLbl: 'Rate',
+    statusLbl: 'Status',
+    sourceLbl: 'Source',
+    updatedLbl: 'Updated',
+    generatedLbl: 'Generated',
+    analystTitle: 'MARKET ANALYST OUTLOOK',
+    outlookUp: 'Current movement shows firmer momentum; watch arrival pace and buyer demand.',
+    outlookSoft: 'Current movement appears soft or range-bound; verify latest quotes before execution.',
+    disclaimer: 'Note: Indicative market intelligence for reference only, not guaranteed investment advice.',
+    cta: `For complete market intelligence and regular price updates, get Trade SETUU: ${TRADE_SETUU_APP_LINK}`,
+  },
+  CG: {
+    header: 'TRADE SETUU — मार्केट पल्स',
+    commodityLbl: 'कमोडिटी',
+    marketLbl: 'मंडी / बाज़ार',
+    rateLbl: 'भाव',
+    statusLbl: 'डेटा स्थिति',
+    sourceLbl: 'स्रोत',
+    updatedLbl: 'अपडेट',
+    generatedLbl: 'रिपोर्ट समय',
+    analystTitle: 'मार्केट एनालिस्ट बिचार (अभी अउ आगे के रुख)',
+    outlookUp: 'अक्ती मंडी/बाज़ार म मजबूती अउ मांग के रुख दिखत हे; आवक ऊपर धियान रखव।',
+    outlookSoft: 'अक्ती बाज़ार म नरमी या तय दायरा के रुख दिखत हे; लेनदेन ले पहिली ताज़ा भाव देखव।',
+    disclaimer: 'नोट: ये सिरिफ जानकारी अउ एनालिसिस आय, पक्का निवेश या ट्रेडिंग सलाह नोहय।',
+    cta: `पूरा जानकारी अउ रोज के ताज़ा भाव बर Trade SETUU ऐप देखव: ${TRADE_SETUU_APP_LINK}`,
+  },
+  MR: {
+    header: 'TRADE SETUU — मार्केट पल्स',
+    commodityLbl: 'कमोडिटी',
+    marketLbl: 'बाजार / मंडी',
+    rateLbl: 'दर',
+    statusLbl: 'डेटा स्थिती',
+    sourceLbl: 'स्रोत',
+    updatedLbl: 'अपडेट',
+    generatedLbl: 'रिपोर्ट वेळ',
+    analystTitle: 'मार्केट अ‍ॅनालिस्ट दृष्टिकोन',
+    outlookUp: 'सध्या बाजारात मजबुतीचा कल दिसून येत आहे; आवक आणि मागणीवर लक्ष ठेवा.',
+    outlookSoft: 'सध्या बाजारात मऊपणा किंवा मर्यादित हालचाल दिसत आहे; व्यवहारापूर्वी ताजे दर तपासा.',
+    disclaimer: 'टीप: ही केवळ माहिती व विश्लेषणासाठी आहे, खात्रीशीर गुंतवणूक सल्ला नाही.',
+    cta: `संपूर्ण माहिती आणि रोजचे ताजे बाजारभाव पाहण्यासाठी Trade SETUU अ‍ॅप पाहा: ${TRADE_SETUU_APP_LINK}`,
+  },
+  BN: {
+    header: 'TRADE SETUU — মার্কেট পালস',
+    commodityLbl: 'পণ্য',
+    marketLbl: 'বাজার / মান্ডি',
+    rateLbl: 'দর',
+    statusLbl: 'তথ্যের অবস্থা',
+    sourceLbl: 'উৎস',
+    updatedLbl: 'আপডেট',
+    generatedLbl: 'রিপোর্ট সময়',
+    analystTitle: 'মার্কেট অ্যানালিস্ট আউটলুক',
+    outlookUp: 'বর্তমানে বাজারে দৃঢ়তা/চাহিদার প্রবণতা দেখা যাচ্ছে; সরবরাহ ও চাহিদার দিকে নজর রাখুন।',
+    outlookSoft: 'বর্তমানে বাজারে নরম বা সীমাবদ্ধ প্রবণতা দেখা যাচ্ছে; লেনদেনের আগে সর্বশেষ দর যাচাই করুন।',
+    disclaimer: 'দ্রষ্টব্য: এটি কেবল বিশ্লেষণ ও নির্দেশনামূলক তথ্য, নিশ্চিত বিনিয়োগ পরামর্শ নয়।',
+    cta: `সম্পূর্ণ তথ্য ও নিয়মিত বাজারদরের জন্য Trade SETUU অ্যাপ দেখুন: ${TRADE_SETUU_APP_LINK}`,
+  },
+};
 
 const FALLBACK_ITEMS = [
   {
@@ -26,8 +130,10 @@ const FALLBACK_ITEMS = [
     category: 'Grains',
     market: 'Nagpur APMC',
     state: 'Maharashtra',
+    country: 'India',
     marketScope: 'local',
     price: 2300,
+    previousPrice: 2259,
     unit: '/ Qtl',
     currency: '₹',
     changePct: '+1.8%',
@@ -36,9 +142,9 @@ const FALLBACK_ITEMS = [
     modalPrice: 2300,
     maxPrice: 2500,
     dataTag: 'Sample / Indicative',
-    source: 'Fallback Snapshot (API Unavailable)',
-    dataUpdatedAt: '26 Nov 2026, 04:30 PM IST',
-    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
+    source: 'Fallback Snapshot',
+    dataUpdatedAt: '26 Nov 2026',
+    analysisGeneratedAt: '27 Nov 2026, 11:20 AM IST',
     history: {
       '7D': [2210, 2225, 2240, 2235, 2260, 2258, 2300],
       '30D': [2140, 2175, 2200, 2255, 2300],
@@ -58,8 +164,10 @@ const FALLBACK_ITEMS = [
     category: 'Vegetables',
     market: 'Raipur Mandi',
     state: 'Chhattisgarh',
+    country: 'India',
     marketScope: 'local',
     price: 1850,
+    previousPrice: 1794,
     unit: '/ Qtl',
     currency: '₹',
     changePct: '+3.1%',
@@ -68,9 +176,9 @@ const FALLBACK_ITEMS = [
     modalPrice: 1850,
     maxPrice: 2050,
     dataTag: 'Sample / Indicative',
-    source: 'Fallback Snapshot (API Unavailable)',
-    dataUpdatedAt: '26 Nov 2026, 05:10 PM IST',
-    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
+    source: 'Fallback Snapshot',
+    dataUpdatedAt: '26 Nov 2026',
+    analysisGeneratedAt: '27 Nov 2026, 11:20 AM IST',
     history: {
       '7D': [1620, 1680, 1710, 1740, 1790, 1794, 1850],
       '30D': [1450, 1560, 1690, 1780, 1850],
@@ -90,19 +198,21 @@ const FALLBACK_ITEMS = [
     category: 'Fruits',
     market: 'Jalgaon Mandi',
     state: 'Maharashtra',
+    country: 'India',
     marketScope: 'local',
     price: 1620,
+    previousPrice: 1640,
     unit: '/ Qtl',
     currency: '₹',
-    changePct: '−1.2%',
+    changePct: '-1.2%',
     isPositive: false,
     minPrice: 1480,
     modalPrice: 1620,
     maxPrice: 1750,
     dataTag: 'Sample / Indicative',
-    source: 'Fallback Snapshot (API Unavailable)',
-    dataUpdatedAt: '26 Nov 2026, 04:50 PM IST',
-    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
+    source: 'Fallback Snapshot',
+    dataUpdatedAt: '26 Nov 2026',
+    analysisGeneratedAt: '27 Nov 2026, 11:20 AM IST',
     history: {
       '7D': [1690, 1680, 1665, 1650, 1645, 1640, 1620],
       '30D': [1540, 1590, 1655, 1640, 1620],
@@ -121,8 +231,10 @@ const FALLBACK_ITEMS = [
     category: 'Spices',
     market: 'Sangli Mandi',
     state: 'Maharashtra',
+    country: 'India',
     marketScope: 'local',
     price: 14200,
+    previousPrice: 14004,
     unit: '/ Qtl',
     currency: '₹',
     changePct: '+1.4%',
@@ -131,9 +243,9 @@ const FALLBACK_ITEMS = [
     modalPrice: 14200,
     maxPrice: 14950,
     dataTag: 'Sample / Indicative',
-    source: 'Fallback Snapshot (API Unavailable)',
-    dataUpdatedAt: '26 Nov 2026, 04:15 PM IST',
-    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
+    source: 'Fallback Snapshot',
+    dataUpdatedAt: '26 Nov 2026',
+    analysisGeneratedAt: '27 Nov 2026, 11:20 AM IST',
     history: {
       '7D': [13850, 13920, 13980, 14050, 14110, 14004, 14200],
       '30D': [13200, 13550, 13880, 14080, 14200],
@@ -152,8 +264,10 @@ const FALLBACK_ITEMS = [
     category: 'Metals',
     market: 'LME Global Benchmark',
     state: 'Global',
+    country: 'Global',
     marketScope: 'global',
     price: 9140,
+    previousPrice: 9032,
     unit: '/ MT',
     currency: '$',
     changePct: '+1.2%',
@@ -162,9 +276,9 @@ const FALLBACK_ITEMS = [
     modalPrice: 9140,
     maxPrice: 9230,
     dataTag: 'Sample / Indicative',
-    source: 'Fallback Snapshot (API Unavailable)',
-    dataUpdatedAt: '26 Nov 2026, 06:15 PM IST',
-    analysisGeneratedAt: '27 Nov 2026, 12:15 AM IST',
+    source: 'Fallback Snapshot',
+    dataUpdatedAt: '26 Nov 2026',
+    analysisGeneratedAt: '27 Nov 2026, 11:20 AM IST',
     history: {
       '7D': [8960, 9010, 8995, 9050, 9080, 9031, 9140],
       '30D': [8810, 8890, 8950, 9040, 9140],
@@ -178,8 +292,6 @@ const FALLBACK_ITEMS = [
     fobReference: 'Global Industrial Metal Reference — Freight & Duty Extra',
   },
 ];
-
-const CATEGORIES = ['All', 'Grains', 'Vegetables', 'Fruits', 'Spices', 'Metals'];
 
 function guessCategory(commodityName = '') {
   const c = String(commodityName).toLowerCase();
@@ -219,7 +331,110 @@ function guessCategory(commodityName = '') {
   ) {
     return 'Spices';
   }
-  return 'Grains';
+  if (
+    c.includes('gram') ||
+    c.includes('chana') ||
+    c.includes('tur') ||
+    c.includes('arhar') ||
+    c.includes('moong') ||
+    c.includes('urad') ||
+    c.includes('lentil') ||
+    c.includes('pulse')
+  ) {
+    return 'Pulses';
+  }
+  if (
+    c.includes('mustard') ||
+    c.includes('soybean') ||
+    c.includes('sunflower') ||
+    c.includes('groundnut') ||
+    c.includes('sesame') ||
+    c.includes('castor') ||
+    c.includes('oilseed')
+  ) {
+    return 'Oilseeds';
+  }
+  if (
+    c.includes('copper') ||
+    c.includes('aluminium') ||
+    c.includes('aluminum') ||
+    c.includes('zinc') ||
+    c.includes('steel') ||
+    c.includes('brass') ||
+    c.includes('lead') ||
+    c.includes('nickel') ||
+    c.includes('metal')
+  ) {
+    return 'Metals';
+  }
+  if (
+    c.includes('petrol') ||
+    c.includes('diesel') ||
+    c.includes('kero') ||
+    c.includes('lpg') ||
+    c.includes('bitumen') ||
+    c.includes('naphtha')
+  ) {
+    return 'Petroleum';
+  }
+  if (
+    c.includes('crude') ||
+    c.includes('gas') ||
+    c.includes('coal') ||
+    c.includes('power') ||
+    c.includes('energy')
+  ) {
+    return 'Energy';
+  }
+  if (c.includes('fertilizer') || c.includes('urea') || c.includes('dap') || c.includes('potash')) {
+    return 'Fertilizers';
+  }
+  if (c.includes('chemical') || c.includes('acid') || c.includes('solvent') || c.includes('polymer')) {
+    return 'Chemicals';
+  }
+  if (c.includes('machine') || c.includes('pump') || c.includes('motor') || c.includes('tractor')) {
+    return 'Machinery';
+  }
+  if (
+    c.includes('wheat') ||
+    c.includes('maize') ||
+    c.includes('rice') ||
+    c.includes('paddy') ||
+    c.includes('barley') ||
+    c.includes('sorghum') ||
+    c.includes('bajra') ||
+    c.includes('jowar') ||
+    c.includes('grain')
+  ) {
+    return 'Grains';
+  }
+  return 'Other';
+}
+
+function computeChangeMeta(currentPrice, previousPrice, fallbackChangePct, fallbackIsPositive) {
+  const curr = Number(currentPrice || 0);
+  const prev = Number(previousPrice || 0);
+  if (prev > 0 && curr > 0) {
+    const pctNum = ((curr - prev) / prev) * 100;
+    const rounded = pctNum.toFixed(1);
+    return {
+      changePct: `${pctNum > 0 ? '+' : ''}${rounded}%`,
+      isPositive: pctNum >= 0,
+      hasChange: true,
+    };
+  }
+  if (typeof fallbackChangePct === 'string' && fallbackChangePct.trim().length > 0) {
+    return {
+      changePct: fallbackChangePct,
+      isPositive: Boolean(fallbackIsPositive),
+      hasChange: true,
+    };
+  }
+  return {
+    changePct: 'Change unavailable',
+    isPositive: null,
+    hasChange: false,
+  };
 }
 
 function mapAgmarknetRecords(records = []) {
@@ -228,32 +443,41 @@ function mapAgmarknetRecords(records = []) {
     const modalNum = Number(r.modal_price || r.min_price || r.max_price || 0);
     const minNum = Number(r.min_price || modalNum || 0);
     const maxNum = Number(r.max_price || modalNum || 0);
-    const diffPct = minNum > 0 ? (((modalNum - minNum) / minNum) * 100).toFixed(1) : '0.0';
-    const isPos = Number(diffPct) >= 0;
+    const prevNum = Number(r.previous_price || r.prev_modal_price || 0);
+    const { changePct, isPositive, hasChange } = computeChangeMeta(
+      modalNum,
+      prevNum,
+      null,
+      null
+    );
+
     const baseName = r.commodity || 'Commodity';
     const fullCommodity = r.variety ? `${baseName} (${r.variety})` : baseName;
     const marketName = r.market || 'APMC Mandi';
     const stateName = r.state || 'India';
-    const updatedStamp = r.arrival_date || new Date().toISOString().slice(0, 10);
+    const arrivalStamp = r.arrival_date || 'Arrival date not specified';
 
     return {
-      id: `ag-${idx}-${marketName}-${updatedStamp}`,
+      id: `ag-${idx}-${marketName}-${arrivalStamp}`,
       commodity: fullCommodity,
       category: guessCategory(baseName),
       market: marketName,
       state: stateName,
+      country: 'India',
       marketScope: 'local',
       price: modalNum,
+      previousPrice: prevNum > 0 ? prevNum : null,
       unit: '/ Qtl',
       currency: '₹',
-      changePct: `${isPos ? '+' : ''}${diffPct}%`,
-      isPositive: isPos,
+      changePct,
+      isPositive,
+      hasChange,
       minPrice: minNum,
       modalPrice: modalNum,
       maxPrice: maxNum,
       dataTag: 'Live',
       source: 'Agmarknet (data.gov.in)',
-      dataUpdatedAt: updatedStamp,
+      dataUpdatedAt: `Arrival: ${arrivalStamp}`,
       analysisGeneratedAt: generatedStamp,
       history: {
         '7D': [minNum, modalNum, maxNum || modalNum],
@@ -263,7 +487,7 @@ function mapAgmarknetRecords(records = []) {
       },
       nearbyMarkets: [
         {
-          name: `${marketName} (${stateName})`,
+          name: marketName,
           price: `₹${modalNum.toLocaleString('en-IN')} / Qtl`,
         },
       ],
@@ -272,7 +496,45 @@ function mapAgmarknetRecords(records = []) {
   });
 }
 
-export default function MarketPulseScreen({ theme = 'dark', externalItems, onBackToApp }) {
+function buildShareDraft(item, mode, langCode) {
+  const copy = LANG_COPY[langCode] || LANG_COPY.HI;
+  const outlookLine =
+    item.isPositive === false ? copy.outlookSoft : copy.outlookUp;
+  const formattedPrice = `${item.currency}${Number(item.price || 0).toLocaleString('en-IN')} ${item.unit || ''}`;
+  const changePart = item.hasChange !== false ? ` (${item.changePct})` : ` (${copy.statusLbl}: ${item.changePct})`;
+
+  const lines = [
+    `${copy.header} (${mode === 'full_report' ? 'Full Report' : 'Quick Card'})`,
+    `${copy.commodityLbl}: ${item.commodity} [${item.category}]`,
+    `${copy.marketLbl}: ${item.market}`,
+    `${copy.rateLbl}: ${formattedPrice}${changePart}`,
+  ];
+
+  if (mode === 'full_report') {
+    lines.push(
+      `Min / Modal / Max: ${item.currency}${item.minPrice} / ${item.currency}${item.modalPrice} / ${item.currency}${item.maxPrice}`,
+      `${copy.statusLbl}: ${item.dataTag} | ${copy.sourceLbl}: ${item.source}`,
+      `${copy.updatedLbl}: ${item.dataUpdatedAt} | ${copy.generatedLbl}: ${item.analysisGeneratedAt}`,
+      `${copy.analystTitle}: ${outlookLine}`,
+      `Export / Trade Ref: ${item.fobReference}`
+    );
+  } else {
+    lines.push(
+      `${copy.analystTitle}: ${outlookLine}`,
+      `${copy.statusLbl}: ${item.dataTag} | ${copy.updatedLbl}: ${item.dataUpdatedAt}`
+    );
+  }
+
+  lines.push(copy.disclaimer, copy.cta);
+  return lines.join('\n');
+}
+
+export default function MarketPulseScreen({
+  theme = 'dark',
+  externalItems,
+  userProfile,
+  onBackToApp,
+}) {
   const isDark = theme !== 'light';
 
   const C = {
@@ -288,55 +550,110 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
     warn: '#F87171',
   };
 
+  const defaultTab = useMemo(() => {
+    const bizCountry = String(
+      userProfile?.businessCountry || userProfile?.residenceCountry || ''
+    ).toLowerCase();
+    if (bizCountry && bizCountry !== 'india' && bizCountry !== 'in') {
+      return 'global';
+    }
+    return 'local';
+  }, [userProfile]);
+
   const [liveItems, setLiveItems] = useState([]);
   const [loadingLive, setLoadingLive] = useState(false);
+  const [feedError, setFeedError] = useState('');
+  const [fetchNonce, setFetchNonce] = useState(0);
 
   useEffect(() => {
-    if (Array.isArray(externalItems) && externalItems.length > 0) return;
+    if (Array.isArray(externalItems) && externalItems.length > 0) {
+      setFeedError('');
+      return;
+    }
     let active = true;
     setLoadingLive(true);
+    setFeedError('');
+
     fetch(AGMARKNET_URL)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         if (!active) return;
         if (Array.isArray(data?.records) && data.records.length > 0) {
           setLiveItems(mapAgmarknetRecords(data.records));
+          setFeedError('');
+        } else {
+          setLiveItems([]);
+          setFeedError('No live records returned right now; showing sample/indicative items.');
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!active) return;
+        setLiveItems([]);
+        setFeedError('Live feed unavailable or network issue; showing sample/indicative items.');
+      })
       .finally(() => {
         if (active) setLoadingLive(false);
       });
+
     return () => {
       active = false;
     };
-  }, [externalItems]);
+  }, [externalItems, fetchNonce]);
 
   const items = useMemo(() => {
-    if (Array.isArray(externalItems) && externalItems.length > 0) {
-      return externalItems;
-    }
-    if (liveItems.length > 0) {
-      return [...liveItems, ...FALLBACK_ITEMS.filter((f) => f.marketScope === 'global')];
-    }
-    return FALLBACK_ITEMS;
+    const rawList =
+      Array.isArray(externalItems) && externalItems.length > 0
+        ? externalItems
+        : liveItems.length > 0
+          ? [...liveItems, ...FALLBACK_ITEMS.filter((f) => f.marketScope === 'global')]
+          : FALLBACK_ITEMS;
+
+    return rawList.map((it) => {
+      const meta = computeChangeMeta(it.price, it.previousPrice, it.changePct, it.isPositive);
+      return {
+        ...it,
+        category: CATEGORIES.includes(it.category) ? it.category : guessCategory(it.commodity),
+        marketScope: it.marketScope === 'global' ? 'global' : 'local',
+        changePct: meta.changePct,
+        isPositive: meta.isPositive,
+        hasChange: meta.hasChange,
+      };
+    });
   }, [externalItems, liveItems]);
 
   const [subView, setSubView] = useState('list');
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [historyRange, setHistoryRange] = useState('7D');
 
-  const [marketTab, setMarketTab] = useState('local');
+  const [marketTab, setMarketTab] = useState(defaultTab);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [watchlistOnly, setWatchlistOnly] = useState(false);
+  const [watchlistIds, setWatchlistIds] = useState([]);
   const [tickerCollapsed, setTickerCollapsed] = useState(false);
 
   const [shareModalItem, setShareModalItem] = useState(null);
   const [shareFormat, setShareFormat] = useState('image_card');
+  const [shareLang, setShareLang] = useState('HI');
   const [alertModalItem, setAlertModalItem] = useState(null);
   const [alertDirection, setAlertDirection] = useState('Falls Below');
   const [alertTargetVal, setAlertTargetVal] = useState('');
   const [savedAlerts, setSavedAlerts] = useState([]);
+
+  useEffect(() => {
+    setMarketTab(defaultTab);
+  }, [defaultTab]);
+
+  const toggleWatchlist = (itemId) => {
+    setWatchlistIds((prev) =>
+      prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+    );
+  };
 
   const handleBack = useCallback(() => {
     if (shareModalItem) {
@@ -367,23 +684,21 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
     const q = searchQuery.trim().toLowerCase();
     return items.filter((it) => {
       const scopeMatch =
-        q.length > 0 || selectedCategory !== 'All'
-          ? true
-          : marketTab === 'local'
-            ? it.marketScope !== 'global'
-            : it.marketScope === 'global';
+        marketTab === 'local' ? it.marketScope !== 'global' : it.marketScope === 'global';
 
       const catMatch = selectedCategory === 'All' || it.category === selectedCategory;
+      const watchMatch = !watchlistOnly || watchlistIds.includes(it.id);
       const textMatch =
         !q ||
         (it.commodity && it.commodity.toLowerCase().includes(q)) ||
         (it.market && it.market.toLowerCase().includes(q)) ||
         (it.state && it.state.toLowerCase().includes(q)) ||
+        (it.country && it.country.toLowerCase().includes(q)) ||
         (it.category && it.category.toLowerCase().includes(q));
 
-      return scopeMatch && catMatch && textMatch;
+      return scopeMatch && catMatch && watchMatch && textMatch;
     });
-  }, [items, searchQuery, selectedCategory, marketTab]);
+  }, [items, searchQuery, selectedCategory, marketTab, watchlistOnly, watchlistIds]);
 
   const selectedItem = useMemo(
     () => items.find((i) => i.id === selectedItemId) || filteredItems[0] || items[0],
@@ -409,32 +724,43 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
     setAlertModalItem(item);
   };
 
+  const handleSelectAlertDirection = (dir) => {
+    setAlertDirection(dir);
+    if (dir === '% Move') {
+      setAlertTargetVal('5');
+    } else if (alertModalItem?.price) {
+      setAlertTargetVal(String(alertModalItem.price));
+    }
+  };
+
   const confirmCreateAlert = () => {
     if (!alertModalItem || !alertTargetVal.trim()) {
-      Alert.alert('Enter Target', 'Please enter a target value.');
+      Alert.alert('Enter Value', 'Please enter a target value or percentage threshold.');
       return;
     }
+    const cleanVal = alertTargetVal.trim();
+    const ruleText =
+      alertDirection === '% Move'
+        ? `${cleanVal}% move from reference (${alertModalItem.currency}${alertModalItem.price})`
+        : `${alertDirection} ${cleanVal} ${alertModalItem.currency}`;
+
     const rule = {
       id: `ALT-${Date.now().toString().slice(-4)}`,
       commodity: alertModalItem.commodity,
       market: alertModalItem.market,
-      condition: `${alertDirection} ${alertTargetVal.trim()} ${alertModalItem.currency}`,
+      condition: ruleText,
     };
     setSavedAlerts((prev) => [rule, ...prev]);
     setAlertModalItem(null);
     Alert.alert('Alert Rule Saved', `${rule.commodity} (${rule.market})\nRule: ${rule.condition}`);
   };
 
-  const shareReportPayload = async (item, mode) => {
-    const body =
-      `TRADE SETUU — Market Pulse (${mode === 'full_report' ? 'Full Report' : 'Market Card'})\n` +
-      `Commodity: ${item.commodity} [${item.category}]\n` +
-      `Market: ${item.market}, ${item.state}\n` +
-      `Rate: ${item.currency}${Number(item.price).toLocaleString('en-IN')} ${item.unit} (${item.changePct})\n` +
-      `Data status: ${item.dataTag}\n` +
-      `Data updated at: ${item.dataUpdatedAt}\n` +
-      `Analysis generated at: ${item.analysisGeneratedAt}\n` +
-      `Source: ${item.source}`;
+  const removeAlertRule = (id) => {
+    setSavedAlerts((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const shareReportPayload = async (item, mode, langCode) => {
+    const body = buildShareDraft(item, mode, langCode);
     try {
       await Share.share({ message: body });
     } catch {
@@ -448,9 +774,23 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
   const spread = Math.max(1, maxVal - minVal);
 
   const activeFilterCount =
-    (searchQuery.trim() ? 1 : 0) + (selectedCategory !== 'All' ? 1 : 0);
+    (searchQuery.trim() ? 1 : 0) +
+    (selectedCategory !== 'All' ? 1 : 0) +
+    (watchlistOnly ? 1 : 0);
 
-  const hasLiveFeed = liveItems.length > 0 || (Array.isArray(externalItems) && externalItems.length > 0);
+  const hasLiveFeed = useMemo(() => {
+    if (liveItems.length > 0) return true;
+    if (Array.isArray(externalItems) && externalItems.length > 0) {
+      return externalItems.some((it) => it?.dataTag === 'Live');
+    }
+    return false;
+  }, [liveItems, externalItems]);
+
+  const activeLangCopy = LANG_COPY[shareLang] || LANG_COPY.HI;
+  const activeOutlook =
+    shareModalItem?.isPositive === false
+      ? activeLangCopy.outlookSoft
+      : activeLangCopy.outlookUp;
 
   return (
     <KeyboardAvoidingView
@@ -481,11 +821,30 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               {savedAlerts.length > 0 && (
-                <View style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.amber }]}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const first = savedAlerts[0];
+                    Alert.alert(
+                      `Saved Alerts (${savedAlerts.length})`,
+                      savedAlerts.map((a) => `• ${a.commodity}: ${a.condition}`).join('\n'),
+                      [
+                        { text: 'OK', style: 'cancel' },
+                        first
+                          ? {
+                              text: `Remove "${first.commodity.split(' ')[0]}"`,
+                              style: 'destructive',
+                              onPress: () => removeAlertRule(first.id),
+                            }
+                          : undefined,
+                      ].filter(Boolean)
+                    );
+                  }}
+                  style={[styles.badgeChip, { backgroundColor: C.cardAlt, borderColor: C.amber }]}
+                >
                   <Text style={{ color: C.amber, fontSize: 10, fontWeight: '900' }}>
                     Alerts ({savedAlerts.length})
                   </Text>
-                </View>
+                </TouchableOpacity>
               )}
               <TouchableOpacity
                 onPress={() => setTickerCollapsed((c) => !c)}
@@ -504,9 +863,23 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
           <View style={{ padding: 14 }}>
             {!tickerCollapsed && (
               <View style={[styles.tickerWrap, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
-                <Text style={{ color: hasLiveFeed ? C.ok : C.amber, fontSize: 9, fontWeight: '900', marginBottom: 5 }}>
-                  MARKET WATCH • {hasLiveFeed ? 'LIVE AGMARKNET FEED' : 'SAMPLE / INDICATIVE SNAPSHOT'}
-                </Text>
+                <View style={[styles.rowBetween, { marginBottom: 5 }]}>
+                  <Text
+                    style={{
+                      color: hasLiveFeed ? C.ok : C.amber,
+                      fontSize: 9,
+                      fontWeight: '900',
+                    }}
+                  >
+                    MARKET WATCH • {hasLiveFeed ? 'LIVE AGMARKNET FEED' : 'SAMPLE / INDICATIVE SNAPSHOT'}
+                  </Text>
+                  {!(Array.isArray(externalItems) && externalItems.length > 0) && (
+                    <TouchableOpacity onPress={() => setFetchNonce((n) => n + 1)}>
+                      <Text style={{ color: C.teal, fontSize: 9.5, fontWeight: '900' }}>Retry Sync</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     {items.slice(0, 5).map((t) => (
@@ -521,16 +894,18 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
                         <Text style={{ color: C.teal, fontSize: 11, fontWeight: '900', marginLeft: 5 }}>
                           {t.currency}{Number(t.price).toLocaleString('en-IN')}
                         </Text>
-                        <Text
-                          style={{
-                            color: t.isPositive ? C.ok : C.warn,
-                            fontSize: 10,
-                            fontWeight: '800',
-                            marginLeft: 4,
-                          }}
-                        >
-                          {t.changePct}
-                        </Text>
+                        {t.hasChange !== false && (
+                          <Text
+                            style={{
+                              color: t.isPositive ? C.ok : C.warn,
+                              fontSize: 10,
+                              fontWeight: '800',
+                              marginLeft: 4,
+                            }}
+                          >
+                            {t.changePct}
+                          </Text>
+                        )}
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -538,12 +913,25 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
               </View>
             )}
 
+            {feedError ? (
+              <View style={[styles.noticeBanner, { backgroundColor: C.cardAlt, borderColor: C.amber }]}>
+                <Text style={{ color: C.amber, fontSize: 10.5, fontWeight: '700', flex: 1 }}>
+                  {feedError}
+                </Text>
+                <TouchableOpacity onPress={() => setFetchNonce((n) => n + 1)}>
+                  <Text style={{ color: C.teal, fontSize: 10.5, fontWeight: '900', marginLeft: 8 }}>
+                    Retry
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
             {/* Search Bar */}
             <View style={[styles.searchRow, { backgroundColor: C.card, borderColor: C.border }]}>
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Search commodity, state (e.g. Raipur, Maharashtra), mandi..."
+                placeholder="Search commodity, mandi, state or category..."
                 placeholderTextColor={C.sub}
                 returnKeyType="search"
                 onSubmitEditing={() => Keyboard.dismiss()}
@@ -554,6 +942,7 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
                   onPress={() => {
                     setSearchQuery('');
                     setSelectedCategory('All');
+                    setWatchlistOnly(false);
                     Keyboard.dismiss();
                   }}
                 >
@@ -564,34 +953,58 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
               )}
             </View>
 
-            {/* Local vs Global Tab */}
-            <View style={[styles.segRow, { backgroundColor: C.card, borderColor: C.border }]}>
+            {/* Local vs Global Tab + Watchlist Filter */}
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+              <View style={[styles.segRow, { backgroundColor: C.card, borderColor: C.border, flex: 1, marginBottom: 0 }]}>
+                <TouchableOpacity
+                  onPress={() => setMarketTab('local')}
+                  style={[styles.segBtn, marketTab === 'local' && { backgroundColor: C.teal }]}
+                >
+                  <Text
+                    style={{
+                      color: marketTab === 'local' ? '#071521' : C.text,
+                      fontSize: 12,
+                      fontWeight: '900',
+                    }}
+                  >
+                    Local Markets
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setMarketTab('global')}
+                  style={[styles.segBtn, marketTab === 'global' && { backgroundColor: C.teal }]}
+                >
+                  <Text
+                    style={{
+                      color: marketTab === 'global' ? '#071521' : C.text,
+                      fontSize: 12,
+                      fontWeight: '900',
+                    }}
+                  >
+                    Global Markets
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity
-                onPress={() => setMarketTab('local')}
-                style={[styles.segBtn, marketTab === 'local' && { backgroundColor: C.teal }]}
+                onPress={() => setWatchlistOnly((w) => !w)}
+                style={[
+                  styles.filterChip,
+                  {
+                    justifyContent: 'center',
+                    backgroundColor: watchlistOnly ? C.amber : C.card,
+                    borderColor: watchlistOnly ? C.amber : C.border,
+                  },
+                ]}
               >
                 <Text
                   style={{
-                    color: marketTab === 'local' ? '#071521' : C.text,
-                    fontSize: 12,
+                    color: watchlistOnly ? '#071521' : C.text,
+                    fontSize: 11,
                     fontWeight: '900',
                   }}
                 >
-                  Local Markets
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setMarketTab('global')}
-                style={[styles.segBtn, marketTab === 'global' && { backgroundColor: C.teal }]}
-              >
-                <Text
-                  style={{
-                    color: marketTab === 'global' ? '#071521' : C.text,
-                    fontSize: 12,
-                    fontWeight: '900',
-                  }}
-                >
-                  Global Markets
+                  ★ Watch ({watchlistIds.length})
                 </Text>
               </TouchableOpacity>
             </View>
@@ -622,74 +1035,87 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
             {loadingLive && <ActivityIndicator color={C.teal} style={{ marginVertical: 10 }} />}
 
             {/* Rate Cards */}
-            {filteredItems.map((item) => (
-              <View
-                key={item.id}
-                style={[styles.rateCard, { backgroundColor: C.card, borderColor: C.border }]}
-              >
-                <TouchableOpacity onPress={() => openCommodityDetail(item)} activeOpacity={0.85}>
-                  <View style={styles.rowBetween}>
-                    <View style={{ flex: 1, paddingRight: 8 }}>
-                      <Text
-                        style={{
-                          color: item.dataTag === 'Live' ? C.ok : C.amber,
-                          fontSize: 10,
-                          fontWeight: '900',
-                        }}
-                      >
-                        {item.category.toUpperCase()} • {item.dataTag}
-                      </Text>
-                      <Text style={{ color: C.text, fontSize: 14, fontWeight: '900', marginTop: 1 }}>
-                        {item.commodity}
-                      </Text>
-                      <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
-                        {item.market} • {item.state}
-                      </Text>
+            {filteredItems.map((item) => {
+              const watched = watchlistIds.includes(item.id);
+              return (
+                <View
+                  key={item.id}
+                  style={[styles.rateCard, { backgroundColor: C.card, borderColor: C.border }]}
+                >
+                  <TouchableOpacity onPress={() => openCommodityDetail(item)} activeOpacity={0.85}>
+                    <View style={styles.rowBetween}>
+                      <View style={{ flex: 1, paddingRight: 8 }}>
+                        <Text
+                          style={{
+                            color: item.dataTag === 'Live' ? C.ok : C.amber,
+                            fontSize: 10,
+                            fontWeight: '900',
+                          }}
+                        >
+                          {item.category.toUpperCase()} • {item.dataTag}
+                        </Text>
+                        <Text style={{ color: C.text, fontSize: 14, fontWeight: '900', marginTop: 1 }}>
+                          {item.commodity}
+                        </Text>
+                        <Text style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>
+                          {item.market}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={{ color: C.teal, fontSize: 16, fontWeight: '900' }}>
+                          {item.currency}{Number(item.price).toLocaleString('en-IN')}
+                          <Text style={{ color: C.sub, fontSize: 11, fontWeight: '700' }}> {item.unit}</Text>
+                        </Text>
+                        <Text
+                          style={{
+                            color:
+                              item.hasChange === false
+                                ? C.sub
+                                : item.isPositive
+                                  ? C.ok
+                                  : C.warn,
+                            fontSize: 10.5,
+                            fontWeight: '800',
+                            marginTop: 1,
+                          }}
+                        >
+                          {item.changePct}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={{ color: C.teal, fontSize: 16, fontWeight: '900' }}>
-                        {item.currency}{Number(item.price).toLocaleString('en-IN')}
-                        <Text style={{ color: C.sub, fontSize: 11, fontWeight: '700' }}> {item.unit}</Text>
-                      </Text>
-                      <Text
-                        style={{
-                          color: item.isPositive ? C.ok : C.warn,
-                          fontSize: 11,
-                          fontWeight: '800',
-                          marginTop: 1,
-                        }}
-                      >
-                        {item.changePct}
-                      </Text>
-                    </View>
-                  </View>
 
-                  <Text style={{ color: C.sub, fontSize: 10, marginTop: 6 }}>
-                    Updated: {item.dataUpdatedAt} • {item.source}
-                  </Text>
-                </TouchableOpacity>
-
-                <View style={[styles.cardActionBar, { borderTopColor: C.border }]}>
-                  <TouchableOpacity onPress={() => openCommodityDetail(item)}>
-                    <Text style={{ color: C.teal, fontSize: 11, fontWeight: '800' }}>Details & Trend ›</Text>
+                    <Text style={{ color: C.sub, fontSize: 10, marginTop: 6 }}>
+                      {item.dataUpdatedAt} • {item.source}
+                    </Text>
                   </TouchableOpacity>
-                  <View style={{ flexDirection: 'row', gap: 14 }}>
-                    <TouchableOpacity onPress={() => openShareForItem(item)}>
-                      <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>Share ↗</Text>
+
+                  <View style={[styles.cardActionBar, { borderTopColor: C.border }]}>
+                    <TouchableOpacity onPress={() => openCommodityDetail(item)}>
+                      <Text style={{ color: C.teal, fontSize: 11, fontWeight: '800' }}>Details & Trend ›</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => openAlertForItem(item)}>
-                      <Text style={{ color: C.amber, fontSize: 11, fontWeight: '800' }}>Alert 🔔</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 14 }}>
+                      <TouchableOpacity onPress={() => toggleWatchlist(item.id)}>
+                        <Text style={{ color: watched ? C.amber : C.sub, fontSize: 11, fontWeight: '800' }}>
+                          {watched ? '★ Saved' : '☆ Watch'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => openShareForItem(item)}>
+                        <Text style={{ color: C.text, fontSize: 11, fontWeight: '800' }}>Share ↗</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => openAlertForItem(item)}>
+                        <Text style={{ color: C.amber, fontSize: 11, fontWeight: '800' }}>Alert 🔔</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
 
             {!loadingLive && filteredItems.length === 0 && (
               <View style={[styles.rateCard, { backgroundColor: C.card, borderColor: C.border }]}>
                 <Text style={{ color: C.text, fontSize: 13, fontWeight: '800' }}>No matching market entries</Text>
                 <Text style={{ color: C.sub, fontSize: 11, marginTop: 3 }}>
-                  Try searching another commodity/state or tap Clear filters.
+                  Try another search term/category or switch Local/Global tab.
                 </Text>
               </View>
             )}
@@ -713,14 +1139,25 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: C.text, fontSize: 18, fontWeight: '900' }}>{selectedItem.commodity}</Text>
                   <Text style={{ color: C.sub, fontSize: 12, marginTop: 2 }}>
-                    {selectedItem.market} • {selectedItem.state}
+                    {selectedItem.market}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={{ color: C.teal, fontSize: 18, fontWeight: '900' }}>
                     {selectedItem.currency}{Number(selectedItem.price).toLocaleString('en-IN')} {selectedItem.unit}
                   </Text>
-                  <Text style={{ color: selectedItem.isPositive ? C.ok : C.warn, fontSize: 12, fontWeight: '800' }}>
+                  <Text
+                    style={{
+                      color:
+                        selectedItem.hasChange === false
+                          ? C.sub
+                          : selectedItem.isPositive
+                            ? C.ok
+                            : C.warn,
+                      fontSize: 11.5,
+                      fontWeight: '800',
+                    }}
+                  >
                     {selectedItem.changePct}
                   </Text>
                 </View>
@@ -728,7 +1165,7 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
 
               <View style={[styles.metaBox, { backgroundColor: C.cardAlt, borderColor: C.border }]}>
                 <Text style={{ color: C.sub, fontSize: 10 }}>
-                  Data updated at: <Text style={{ color: C.text, fontWeight: '800' }}>{selectedItem.dataUpdatedAt}</Text>
+                  Period / Arrival: <Text style={{ color: C.text, fontWeight: '800' }}>{selectedItem.dataUpdatedAt}</Text>
                 </Text>
                 <Text style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>
                   Analysis generated at:{' '}
@@ -791,10 +1228,14 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
                 Market Analysis & Direction
               </Text>
               <Text style={{ color: C.text, fontSize: 12, marginTop: 4, lineHeight: 18 }}>
-                • Trend ({historyRange}):{' '}
-                {selectedItem.isPositive ? 'Firm / upward movement' : 'Soft / range-bound movement'}.{'\n'}
-                • Source: {selectedItem.source} ({selectedItem.dataTag}).{'\n'}
-                • Note: Multi-day historical series will connect via backend snapshot database.
+                • Movement ({historyRange}):{' '}
+                {selectedItem.hasChange === false
+                  ? 'Previous trading-day comparison not yet available'
+                  : selectedItem.isPositive
+                    ? 'Firm / upward movement'
+                    : 'Soft / range-bound movement'}
+                .{'\n'}• Source: {selectedItem.source} ({selectedItem.dataTag}).{'\n'}
+                • Note: Full multi-period historical database & external benchmark feeds will attach via backend.
               </Text>
 
               <Text style={{ color: C.teal, fontSize: 12, fontWeight: '900', marginTop: 12 }}>
@@ -843,7 +1284,8 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
 
               {shareModalItem && (
                 <>
-                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 10 }}>
+                  {/* Mode Selector: Quick Card vs Full Report */}
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, marginBottom: 8 }}>
                     <TouchableOpacity
                       onPress={() => setShareFormat('image_card')}
                       style={[
@@ -863,7 +1305,7 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
                           fontWeight: '900',
                         }}
                       >
-                        Share Market Card
+                        Quick Card
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -885,35 +1327,85 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
                           fontWeight: '900',
                         }}
                       >
-                        Full Market Report
+                        Full Report
                       </Text>
                     </TouchableOpacity>
                   </View>
 
+                  {/* Language Selector */}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {SHARE_LANGUAGES.map((lng) => {
+                        const active = shareLang === lng.code;
+                        return (
+                          <TouchableOpacity
+                            key={lng.code}
+                            onPress={() => setShareLang(lng.code)}
+                            style={[
+                              styles.filterChip,
+                              {
+                                backgroundColor: active ? C.amber : C.cardAlt,
+                                borderColor: active ? C.amber : C.border,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={{
+                                color: active ? '#071521' : C.text,
+                                fontSize: 10.5,
+                                fontWeight: '800',
+                              }}
+                            >
+                              {lng.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+
                   <View style={[styles.previewCard, { backgroundColor: C.cardAlt, borderColor: C.teal }]}>
                     <Text style={{ color: C.teal, fontSize: 10, fontWeight: '900' }}>
-                      TRADE SETUU • MARKET PULSE ({shareModalItem.dataTag})
+                      {activeLangCopy.header} ({shareModalItem.dataTag})
                     </Text>
                     <Text style={{ color: C.text, fontSize: 16, fontWeight: '900', marginTop: 3 }}>
                       {shareModalItem.commodity}
                     </Text>
                     <Text style={{ color: C.amber, fontSize: 17, fontWeight: '900', marginTop: 4 }}>
                       {shareModalItem.currency}{Number(shareModalItem.price).toLocaleString('en-IN')}{' '}
-                      {shareModalItem.unit} ({shareModalItem.changePct})
+                      {shareModalItem.unit}{' '}
+                      {shareModalItem.hasChange !== false ? `(${shareModalItem.changePct})` : ''}
                     </Text>
                     <Text style={{ color: C.sub, fontSize: 11, marginTop: 4 }}>
-                      {shareModalItem.market} • {shareModalItem.state}
+                      {activeLangCopy.marketLbl}: {shareModalItem.market}
                     </Text>
+
+                    <Text style={{ color: C.teal, fontSize: 10.5, fontWeight: '800', marginTop: 8 }}>
+                      {activeLangCopy.analystTitle}
+                    </Text>
+                    <Text style={{ color: C.text, fontSize: 11, marginTop: 2, lineHeight: 16 }}>
+                      {activeOutlook}
+                    </Text>
+
+                    {shareFormat === 'full_report' && (
+                      <Text style={{ color: C.sub, fontSize: 10.5, marginTop: 6, lineHeight: 15 }}>
+                        Min/Modal/Max: {shareModalItem.currency}{shareModalItem.minPrice} /{' '}
+                        {shareModalItem.currency}{shareModalItem.modalPrice} / {shareModalItem.currency}
+                        {shareModalItem.maxPrice} • {activeLangCopy.sourceLbl}: {shareModalItem.source}
+                      </Text>
+                    )}
+
                     <Text style={{ color: C.sub, fontSize: 10, marginTop: 6 }}>
-                      Data updated at: {shareModalItem.dataUpdatedAt}
+                      {shareModalItem.dataUpdatedAt} • {activeLangCopy.generatedLbl}:{' '}
+                      {shareModalItem.analysisGeneratedAt}
                     </Text>
-                    <Text style={{ color: C.teal, fontSize: 10, marginTop: 2 }}>
-                      Analysis generated at: {shareModalItem.analysisGeneratedAt}
+                    <Text style={{ color: C.amber, fontSize: 10, fontWeight: '800', marginTop: 6 }}>
+                      {activeLangCopy.cta}
                     </Text>
                   </View>
 
                   <TouchableOpacity
-                    onPress={() => shareReportPayload(shareModalItem, shareFormat)}
+                    onPress={() => shareReportPayload(shareModalItem, shareFormat, shareLang)}
                     style={[styles.primaryAction, { backgroundColor: C.teal, marginTop: 12 }]}
                   >
                     <Text style={{ color: '#071521', fontSize: 13, fontWeight: '900' }}>
@@ -947,7 +1439,7 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
                     {['Falls Below', 'Rises Above', '% Move'].map((dir) => (
                       <TouchableOpacity
                         key={dir}
-                        onPress={() => setAlertDirection(dir)}
+                        onPress={() => handleSelectAlertDirection(dir)}
                         style={[
                           styles.filterChip,
                           {
@@ -971,12 +1463,16 @@ export default function MarketPulseScreen({ theme = 'dark', externalItems, onBac
                     ))}
                   </View>
 
-                  <Text style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>Target Price / Threshold</Text>
+                  <Text style={{ color: C.sub, fontSize: 11, marginBottom: 4 }}>
+                    {alertDirection === '% Move'
+                      ? 'Percentage Move Threshold (%)'
+                      : `Target Price (${alertModalItem.currency})`}
+                  </Text>
                   <TextInput
                     value={alertTargetVal}
                     onChangeText={setAlertTargetVal}
                     keyboardType="numeric"
-                    placeholder="Enter target"
+                    placeholder={alertDirection === '% Move' ? 'e.g. 5' : 'Enter target price'}
                     placeholderTextColor={C.sub}
                     style={[
                       styles.searchRow,
@@ -1006,6 +1502,16 @@ const styles = StyleSheet.create({
   backBtn: { paddingRight: 6, paddingVertical: 2 },
   badgeChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
   tickerWrap: { borderWidth: 1, borderRadius: 12, padding: 8, marginBottom: 10 },
+  noticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginBottom: 10,
+  },
   tickerPill: {
     flexDirection: 'row',
     alignItems: 'center',
