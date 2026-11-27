@@ -126,16 +126,16 @@ export default function ServiceHubScreen({ onOpenService }) {
   const [openScreenKey, setOpenScreenKey] = useState(null);
 
   const handleTilePress = (tile) => {
+    if (!tile || !tile.actionType) return;
     if (typeof onOpenService === 'function') {
       onOpenService(tile);
     }
-    setOpenScreenKey(tile.actionType);
+    setOpenScreenKey((prev) => (prev === tile.actionType ? prev : tile.actionType));
   };
 
   if (openScreenKey === 'DOC_FORGE') {
     return <DocForgeMakerScreen onBack={() => setOpenScreenKey(null)} />;
   }
-
   if (openScreenKey === 'CHA_CUSTOMS') {
     return <ChaCustomsScreen onBack={() => setOpenScreenKey(null)} />;
   }
@@ -160,30 +160,14 @@ export default function ServiceHubScreen({ onOpenService }) {
   if (openScreenKey === 'SETU_VERIFY') {
     return <SetuVerifyScreen onBack={() => setOpenScreenKey(null)} />;
   }
-    if (openScreenKey === 'GLOBAL_LICENSING_COMPLIANCE') {
-    let GlobalLicensingComplianceMod = null;
-    try {
-      GlobalLicensingComplianceMod = require('./GlobalLicensingCompliance')?.default;
-    } catch (e) {
-      try {
-      GlobalLicensingComplianceMod = require('../GlobalLicensingCompliance')?.default;
-      } catch (e2) {
-      GlobalLicensingComplianceMod = null;
-      }
-    }
-
-    if (GlobalLicensingComplianceMod) {
-      const Comp = GlobalLicensingComplianceMod;
-      return (
-        <Comp
-          theme="dark"
-          onExitModule={() => setOpenScreenKey(null)}
-        />
-      );
-    }
+  if (openScreenKey === 'GLOBAL_LICENSING_COMPLIANCE') {
+    return (
+      <GlobalLicensingCompliance
+        theme="dark"
+        onExitModule={() => setOpenScreenKey(null)}
+      />
+    );
   }
-
-
 
   return (
     <View style={styles.root}>
