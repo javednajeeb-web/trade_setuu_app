@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
 
 export default function TradeSetuuHeader({
   searchQuery = '',
@@ -14,13 +14,12 @@ export default function TradeSetuuHeader({
   onOpenSettings,
 }) {
   const renderLogo = () => (
-    <View style={styles.orbitOuter}>
-      <View style={styles.flowArcTop} />
-      <View style={styles.flowArcBottom} />
-      <View style={styles.monogramBox}>
-        <Text style={styles.letterT}>T</Text>
-        <Text style={styles.letterS}>S</Text>
-      </View>
+    <View style={styles.logoCircle}>
+      <Image
+        source={require('../../1795099375380.png')}
+        style={styles.logoImage}
+        resizeMode="contain"
+      />
     </View>
   );
 
@@ -97,60 +96,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
   },
-  orbitOuter: {
+  logoCircle: {
     width: 38,
     height: 38,
     borderRadius: 19,
+    overflow: 'hidden',
     backgroundColor: '#09131E',
-    borderWidth: 1.5,
-    borderColor: '#D9DDE3',
+    borderWidth: 1,
+    borderColor: 'rgba(20, 184, 166, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
-  flowArcTop: {
-    position: 'absolute',
-    top: -2,
-    right: 4,
-    width: 9,
-    height: 3.5,
-    borderRadius: 2,
-    backgroundColor: '#14B8A6',
-  },
-  flowArcBottom: {
-    position: 'absolute',
-    bottom: -2,
-    left: 4,
-    width: 9,
-    height: 3.5,
-    borderRadius: 2,
-    backgroundColor: '#14B8A6',
-  },
-  monogramBox: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  letterT: {
-    position: 'absolute',
-    top: 0,
-    left: 3,
-    color: '#D9DDE3',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  letterS: {
-    position: 'absolute',
-    bottom: 0,
-    right: 3,
-    color: '#14B8A6',
-    fontSize: 18,
-    fontWeight: '900',
-    textShadowColor: '#09131E',
-    textShadowOffset: { width: -1, height: -1 },
-    textShadowRadius: 2,
+  logoImage: {
+    width: 38,
+    height: 38,
   },
   searchBox: {
     flex: 1,
@@ -217,4 +176,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-    
