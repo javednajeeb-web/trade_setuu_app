@@ -16,7 +16,6 @@ import TradeFinanceDeskScreen from './TradeFinanceDeskScreen';
 import BlindDealRoomScreen from './BlindDealRoomScreen';
 import SetuCalcProSuiteScreen from './SetuCalcProSuiteScreen';
 import SetuVerifyScreen from './SetuVerifyScreen';
-import GlobalLicensingCompliance from './GlobalLicensingCompliance';
 
 const ACTIVE_HUB_TILES = [
   {
@@ -110,16 +109,6 @@ const ACTIVE_HUB_TILES = [
     accent: '#38BDF8',
     actionType: 'SETU_VERIFY',
   },
-  {
-    id: 'global_licensing_compliance',
-    code: '36',
-    title: 'Global Licensing & Compliance',
-    subtitle: 'Country registrations, eligibility, vault & 30/15/7d renewal alerts',
-    category: 'Licensing & Legal',
-    badge: 'NEW',
-    accent: '#2DD4BF',
-    actionType: 'GLOBAL_LICENSING_COMPLIANCE',
-  },
 ];
 
 export default function ServiceHubScreen({ onOpenService }) {
@@ -159,14 +148,6 @@ export default function ServiceHubScreen({ onOpenService }) {
   }
   if (openScreenKey === 'SETU_VERIFY') {
     return <SetuVerifyScreen onBack={() => setOpenScreenKey(null)} />;
-  }
-  if (openScreenKey === 'GLOBAL_LICENSING_COMPLIANCE') {
-    return (
-      <GlobalLicensingCompliance
-        theme="dark"
-        onExitModule={() => setOpenScreenKey(null)}
-      />
-    );
   }
 
   return (
