@@ -65,6 +65,13 @@ jobs:
           }
           EOF
 
+      - name: Verify screens & files
+        run: |
+          pwd
+          ls -la
+          ls -la src/screens || true
+          find . -maxdepth 4 -iname "*GlobalLicensingCompliance*" || true
+
       - name: Prebuild Android
         run: npx expo prebuild --platform android --no-install
 
