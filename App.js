@@ -26,31 +26,134 @@ import { translateText } from './src/services/translationService';
 
 const TS_LOGO = require('./1795099375380.png');
 
-const INTL_MARKET = [
-  { id: 'f1', item: 'Indian Parboiled Rice (5% Broken)', port: 'FOB JNPT / Vizag', price: 'USD 465 / MT (₹43,082)' },
-  { id: 'f2', item: '1121 Golden Sella Basmati Rice', port: 'FOB Mundra / Kandla', price: 'USD 980 / MT (₹90,797)' },
-  { id: 'f3', item: 'Yellow Maize (Feed Grade <14%)', port: 'FOB Kakinada / Vizag', price: 'USD 268 / MT (₹24,830)' },
-  { id: 'f4', item: 'LME Copper Grade A (3M Cash)', port: 'London Metal Exchange', price: 'USD 9,240 / MT (₹8,56,086)' },
-  { id: 'f5', item: 'MS Billet & TMT Fe-550D', port: 'Ex-Plant Raipur', price: '₹45,500 / MT (USD 491)' },
+const EXIM_RELEVANCE_KEYWORDS = [
+  'export',
+  'import',
+  'customs',
+  'dgft',
+  'apeda',
+  'cbic',
+  'tariff',
+  'duty',
+  'port',
+  'jnpt',
+  'mundra',
+  'vizag',
+  'kandla',
+  'shipping',
+  'freight',
+  'cargo',
+  'vessel',
+  'container',
+  'maritime',
+  'logistics',
+  'rice',
+  'basmati',
+  'maize',
+  'wheat',
+  'grain',
+  'spice',
+  'commodity',
+  'trade deal',
+  'fta',
+  'exim',
 ];
+
+const EXCLUDE_NOISE_KEYWORDS = [
+  'zara',
+  'h&m',
+  'under armour',
+  'black friday',
+  'fashion',
+  'sneaker',
+  'movie',
+  'celebrity',
+  'tax case',
+];
+
+const BLOCKED_URL_PATTERNS = [
+  /^\s*javascript:/i,
+  /^\s*data:/i,
+  /^\s*file:/i,
+  /^\s*vbscript:/i,
+  /bit\.ly|tinyurl\.com|t\.co|goo\.gl|rb\.gy/i,
+];
+
+function extractSafeLinks(text = '') {
+  if (!text || typeof text !== 'string') return [];
+  const rawMatches = text.match(/https?:\/\/[^\s<>"']+/gi) || [];
+
+  return Array.from(new Set(rawMatches)).filter((url) => {
+    const clean = url.trim().replace(/[.,;!?)]+$/, '');
+    if (!/^https?:\/\//i.test(clean)) return false;
+    if (BLOCKED_URL_PATTERNS.some((rx) => rx.test(clean))) return false;
+    return true;
+  });
+}
+
+function openFilteredLink(rawUrl) {
+  const clean = (rawUrl || '').trim().replace(/[.,;!?)]+$/, '');
+  const safeList = extractSafeLinks(clean);
+
+  if (safeList.length === 0) {
+    Alert.alert(
+      'Unsafe or Invalid Link',
+      'Yeh link security filter ki wajah se block kar diya gaya hai ya valid nahi hai.'
+    );
+    return;
+  }
+
+  const safeUrl = safeList[0];
+  Alert.alert(
+    'Open External Link',
+    `Kya aap is website ya digital card link ko open karna chahte hain?\n\n${safeUrl}`,
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Open',
+        onPress: () => {
+          Linking.openURL(safeUrl).catch(() => {
+            Alert.alert('Error', 'Link open karne mein problem aayi.');
+          });
+        },
+      },
+    ]
+  );
+}
+
+function isRelevantEximArticle(item) {
+  const hay = `${item?.title || ''} ${item?.summary || ''}`.toLowerCase();
+  if (!hay.trim()) return false;
+  if (EXCLUDE_NOISE_KEYWORDS.some((w) => hay.includes(w))) return false;
+  return EXIM_RELEVANCE_KEYWORDS.some((kw) => hay.includes(kw));
+}
 
 const FALLBACK_NEWS = [
   {
     id: 'n1',
     title: 'DGFT Streamlines Non-Basmati Parboiled Rice Export Clearance at JNPT & Vizag',
     source: 'Exim Trade Desk',
-    date: '21 Nov 2026',
+    date: '2026',
     summary:
-      'Exporters shipping parboiled rice via JNPT, Vizag, and Kakinada ports can now complete customs EDI verification faster with digital LUT and APEDA sync.',
+      'Exporters shipping parboiled rice via JNPT, Vizag, and Kakinada ports can now complete customs EDI verification faster with digital LUT and APEDA sync. Port turnaround and container slot availability remain key focus areas for exporters.',
     url: '',
   },
   {
     id: 'n2',
-    title: 'USD/INR Holds Near ₹92.65 — Stronger Realization for Indian Agro & Metal Exporters',
-    source: 'Global FX Monitor',
-    date: '21 Nov 2026',
+    title: 'India & Gulf Trade Corridors: Customs Duty & Port Logistics Updates',
+    source: 'Global Trade Desk',
+    date: '2026',
     summary:
-      'With the US Dollar trading near ₹92.65, Indian rice, maize, spice, and metal exporters are locking in Q4 forward shipments to Gulf and West Africa.',
+      'Bilateral trade negotiations, tariff adjustments, and shipping lane updates are shaping agricultural, food processing, and industrial export competitiveness.',
+    url: '',
+  },
+  {
+    id: 'n3',
+    title: 'Global Container Freight, Port Congestion & Commodity Export Demand',
+    source: 'Maritime & EXIM Desk',
+    date: '2026',
+    summary:
+      'Shippers tracking FOB/CIF pricing, phytosanitary and quality inspection norms, and vessel schedules across Asian and Middle Eastern ports.',
     url: '',
   },
 ];
@@ -58,13 +161,13 @@ const FALLBACK_NEWS = [
 const INITIAL_FEED = [
   {
     id: 'p1',
-    category: 'India EXIM',
     post_type: 'Sell Offer',
     initials: 'UE',
     trader_name: 'UA EXIM Overseas',
     trader_role: 'Verified Exporter • Raipur, CG • 2h',
     title: 'Indian Non-Basmati Parboiled Rice (5% Broken, Sortex Clean)',
-    desc: 'Ready mill stock packed in 50 Kg PP bags. SGS / APEDA inspection ready for immediate container stuffing.',
+    desc:
+      'Ready mill stock packed in 50 Kg PP bags. SGS / APEDA inspection ready for immediate container stuffing. Full phytosanitary and origin documentation available for prompt dispatch.\n\n#RiceExport #ParboiledRice #FOBIndia #JNPT',
     qty: '2,500 MT',
     port: 'FOB JNPT / Vizag',
     price: 'USD 465 / MT',
@@ -73,13 +176,13 @@ const INITIAL_FEED = [
   },
   {
     id: 'p2',
-    category: 'International',
     post_type: 'Buy Requirement',
     initials: 'AG',
     trader_name: 'Apex Global Commodities',
     trader_role: 'Commodity Broker • Dubai / Singapore • 4h',
     title: 'Urgent Buyer Requirement: Yellow Maize (Moisture <14%, Aflatoxin <20ppb)',
-    desc: 'Looking for direct millers or FOB exporters for regular monthly shipments to Port Klang & Vietnam.',
+    desc:
+      'Looking for direct millers or FOB exporters for regular monthly shipments to Port Klang & Vietnam. LC or confirmed advance terms based on inspection.\n\n#YellowMaize #GrainImport #CIFPortKlang',
     qty: '1,000 MT',
     port: 'CIF Port Klang',
     price: 'USD 272 / MT',
@@ -88,20 +191,25 @@ const INITIAL_FEED = [
   },
   {
     id: 'p3',
-    category: 'Domestic',
-    post_type: 'Bulk Supply',
+    post_type: 'Logistics',
     initials: 'MB',
     trader_name: 'Mahamaya Bulk Logistics & Trade',
-    trader_role: 'Domestic Supplier • Raipur -> Vizag • 6h',
+    trader_role: 'Logistics Partner • Raipur -> Vizag • 6h',
     title: 'Direct Mill-to-Port Rake & 22-Wheeler Fleet Available for Rice & Maize',
-    desc: 'GPS-enabled tarpaulin covered trucks with transit insurance and instant E-Way bill support.',
+    desc:
+      'GPS-enabled tarpaulin covered trucks with transit insurance and instant E-Way bill support for bulk agricultural and industrial cargo movement.\n\n#Freight #Logistics #VizagPort #BulkCargo',
     qty: '35–42 MT / Truck',
-    port: 'Raipur -> Vizag / JNPT',
+    port: 'Raipur -> Vizag',
     price: '₹2,150 / MT',
     phone: '+919826100303',
     comments: [],
   },
 ];
+
+function extractHashtags(text = '') {
+  const matches = text.match(/#[A-Za-z0-9_]+/g);
+  return matches ? Array.from(new Set(matches)) : [];
+}
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -116,23 +224,27 @@ export default function App() {
 
   // Navigation
   const [activeTab, setActiveTab] = useState('feed');
-  const [feedFilter, setFeedFilter] = useState('All');
+  const [homeSubTab, setHomeSubTab] = useState('feed');
+  const [activeHashtag, setActiveHashtag] = useState('');
   const [tabHistory, setTabHistory] = useState(['feed']);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Full-screen CreatePostScreen state
   const [showCreatePostScreen, setShowCreatePostScreen] = useState(false);
 
-  // Translation state per item id: { [id]: { visible, lang, text, loading } }
+  // See more expansion per post id
+  const [expandedPosts, setExpandedPosts] = useState({});
+
+  // Translation state per item id
   const [translations, setTranslations] = useState({});
 
   // Vault, Loyalty & Subscription
   const [vaultBalance, setVaultBalance] = useState(500);
-  const [loyaltyPts, setLoyaltyPts] = useState(320);
+  const [loyaltyPts] = useState(320);
   const [isPaid, setIsPaid] = useState(false);
   const [planLabel, setPlanLabel] = useState('Free Member');
 
-  // Live FX & News
+  // News & Full Reader Modal
   const [usdInr, setUsdInr] = useState(92.65);
   const [priceAlerts] = useState(['Parboiled Rice > ₹2,550/Qtl']);
   const [newsList, setNewsList] = useState(FALLBACK_NEWS);
@@ -155,12 +267,12 @@ export default function App() {
 
   const isDark = theme === 'dark';
   const T = {
-    bg: isDark ? '#090C10' : '#F3F5F8',
-    card: isDark ? '#11161F' : '#FFFFFF',
-    border: isDark ? '#1E293B' : '#E2E8F0',
+    bg: isDark ? '#060D12' : '#F3F5F8',
+    card: isDark ? '#0B161E' : '#FFFFFF',
+    border: isDark ? '#162C37' : '#E2E8F0',
     text: isDark ? '#F1F5F9' : '#0F172A',
     sub: isDark ? '#94A3B8' : '#64748B',
-    pill: isDark ? '#18202C' : '#E9EEF5',
+    pill: isDark ? '#0F222D' : '#E9EEF5',
     accent: '#0D9488',
     gold: '#C9B89A',
   };
@@ -176,17 +288,20 @@ export default function App() {
 
     fetchEximNews()
       .then((res) => {
-        if (mounted && Array.isArray(res?.articles) && res.articles.length > 0) {
-          setNewsList(
-            res.articles.slice(0, 12).map((it, idx) => ({
-              id: it.id || 'nw-' + idx,
-              title: it.title || 'Exim Trade Update',
-              source: it.source || 'Global Exim Feed',
-              date: it.publishedAt || 'Latest',
-              summary: it.summary || it.title || '',
-              url: it.url || '',
-            }))
-          );
+        if (!mounted || !Array.isArray(res?.articles)) return;
+        const cleanArticles = res.articles
+          .filter(isRelevantEximArticle)
+          .slice(0, 15)
+          .map((it, idx) => ({
+            id: it.id || 'nw-' + idx,
+            title: it.title || 'EXIM Trade Update',
+            source: it.source || 'EXIM Desk',
+            date: it.publishedAt || 'Latest',
+            summary: it.summary || it.title || '',
+            url: it.url || '',
+          }));
+        if (cleanArticles.length > 0) {
+          setNewsList(cleanArticles);
         }
       })
       .catch(() => {});
@@ -218,6 +333,10 @@ export default function App() {
         setDrawerOpen(false);
         return true;
       }
+      if (activeHashtag) {
+        setActiveHashtag('');
+        return true;
+      }
       if (tabHistory.length > 1) {
         const next = tabHistory.slice(0, -1);
         setTabHistory(next);
@@ -232,7 +351,16 @@ export default function App() {
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', handler);
     return () => sub.remove();
-  }, [showCreatePostScreen, selectedNews, commentPost, modal, drawerOpen, tabHistory, activeTab]);
+  }, [
+    showCreatePostScreen,
+    selectedNews,
+    commentPost,
+    modal,
+    drawerOpen,
+    activeHashtag,
+    tabHistory,
+    activeTab,
+  ]);
 
   const switchTab = (t) => {
     setActiveTab(t);
@@ -246,6 +374,10 @@ export default function App() {
     Linking.openURL(
       `https://wa.me/${(phone || '+919826100000').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`
     );
+
+  const toggleSeeMore = (postId) => {
+    setExpandedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
+  };
 
   const handleToggleTranslation = async (id, title, body, preferredLang) => {
     const current = translations[id];
@@ -291,7 +423,7 @@ export default function App() {
         <View style={styles.rowBetween}>
           <TouchableOpacity onPress={() => handleToggleTranslation(id, title, body)}>
             <Text style={styles.transToggleTxt}>
-              {tState?.visible ? 'Show Original' : 'Show Translation'}
+              {tState?.visible ? 'Hide Translation' : 'Translate'}
             </Text>
           </TouchableOpacity>
           <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -314,7 +446,7 @@ export default function App() {
 
         {tState?.visible ? (
           <View style={[styles.transBox, { backgroundColor: T.pill, borderColor: T.border }]}>
-            <Text style={{ color: T.text, fontSize: 12, lineHeight: 18 }}>
+            <Text style={{ color: T.text, fontSize: 12.5, lineHeight: 19 }}>
               {tState.loading ? 'Translating...' : tState.text}
             </Text>
           </View>
@@ -352,10 +484,10 @@ export default function App() {
         <View style={[styles.pdfCard, { backgroundColor: T.pill, borderColor: T.border }]}>
           <Text style={styles.pdfTag}>PDF</Text>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: T.text, fontSize: 12, fontWeight: '800' }} numberOfLines={1}>
+            <Text style={{ color: T.text, fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
               {media.fileName || 'Trade_Document.pdf'}
             </Text>
-            <Text style={{ color: T.sub, fontSize: 10 }}>{media.fileSize || 'Document'}</Text>
+            <Text style={{ color: T.sub, fontSize: 11 }}>{media.fileSize || 'Document'}</Text>
           </View>
         </View>
       );
@@ -376,7 +508,6 @@ export default function App() {
           setPosts((prev) => [
             {
               ...newPost,
-              category: 'India EXIM',
               initials: (userName || 'TS')
                 .split(' ')
                 .map((w) => w[0])
@@ -385,14 +516,15 @@ export default function App() {
                 .toUpperCase(),
               trader_name: userName,
               trader_role: `${userCompany} • Just now`,
-              qty: newPost.meta || 'Ready Stock',
-              port: 'EXIM / Domestic',
-              price: 'Best Quote',
+              qty: newPost.qty || 'Bulk / Lot',
+              port: newPost.port || 'EXIM / Domestic',
+              price: newPost.price || 'Best Quote',
               phone: '+919826100000',
               comments: [],
             },
             ...prev,
           ]);
+          setHomeSubTab('feed');
           setActiveTab('feed');
         }}
       />
@@ -401,8 +533,8 @@ export default function App() {
 
   if (!isLoggedIn) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#090C10', justifyContent: 'center', padding: 20 }}>
-        <StatusBar barStyle="light-content" backgroundColor="#090C10" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#060D12', justifyContent: 'center', padding: 20 }}>
+        <StatusBar barStyle="light-content" backgroundColor="#060D12" />
         <View style={{ alignItems: 'center', marginBottom: 24 }}>
           <Image source={TS_LOGO} style={{ width: 84, height: 84, borderRadius: 42, marginBottom: 12 }} />
           <Text style={{ color: '#FFF', fontSize: 22, fontWeight: '900' }}>Trade SETUU</Text>
@@ -416,43 +548,23 @@ export default function App() {
         <TextInput style={styles.mInp} value={userCompany} onChangeText={setUserCompany} />
         <Text style={{ color: '#94A3B8', fontSize: 12, fontWeight: '700', marginBottom: 4 }}>Mobile / Email</Text>
         <TextInput style={styles.mInp} value={loginMobile} onChangeText={setLoginMobile} />
-        <Text style={{ color: '#94A3B8', fontSize: 12, fontWeight: '700', marginBottom: 6 }}>
-          Select Your Business Role
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 16 }}>
-          {[
-            'Exporter & Trader',
-            'Global Importer',
-            'Commodity Broker',
-            'Transporter / Fleet',
-            'Shipping Line',
-            'CHA / Customs',
-          ].map((r) => (
-            <TouchableOpacity
-              key={r}
-              onPress={() => setUserRole(r)}
-              style={[styles.chipBtn, userRole === r && { backgroundColor: '#0D9488', borderColor: '#14B8A6' }]}
-            >
-              <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '800' }}>{r}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
         <TouchableOpacity style={styles.mBtn} onPress={() => setIsLoggedIn(true)}>
           <Text style={styles.mBtnTxt}>Continue to Trade SETUU →</Text>
         </TouchableOpacity>
-        <Text style={{ color: '#64748B', fontSize: 10, textAlign: 'center', marginTop: 18 }}>
-          Powered by Apex Sync Technologies
-        </Text>
       </SafeAreaView>
     );
   }
 
   const visiblePosts = posts.filter((p) => {
-    const okCat = feedFilter === 'All' || p.category === feedFilter;
-    const okQ =
-      !searchQuery.trim() ||
-      `${p.title} ${p.trader_name} ${p.port}`.toLowerCase().includes(searchQuery.toLowerCase());
-    return okCat && okQ;
+    const combined = `${p.title} ${p.desc || ''} ${p.trader_name} ${p.port || ''} ${p.post_type || ''}`.toLowerCase();
+    const okTag = !activeHashtag || combined.includes(activeHashtag.toLowerCase());
+    const okSearch = !searchQuery.trim() || combined.includes(searchQuery.trim().toLowerCase());
+    return okTag && okSearch;
+  });
+
+  const visibleNews = newsList.filter((n) => {
+    if (!searchQuery.trim()) return true;
+    return `${n.title} ${n.summary} ${n.source}`.toLowerCase().includes(searchQuery.trim().toLowerCase());
   });
 
   const showTopGlobalHeader = activeTab !== 'mandi' && activeTab !== 'logistics';
@@ -461,7 +573,7 @@ export default function App() {
     <SafeAreaView style={{ flex: 1, backgroundColor: T.bg, paddingTop: Platform.OS === 'android' ? 4 : 0 }}>
       <StatusBar barStyle="light-content" backgroundColor="#060D12" />
 
-      {/* CLEAN TOP HEADER */}
+      {/* TOP HEADER */}
       {showTopGlobalHeader && (
         <View style={hdr.bar}>
           <TouchableOpacity
@@ -530,173 +642,263 @@ export default function App() {
         </View>
       )}
 
-      {/* TAB 1: TRADE FEED */}
+      {/* TAB 1: TWO TOP TOGGLES ONLY (Trade Feed | EXIM News) */}
       {activeTab === 'feed' && (
         <View style={{ flex: 1 }}>
-          <View style={{ backgroundColor: T.card, borderBottomWidth: 1, borderBottomColor: T.border }}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 9 }}
+          <View style={[styles.twoToggleBar, { backgroundColor: T.card, borderBottomColor: T.border }]}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setHomeSubTab('feed')}
+              style={[styles.twoToggleBtn, homeSubTab === 'feed' && styles.twoToggleBtnActive]}
             >
-              {['All', 'India EXIM', 'Domestic', 'International', 'Market', 'Exim News'].map((tab) => {
-                const active = feedFilter === tab;
-                return (
-                  <TouchableOpacity
-                    key={tab}
-                    onPress={() => setFeedFilter(tab)}
-                    style={[styles.filterPill, { backgroundColor: active ? T.accent : T.pill }]}
-                  >
-                    <Text style={{ color: active ? '#FFF' : T.text, fontSize: 12, fontWeight: '800' }}>{tab}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+              <Text style={[styles.twoToggleTxt, homeSubTab === 'feed' && styles.twoToggleTxtActive]}>
+                Trade Feed
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => setHomeSubTab('news')}
+              style={[styles.twoToggleBtn, homeSubTab === 'news' && styles.twoToggleBtnActive]}
+            >
+              <Text style={[styles.twoToggleTxt, homeSubTab === 'news' && styles.twoToggleTxtActive]}>
+                EXIM News
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {feedFilter === 'Market' ? (
-            <ScrollView contentContainerStyle={{ paddingBottom: 95 }}>
-              <View style={[styles.liCard, { backgroundColor: '#0D1B2A', borderColor: T.border }]}>
-                <Text style={{ color: '#C9B89A', fontSize: 11, fontWeight: '800' }}>LIVE FX REFERENCE</Text>
-                <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '900', marginTop: 2 }}>
-                  1 USD = ₹{usdInr} INR
-                </Text>
-              </View>
-              {INTL_MARKET.map((item) => (
-                <View key={item.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
-                  <View style={styles.rowBetween}>
-                    <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', flex: 1 }}>{item.item}</Text>
-                    <TouchableOpacity onPress={() => shareText(item.item, `${item.port}: ${item.price}`)}>
-                      <Text style={{ fontSize: 16 }}>📤</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={{ color: T.sub, fontSize: 12, marginTop: 3 }}>📍 {item.port}</Text>
-                  <Text style={{ color: T.accent, fontSize: 15, fontWeight: '900', marginTop: 6 }}>{item.price}</Text>
-                </View>
-              ))}
-            </ScrollView>
-          ) : feedFilter === 'Exim News' ? (
-            <ScrollView contentContainerStyle={{ paddingBottom: 95 }}>
-              {newsList.map((n) => (
+          {activeHashtag ? (
+            <View style={styles.activeTagBanner}>
+              <Text style={styles.activeTagBannerTxt}>
+                Sector Focus: {activeHashtag}
+              </Text>
+              <TouchableOpacity onPress={() => setActiveHashtag('')}>
+                <Text style={styles.clearTagTxt}>Clear ✕</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {homeSubTab === 'news' ? (
+            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+              {visibleNews.map((n) => (
                 <TouchableOpacity
                   key={n.id}
+                  activeOpacity={0.9}
                   onPress={() => setSelectedNews(n)}
-                  style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}
+                  style={[styles.spaciousCard, { backgroundColor: T.card, borderColor: T.border }]}
                 >
                   <View style={styles.rowBetween}>
-                    <Text style={{ color: T.accent, fontSize: 11, fontWeight: '800' }}>
+                    <Text style={{ color: '#2DD4BF', fontSize: 12, fontWeight: '800' }}>
                       {n.source} • {n.date}
                     </Text>
                     <TouchableOpacity onPress={() => shareText(n.title, n.summary)}>
                       <Text style={{ fontSize: 16 }}>📤</Text>
                     </TouchableOpacity>
                   </View>
-                  <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', marginTop: 6 }}>{n.title}</Text>
-                  <Text style={{ color: T.sub, fontSize: 13, marginTop: 5, lineHeight: 19 }} numberOfLines={3}>
+
+                  <Text style={{ color: T.text, fontSize: 16.5, fontWeight: '900', marginTop: 8, lineHeight: 23 }}>
+                    {n.title}
+                  </Text>
+                  <Text style={{ color: T.sub, fontSize: 13.5, marginTop: 6, lineHeight: 20 }} numberOfLines={3}>
                     {n.summary}
                   </Text>
+
                   {renderTranslationBlock(n.id, n.title, n.summary)}
+
+                  <View style={styles.newsFooterRow}>
+                    <Text style={{ color: '#2DD4BF', fontSize: 12.5, fontWeight: '800' }}>
+                      Read Complete News Inside App →
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           ) : (
-            <ScrollView contentContainerStyle={{ paddingBottom: 95 }}>
-              {visiblePosts.map((post) => {
-                const liked = likedIds.includes(post.id);
-                const saved = savedIds.includes(post.id);
-                return (
-                  <View key={post.id} style={[styles.liCard, { backgroundColor: T.card, borderColor: T.border }]}>
-                    <View style={styles.rowBetween}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                        <View style={styles.avatarCircle}>
-                          <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 12 }}>
-                            {post.initials || 'TS'}
+            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+              {visiblePosts.length === 0 ? (
+                <View style={[styles.spaciousCard, { backgroundColor: T.card, borderColor: T.border, alignItems: 'center' }]}>
+                  <Text style={{ color: T.text, fontSize: 15, fontWeight: '800' }}>
+                    No matching trade posts found
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.mBtn, { marginTop: 12, paddingHorizontal: 18 }]}
+                    onPress={() => {
+                      setActiveHashtag('');
+                      setSearchQuery('');
+                    }}
+                  >
+                    <Text style={styles.mBtnTxt}>Reset Filters</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                visiblePosts.map((post) => {
+                  const liked = likedIds.includes(post.id);
+                  const saved = savedIds.includes(post.id);
+                  const isExpanded = Boolean(expandedPosts[post.id]);
+                  const bodyText = post.desc || '';
+                  const isLongText = bodyText.length > 155 || bodyText.split('\n').length > 3;
+                  const tags = extractHashtags(`${post.title} ${bodyText}`);
+                  const safeLinks = extractSafeLinks(`${post.title} ${bodyText}`);
+
+                  return (
+                    <View
+                      key={post.id}
+                      style={[styles.spaciousCard, { backgroundColor: T.card, borderColor: T.border }]}
+                    >
+                      <View style={styles.rowBetween}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                          <View style={styles.avatarCircle}>
+                            <Text style={{ color: '#FFF', fontWeight: '900', fontSize: 13 }}>
+                              {post.initials || 'TS'}
+                            </Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: T.text, fontSize: 15, fontWeight: '800' }}>
+                              {post.trader_name}
+                            </Text>
+                            <Text style={{ color: T.sub, fontSize: 11.5, marginTop: 1 }}>
+                              {post.trader_role}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={styles.offerPill}>{post.post_type}</Text>
+                      </View>
+
+                      <Text style={{ color: T.text, fontSize: 16.5, fontWeight: '900', marginTop: 12, lineHeight: 23 }}>
+                        {post.title}
+                      </Text>
+
+                      {!!bodyText && (
+                        <View style={{ marginTop: 6 }}>
+                          <Text
+                            style={{ color: T.sub, fontSize: 14, lineHeight: 21 }}
+                            numberOfLines={isExpanded ? undefined : 3}
+                          >
+                            {bodyText}
+                          </Text>
+                          {isLongText && (
+                            <TouchableOpacity
+                              onPress={() => toggleSeeMore(post.id)}
+                              style={{ marginTop: 4, alignSelf: 'flex-start' }}
+                            >
+                              <Text style={styles.seeMoreTxt}>
+                                {isExpanded ? 'Show less' : 'See more'}
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
+
+                      {safeLinks.length > 0 && (
+                        <View style={styles.safeLinkRow}>
+                          {safeLinks.map((lnk) => (
+                            <TouchableOpacity
+                              key={lnk}
+                              style={styles.safeLinkBtn}
+                              onPress={() => openFilteredLink(lnk)}
+                            >
+                              <Text style={styles.safeLinkTxt} numberOfLines={1}>
+                                🔗 Open Website / Card →
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+
+                      {tags.length > 0 && (
+                        <View style={styles.hashtagRow}>
+                          {tags.map((tag) => {
+                            const selected = activeHashtag.toLowerCase() === tag.toLowerCase();
+                            return (
+                              <TouchableOpacity
+                                key={tag}
+                                style={[styles.hashtagChip, selected && styles.hashtagChipActive]}
+                                onPress={() => setActiveHashtag(selected ? '' : tag)}
+                              >
+                                <Text style={[styles.hashtagTxt, selected && styles.hashtagTxtActive]}>
+                                  {tag}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      )}
+
+                      {renderTranslationBlock(post.id, post.title, bodyText)}
+                      {renderFeedMedia(post.media)}
+
+                      <View style={[styles.specStrip, { borderTopColor: T.border, borderBottomColor: T.border }]}>
+                        <View style={styles.specCol}>
+                          <Text style={{ color: T.sub, fontSize: 10.5, fontWeight: '700' }}>QUANTITY</Text>
+                          <Text style={{ color: T.text, fontSize: 13.5, fontWeight: '800', marginTop: 3 }}>
+                            {post.qty}
                           </Text>
                         </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: T.text, fontSize: 14, fontWeight: '800' }}>{post.trader_name}</Text>
-                          <Text style={{ color: T.sub, fontSize: 11 }}>{post.trader_role}</Text>
+                        <View
+                          style={[
+                            styles.specCol,
+                            { borderLeftWidth: 1, borderRightWidth: 1, borderColor: T.border, paddingHorizontal: 10 },
+                          ]}
+                        >
+                          <Text style={{ color: T.sub, fontSize: 10.5, fontWeight: '700' }}>PORT / ROUTE</Text>
+                          <Text
+                            style={{ color: T.text, fontSize: 13.5, fontWeight: '800', marginTop: 3 }}
+                            numberOfLines={1}
+                          >
+                            {post.port}
+                          </Text>
+                        </View>
+                        <View style={[styles.specCol, { paddingLeft: 10 }]}>
+                          <Text style={{ color: T.sub, fontSize: 10.5, fontWeight: '700' }}>TARGET RATE</Text>
+                          <Text style={{ color: '#14B8A6', fontSize: 13.5, fontWeight: '900', marginTop: 3 }}>
+                            {post.price}
+                          </Text>
                         </View>
                       </View>
-                      <Text style={styles.offerPill}>{post.post_type}</Text>
-                    </View>
 
-                    <Text style={{ color: T.text, fontSize: 15, fontWeight: '800', marginTop: 10, lineHeight: 21 }}>
-                      {post.title}
-                    </Text>
-                    {!!post.desc && (
-                      <Text style={{ color: T.sub, fontSize: 13, marginTop: 4, lineHeight: 19 }}>{post.desc}</Text>
-                    )}
-
-                    {renderTranslationBlock(post.id, post.title, post.desc)}
-                    {renderFeedMedia(post.media)}
-
-                    <View style={[styles.specStrip, { borderTopColor: T.border, borderBottomColor: T.border }]}>
-                      <View style={styles.specCol}>
-                        <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>QUANTITY</Text>
-                        <Text style={{ color: T.text, fontSize: 13, fontWeight: '800', marginTop: 2 }}>{post.qty}</Text>
+                      <View style={styles.liActionRow}>
+                        <TouchableOpacity
+                          style={styles.liActBtn}
+                          onPress={() =>
+                            setLikedIds(liked ? likedIds.filter((i) => i !== post.id) : [...likedIds, post.id])
+                          }
+                        >
+                          <Text style={{ color: liked ? '#14B8A6' : T.sub, fontSize: 12.5, fontWeight: '800' }}>
+                            {liked ? '❤️ Liked' : '🤍 Like'}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.liActBtn} onPress={() => setCommentPost(post)}>
+                          <Text style={{ color: T.sub, fontSize: 12.5, fontWeight: '800' }}>
+                            💬 ({post.comments?.length || 0})
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.liActBtn}
+                          onPress={() =>
+                            setSavedIds(saved ? savedIds.filter((i) => i !== post.id) : [...savedIds, post.id])
+                          }
+                        >
+                          <Text style={{ color: saved ? T.gold : T.sub, fontSize: 12.5, fontWeight: '800' }}>
+                            {saved ? '🔖 Saved' : '📑 Save'}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.liActBtn}
+                          onPress={() => shareText(post.title, `${post.qty} | ${post.port} | ${post.price}`)}
+                        >
+                          <Text style={{ color: T.sub, fontSize: 12.5, fontWeight: '800' }}>📤 Share</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.waCircle}
+                          onPress={() => openWA(post.phone, `Hi ${post.trader_name}, regarding ${post.title}`)}
+                        >
+                          <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900' }}>WA</Text>
+                        </TouchableOpacity>
                       </View>
-                      <View
-                        style={[
-                          styles.specCol,
-                          { borderLeftWidth: 1, borderRightWidth: 1, borderColor: T.border, paddingHorizontal: 10 },
-                        ]}
-                      >
-                        <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>PORT / ROUTE</Text>
-                        <Text style={{ color: T.text, fontSize: 13, fontWeight: '800', marginTop: 2 }} numberOfLines={1}>
-                          {post.port}
-                        </Text>
-                      </View>
-                      <View style={[styles.specCol, { paddingLeft: 10 }]}>
-                        <Text style={{ color: T.sub, fontSize: 10, fontWeight: '700' }}>TARGET RATE</Text>
-                        <Text style={{ color: T.accent, fontSize: 13, fontWeight: '900', marginTop: 2 }}>
-                          {post.price}
-                        </Text>
-                      </View>
                     </View>
-
-                    <View style={styles.liActionRow}>
-                      <TouchableOpacity
-                        style={styles.liActBtn}
-                        onPress={() =>
-                          setLikedIds(liked ? likedIds.filter((i) => i !== post.id) : [...likedIds, post.id])
-                        }
-                      >
-                        <Text style={{ color: liked ? T.accent : T.sub, fontSize: 12, fontWeight: '800' }}>
-                          {liked ? '❤️ Liked' : '🤍 Like'}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.liActBtn} onPress={() => setCommentPost(post)}>
-                        <Text style={{ color: T.sub, fontSize: 12, fontWeight: '800' }}>
-                          💬 Comment ({post.comments?.length || 0})
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.liActBtn}
-                        onPress={() =>
-                          setSavedIds(saved ? savedIds.filter((i) => i !== post.id) : [...savedIds, post.id])
-                        }
-                      >
-                        <Text style={{ color: saved ? T.gold : T.sub, fontSize: 12, fontWeight: '800' }}>
-                          {saved ? '🔖 Saved' : '📑 Save'}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.liActBtn}
-                        onPress={() => shareText(post.title, `${post.qty} | ${post.port} | ${post.price}`)}
-                      >
-                        <Text style={{ color: T.sub, fontSize: 12, fontWeight: '800' }}>📤 Share</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.waCircle}
-                        onPress={() => openWA(post.phone, `Hi ${post.trader_name}, regarding ${post.title}`)}
-                      >
-                        <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '900' }}>WA</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })}
+                  );
+                })
+              )}
             </ScrollView>
           )}
         </View>
@@ -733,7 +935,6 @@ export default function App() {
       {/* BOTTOM BAR */}
       <View style={styles.bottomDockOuter}>
         <View style={styles.bottomDock}>
-          {/* 1. Trade Feed */}
           <TouchableOpacity
             activeOpacity={0.85}
             style={[styles.navItem, activeTab === 'feed' && styles.navItemActive]}
@@ -750,7 +951,6 @@ export default function App() {
             </Text>
           </TouchableOpacity>
 
-          {/* 2. Market Pulse */}
           <TouchableOpacity
             activeOpacity={0.85}
             style={[styles.navItem, activeTab === 'mandi' && styles.navItemActive]}
@@ -767,7 +967,6 @@ export default function App() {
             </Text>
           </TouchableOpacity>
 
-          {/* 3. Center Floating Create (+) */}
           <View style={styles.centerCreateWrap}>
             <TouchableOpacity
               activeOpacity={0.88}
@@ -781,7 +980,6 @@ export default function App() {
             </Text>
           </View>
 
-          {/* 4. Global Logistics Hub (Slightly larger icon + 2-line label) */}
           <TouchableOpacity
             activeOpacity={0.85}
             style={[styles.navItem, activeTab === 'logistics' && styles.navItemActive]}
@@ -795,13 +993,12 @@ export default function App() {
             </Text>
           </TouchableOpacity>
 
-          {/* 5. Service Hub */}
           <TouchableOpacity
             activeOpacity={0.85}
             style={[styles.navItem, activeTab === 'services' && styles.navItemActive]}
             onPress={() => switchTab('services')}
           >
-            <Text style={[styles.navIcon, activeTab === 'services' && styles.navIconActive]}>
+            <Text style={[styles.serviceHubIcon, activeTab === 'services' && styles.navIconActive]}>
               ⊞
             </Text>
             <Text
@@ -813,6 +1010,51 @@ export default function App() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* FULL IN-APP NEWS READER MODAL */}
+      <Modal visible={!!selectedNews} transparent animationType="slide">
+        <SafeAreaView style={styles.readerBackdrop}>
+          <View style={styles.readerCard}>
+            <View style={styles.readerHeader}>
+              <Text style={{ color: '#2DD4BF', fontSize: 12, fontWeight: '800', flex: 1 }} numberOfLines={1}>
+                {selectedNews?.source || 'EXIM News'} • {selectedNews?.date || ''}
+              </Text>
+              <TouchableOpacity onPress={() => setSelectedNews(null)} style={styles.readerCloseBtn}>
+                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '800' }}>✕ Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 430 }} showsVerticalScrollIndicator={false}>
+              <Text style={{ color: '#FFF', fontSize: 17.5, fontWeight: '900', lineHeight: 24 }}>
+                {selectedNews?.title}
+              </Text>
+              <Text style={{ color: '#CBD5E1', fontSize: 14, lineHeight: 22, marginTop: 10 }}>
+                {selectedNews?.summary}
+              </Text>
+              {selectedNews &&
+                renderTranslationBlock(`reader-${selectedNews.id}`, selectedNews.title, selectedNews.summary)}
+            </ScrollView>
+
+            <View style={styles.readerActionsRow}>
+              <TouchableOpacity
+                style={styles.readerSecondaryBtn}
+                onPress={() => selectedNews && shareText(selectedNews.title, selectedNews.summary)}
+              >
+                <Text style={{ color: '#E2E8F0', fontSize: 12.5, fontWeight: '800' }}>Share</Text>
+              </TouchableOpacity>
+
+              {selectedNews?.url ? (
+                <TouchableOpacity
+                  style={styles.mBtn}
+                  onPress={() => openFilteredLink(selectedNews.url)}
+                >
+                  <Text style={styles.mBtnTxt}>Open Source Link →</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
 
       {/* SIDE DRAWER */}
       <Modal visible={drawerOpen} transparent animationType="slide">
@@ -925,13 +1167,12 @@ export default function App() {
                       setPosts([
                         {
                           id: 'ad-' + Date.now(),
-                          category: 'India EXIM',
                           post_type: 'Sponsored',
                           initials: 'NJ',
                           trader_name: userCompany,
                           trader_role: 'Sponsored Promotion',
                           title: adTitle || 'Featured Export Offer',
-                          desc: adDesc || 'Direct verified exporter supply.',
+                          desc: `${adDesc || 'Direct verified exporter supply.'}\n\n#FeaturedExport #TradeSETUU`,
                           qty: 'Bulk Ready',
                           port: 'Pan-India / Global',
                           price: `Promoted • ₹${adBudget}`,
@@ -1059,13 +1300,13 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* COMMENT & NEWS MODALS */}
+      {/* COMMENT MODAL */}
       <Modal visible={!!commentPost} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.mHead}>Comments — {commentPost?.trader_name}</Text>
             {(commentPost?.comments || []).map((c, idx) => (
-              <Text key={idx} style={{ color: '#CBD5E1', fontSize: 12, marginBottom: 6 }}>
+              <Text key={idx} style={{ color: '#CBD5E1', fontSize: 12.5, marginBottom: 6 }}>
                 • {c}
               </Text>
             ))}
@@ -1094,26 +1335,6 @@ export default function App() {
               <Text style={styles.mBtnTxt}>Post Comment</Text>
             </TouchableOpacity>
             <TouchableOpacity style={{ marginTop: 10, alignItems: 'center' }} onPress={() => setCommentPost(null)}>
-              <Text style={{ color: '#94A3B8', fontSize: 12 }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={!!selectedNews} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.mHead}>{selectedNews?.title}</Text>
-            <Text style={{ color: '#CBD5E1', fontSize: 13, lineHeight: 19 }}>{selectedNews?.summary}</Text>
-            {selectedNews?.url ? (
-              <TouchableOpacity
-                style={[styles.mBtn, { marginTop: 12 }]}
-                onPress={() => Linking.openURL(selectedNews.url).catch(() => {})}
-              >
-                <Text style={styles.mBtnTxt}>Open Complete Article →</Text>
-              </TouchableOpacity>
-            ) : null}
-            <TouchableOpacity style={{ marginTop: 12, alignItems: 'center' }} onPress={() => setSelectedNews(null)}>
               <Text style={{ color: '#94A3B8', fontSize: 12 }}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -1233,29 +1454,139 @@ const hdr = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  filterPill: { paddingHorizontal: 13, paddingVertical: 6, borderRadius: 18, marginRight: 7 },
+  twoToggleBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 10,
+    borderBottomWidth: 1,
+  },
+  twoToggleBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 34, 45, 0.7)',
+    borderWidth: 1,
+    borderColor: '#1B3442',
+  },
+  twoToggleBtnActive: {
+    backgroundColor: 'rgba(13, 148, 136, 0.26)',
+    borderColor: '#2DD4BF',
+  },
+  twoToggleTxt: {
+    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  twoToggleTxtActive: {
+    color: '#FFFFFF',
+  },
+  activeTagBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(13, 148, 136, 0.16)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(45, 212, 191, 0.35)',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  activeTagBannerTxt: {
+    color: '#5EEAD4',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  clearTagTxt: {
+    color: '#F87171',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  newsFooterRow: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 0.5,
+    borderTopColor: '#162C37',
+  },
   avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#0D9488',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 11,
   },
-  liCard: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 0.5, borderBottomWidth: 0.5, marginBottom: 8 },
+  spaciousCard: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: 0.75,
+    borderBottomWidth: 0.75,
+    marginBottom: 12,
+  },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   offerPill: {
     color: '#14B8A6',
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '800',
-    backgroundColor: 'rgba(13,148,136,0.12)',
+    backgroundColor: 'rgba(13,148,136,0.14)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 7,
+  },
+  seeMoreTxt: {
+    color: '#38BDF8',
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  safeLinkRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  safeLinkBtn: {
+    backgroundColor: 'rgba(14, 165, 233, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 9,
+    maxWidth: '100%',
+  },
+  safeLinkTxt: {
+    color: '#7DD3FC',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  hashtagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 10,
+  },
+  hashtagChip: {
+    backgroundColor: 'rgba(20, 184, 166, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 212, 191, 0.28)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 8,
   },
-  transWrap: { marginTop: 8 },
-  transToggleTxt: { color: '#38BDF8', fontSize: 11, fontWeight: '800' },
+  hashtagChipActive: {
+    backgroundColor: '#0D9488',
+    borderColor: '#5EEAD4',
+  },
+  hashtagTxt: {
+    color: '#2DD4BF',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  hashtagTxtActive: {
+    color: '#FFFFFF',
+  },
+  transWrap: { marginTop: 10 },
+  transToggleTxt: { color: '#38BDF8', fontSize: 11.5, fontWeight: '800' },
   langChip: {
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -1266,11 +1597,11 @@ const styles = StyleSheet.create({
   langChipActive: { borderColor: '#14B8A6', backgroundColor: 'rgba(20,184,166,0.16)' },
   langChipTxt: { color: '#94A3B8', fontSize: 10, fontWeight: '800' },
   langChipTxtActive: { color: '#2DD4BF' },
-  transBox: { marginTop: 6, padding: 8, borderRadius: 8, borderWidth: 1 },
+  transBox: { marginTop: 6, padding: 9, borderRadius: 8, borderWidth: 1 },
   videoBox: {
-    marginTop: 10,
-    height: 220,
-    borderRadius: 10,
+    marginTop: 12,
+    height: 225,
+    borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#050C14',
     alignItems: 'center',
@@ -1280,40 +1611,40 @@ const styles = StyleSheet.create({
   videoBadge: {
     position: 'absolute',
     color: '#FFF',
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '800',
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.68)',
+    paddingHorizontal: 11,
+    paddingVertical: 5,
     borderRadius: 8,
   },
-  feedImg: { marginTop: 10, width: '100%', height: 155, borderRadius: 10 },
+  feedImg: { marginTop: 12, width: '100%', height: 170, borderRadius: 12 },
   pdfCard: {
-    marginTop: 10,
+    marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    padding: 10,
-    borderRadius: 8,
+    padding: 11,
+    borderRadius: 10,
     borderWidth: 1,
   },
   pdfTag: {
     color: '#F87171',
     backgroundColor: 'rgba(239,68,68,0.16)',
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
     fontSize: 11,
     fontWeight: '900',
   },
-  specStrip: { flexDirection: 'row', borderTopWidth: 0.5, borderBottomWidth: 0.5, paddingVertical: 9, marginTop: 12 },
+  specStrip: { flexDirection: 'row', borderTopWidth: 0.6, borderBottomWidth: 0.6, paddingVertical: 11, marginTop: 14 },
   specCol: { flex: 1 },
-  liActionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10 },
+  liActionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
   liActBtn: { paddingVertical: 4, paddingHorizontal: 4 },
   waCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 31,
+    height: 31,
+    borderRadius: 15.5,
     backgroundColor: '#16A34A',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1321,7 +1652,7 @@ const styles = StyleSheet.create({
 
   // Bottom Dock
   bottomDockOuter: {
-    backgroundColor: '#070B10',
+    backgroundColor: '#050B10',
     paddingHorizontal: 8,
     paddingTop: 4,
     paddingBottom: Platform.OS === 'ios' ? 14 : 8,
@@ -1330,13 +1661,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#0A131C',
+    backgroundColor: '#07141C',
     borderRadius: 24,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 5,
     borderWidth: 1,
-    borderColor: '#162838',
-    elevation: 10,
+    borderColor: '#153440',
+    elevation: 12,
   },
   navItem: {
     flex: 1,
@@ -1345,12 +1676,12 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 2,
     borderRadius: 18,
-    minHeight: 54,
+    minHeight: 56,
   },
   navItemActive: {
-    backgroundColor: 'rgba(13, 148, 136, 0.22)',
-    borderWidth: 1,
-    borderColor: 'rgba(45, 212, 191, 0.55)',
+    backgroundColor: 'rgba(13, 148, 136, 0.34)',
+    borderWidth: 1.4,
+    borderColor: '#2DD4BF',
   },
   navIcon: {
     fontSize: 16,
@@ -1358,6 +1689,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   logisticsIcon: {
+    fontSize: 21,
+    color: '#94A3B8',
+    marginBottom: 1,
+  },
+  serviceHubIcon: {
     fontSize: 20,
     color: '#94A3B8',
     marginBottom: 1,
@@ -1397,7 +1733,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: '#2DD4BF',
-    elevation: 12,
+    elevation: 14,
   },
   centerPlusTxt: {
     color: '#FFFFFF',
@@ -1413,11 +1749,55 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  // In-App Full News Reader
+  readerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    justifyContent: 'center',
+    padding: 14,
+  },
+  readerCard: {
+    backgroundColor: '#09151E',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#1E3E4B',
+  },
+  readerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#152B36',
+  },
+  readerCloseBtn: {
+    backgroundColor: '#162834',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  readerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+  },
+  readerSecondaryBtn: {
+    backgroundColor: '#132430',
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#254252',
+  },
+
   drawerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', flexDirection: 'row' },
-  drawerPanel: { width: '83%', backgroundColor: '#090C10', padding: 16, borderRightWidth: 1, borderRightColor: '#1E293B' },
+  drawerPanel: { width: '83%', backgroundColor: '#060D12', padding: 16, borderRightWidth: 1, borderRightColor: '#1E293B' },
   closeBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#1E293B', alignItems: 'center', justifyContent: 'center' },
   vaultCard: {
-    backgroundColor: '#11161F',
+    backgroundColor: '#0B161E',
     borderRadius: 12,
     padding: 12,
     marginVertical: 12,
@@ -1427,10 +1807,10 @@ const styles = StyleSheet.create({
   vaultAddBtn: { backgroundColor: '#0D9488', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   menuItem: { paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: '#1E293B' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.78)', justifyContent: 'center', padding: 16 },
-  modalBox: { backgroundColor: '#0D1B2A', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#C9B89A' },
+  modalBox: { backgroundColor: '#09151E', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#C9B89A' },
   mHead: { color: '#FFF', fontSize: 16, fontWeight: '900', marginBottom: 10 },
   mInp: {
-    backgroundColor: '#11161F',
+    backgroundColor: '#0B161E',
     color: '#FFF',
     borderWidth: 1,
     borderColor: '#1E293B',
@@ -1440,7 +1820,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 9,
   },
-  mBtn: { backgroundColor: '#0D9488', borderRadius: 10, paddingVertical: 11, alignItems: 'center' },
+  mBtn: { flex: 1, backgroundColor: '#0D9488', borderRadius: 10, paddingVertical: 11, alignItems: 'center' },
   mBtnTxt: { color: '#FFF', fontSize: 13, fontWeight: '900' },
   chipBtn: {
     paddingHorizontal: 10,
