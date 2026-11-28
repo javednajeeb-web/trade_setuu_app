@@ -27,19 +27,46 @@ import SetuAiCopilotScreen, { SetuAiFloatingTrigger } from './src/screens/SetuAi
 import { fetchEximNews } from './src/services/eximNewsService';
 import { translateText } from './src/services/translationService';
 
-function safeRequireAsset(modulePath) {
+function getLogoAsset() {
   try {
     // eslint-disable-next-line global-require
-    return require(modulePath);
+    return require('./1795099375380.png');
   } catch (e) {
     return null;
   }
 }
 
-const TS_LOGO = safeRequireAsset('./1795099375380.png');
-const COPILOT_CAPSULE_IMG = safeRequireAsset('./IMG_20261128_171321.png');
-const COPILOT_SQUARE_IMG = safeRequireAsset('./IMG_20261128_171240.png');
-const BOTTOM_NAV_IMG = safeRequireAsset('./IMG_20261128_171448.png');
+function getCopilotCapsuleAsset() {
+  try {
+    // eslint-disable-next-line global-require
+    return require('./IMG_20261128_171321.png');
+  } catch (e) {
+    return null;
+  }
+}
+
+function getCopilotSquareAsset() {
+  try {
+    // eslint-disable-next-line global-require
+    return require('./IMG_20261128_171240.png');
+  } catch (e) {
+    return null;
+  }
+}
+
+function getBottomNavAsset() {
+  try {
+    // eslint-disable-next-line global-require
+    return require('./IMG_20261128_171448.png');
+  } catch (e) {
+    return null;
+  }
+}
+
+const TS_LOGO = getLogoAsset();
+const COPILOT_CAPSULE_IMG = getCopilotCapsuleAsset();
+const COPILOT_SQUARE_IMG = getCopilotSquareAsset();
+const BOTTOM_NAV_IMG = getBottomNavAsset();
 
 /**
  * Common search/voice matcher usable across all search bars/engines:
