@@ -111,11 +111,6 @@ function buildSmartBetaReply(userText, attachedContext, writingStyle = 'Professi
   };
 }
 
-/**
- * Movable Floating Trigger (Capsule / Square)
- * Default: bottom-right just above bottom navigation for easy right-thumb reach.
- * User can drag anywhere across the screen.
- */
 export function SetuAiFloatingTrigger({
   isDark = true,
   compactSquare = false,
@@ -273,11 +268,6 @@ export function SetuAiFloatingTrigger({
   );
 }
 
-/**
- * SETU AI Co-Pilot Screen
- * Supports both full-screen mode and a small movable floating window (`floatingWindow={true}`)
- * that the user can drag around the screen.
- */
 export default function SetuAiCopilotScreen({
   isDark = true,
   floatingWindow = false,
@@ -400,11 +390,6 @@ export default function SetuAiCopilotScreen({
     }
   };
 
-  const handleCopy = (txt) => {
-    if (!txt) return;
-    Alert.alert('Draft Ready', 'Select or use "Use Draft (OK)" to apply directly to your screen.');
-  };
-
   const handleUseDraft = (draftText) => {
     if (!draftText) return;
     if (typeof onApplyDraftToScreen === 'function') {
@@ -416,8 +401,6 @@ export default function SetuAiCopilotScreen({
         'Draft Sent to Screen',
         'Draft applied to your active screen. Review and send/publish manually.'
       );
-    } else {
-      handleCopy(draftText);
     }
   };
 
@@ -437,20 +420,18 @@ export default function SetuAiCopilotScreen({
           <Text style={{ color: C.teal, fontSize: 16, fontWeight: '800' }}>✕</Text>
         </TouchableOpacity>
 
-        {brandBadgeSource ? (
-          <View
-            style={[
-              styles.headerMarkWrap,
-              { backgroundColor: isDark ? '#0B151E' : '#EBF2F4', borderColor: C.teal },
-            ]}
-          >
-            <Image
-              source={brandBadgeSource}
-              resizeMode="cover"
-              style={styles.headerMarkImg}
-            />
-          </View>
-        ) : null}
+        <View
+          style={[
+            styles.headerMarkWrap,
+            { backgroundColor: isDark ? '#0B151E' : '#EBF2F4', borderColor: C.teal },
+          ]}
+        >
+          <Image
+            source={brandBadgeSource}
+            resizeMode="cover"
+            style={styles.headerMarkImg}
+          />
+        </View>
 
         <View style={{ flex: 1, marginHorizontal: 8 }}>
           <Text style={[styles.headerMain, { color: C.text }]} numberOfLines={1}>
@@ -587,15 +568,6 @@ export default function SetuAiCopilotScreen({
                       style={[styles.smallBtn, { backgroundColor: C.teal }]}
                     >
                       <Text style={styles.smallBtnWhite}>Use Draft (OK)</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      onPress={() => handleCopy(m.draft)}
-                      style={[styles.smallBtnOutline, { borderColor: C.border }]}
-                    >
-                      <Text style={{ color: C.text, fontSize: 11.5, fontWeight: '700' }}>
-                        Preview
-                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -804,12 +776,6 @@ const styles = StyleSheet.create({
   draftActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
   smallBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   smallBtnWhite: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
-  smallBtnOutline: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
   composerBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
