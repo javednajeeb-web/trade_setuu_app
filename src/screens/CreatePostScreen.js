@@ -1,6 +1,6 @@
 // src/screens/CreatePostScreen.js
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Modal,
   Alert,
   StyleSheet,
 } from 'react-native';
@@ -15,44 +16,32 @@ import {
 const POST_TYPES = ['Sell Offer', 'Buy Requirement', 'Available Stock', 'Logistics'];
 
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
-const MAX_OTHER_BYTES = 10 * 1024 * 1024; // 10 MB (Image / PDF / Docs)
+const MAX_OTHER_BYTES = 10 * 1024 * 1024; // 10 MB (Image / PDF)
 
-function polishTradePostDraft({ postType, title, body, commodity, portRoute, quantity }) {
-  const rawBody = (body || '').trim();
-  const cleanTitle =
-    (title || '').trim() ||
-    (commodity ? `${commodity.trim()} — ${postType}` : `${postType} Update`);
+function safeRequire(moduleName) {
+  try {
+    // Dynamic require wrapped in try/catch for optional Expo/RN packages
+    // eslint-disable-next-line global-require
+    return require(moduleName);
+  } catch (e) {
+    return null;
+  }
+}
 
-  const details = [];
-  if (commodity?.trim()) details.push(`Commodity: ${commodity.trim()}`);
-  if (quantity?.trim()) details.push(`Quantity: ${quantity.trim()}`);
-  if (portRoute?.trim()) details.push(`Port / Route: ${portRoute.trim()}`);
-
-  const structuredIntro =
-    rawBody ||
-    `Sharing a ${postType.toLowerCase()} for verified trade partners. Please connect with specs and terms.`;
-
-  const normalizedSentences = structuredIntro
-    .replace(/\s+/g, ' ')
-    .split(/(?<=[.!?।])\s+/)
-    .filter(Boolean)
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(' ');
-
-  const metaBlock = details.length > 0 ? `\n\n${details.join(' · ')}` : '';
-  const footerLine = '\n\nSerious inquiries / quotes welcome via DM.';
-
-  return {
-    polishedTitle: cleanTitle,
-    polishedBody: `${normalizedSentences}${metaBlock}${footerLine}`.trim(),
-  };
+function formatBytesToMb(bytes) {
+  const num = Number(bytes || 0);
+  if (!num) return '0.0 MB';
+  return `${(num / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function CreatePostScreen({
   onClose,
   onPublishPost,
-  onPickMedia, // Optional hook from parent/picker: returns { type: 'image'|'video'|'pdf', name, sizeBytes, uri }
-  onStartVoiceInput, // Optional hook from parent: returns transcribed string
+  onPickMedia, // Optional hook: async (mediaType) => { type, name, sizeBytes, uri, duration }
+  onStartVoiceInput, // Optional hook: async () => spokenString
+  onOpenAiCopilot, // Optional hook: (contextPayload) => void
+  appliedDraft, // Optional draft payload from SETU AI Co-Pilot
+  onConsumedAppliedDraft, // Optional callback after consuming appliedDraft
 }) {
   const [postType, setPostType] = useState('Sell Offer');
   const [title, setTitle] = useState('');
@@ -62,98 +51,311 @@ export default function CreatePostScreen({
   const [portRoute, setPortRoute] = useState('');
 
   const [mediaAttachment, setMediaAttachment] = useState(null);
+  const [pickingMediaType, setPickingMediaType] = useState(null);
+
+  // Voice input state & modal
   const [isListening, setIsListening] = useState(false);
-  const [aiPolishedApplied, setAiPolishedApplied] = useState(false);
+  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const voiceSubRef = useRef(null);
+
+  useEffect(() => {
+    if (!appliedDraft) return;
+
+    const draftStr =
+      typeof appliedDraft === 'string'
+        ? appliedDraft
+        : appliedDraft.draftText || appliedDraft.body || '';
+
+    if (draftStr.trim()) {
+      setBody((prev) =>
+        prev.trim() ? `${prev.trim()}\n\n${draftStr.trim()}` : draftStr.trim()
+      );
+      if (!title.trim() && appliedDraft.title) {
+        setTitle(appliedDraft.title.trim());
+      }
+    }
+
+    if (typeof onConsumedAppliedDraft === 'function') {
+      onConsumedAppliedDraft();
+    }
+  }, [appliedDraft, onConsumedAppliedDraft, title]);
+
+  useEffect(() => {
+    return () => {
+      if (voiceSubRef.current && typeof voiceSubRef.current.remove === 'function') {
+        voiceSubRef.current.remove();
+      }
+    };
+  }, []);
 
   const validateAndAttachMedia = (file) => {
-    if (!file) return;
-    const sizeBytes = Number(file.sizeBytes || 0);
-    const isVideo = file.type === 'video';
+    if (!file) return false;
+
+    const mediaType = file.type || 'image';
+    const sizeBytes = Number(file.sizeBytes ?? file.size ?? 0);
+    const isVideo = mediaType === 'video';
     const limit = isVideo ? MAX_VIDEO_BYTES : MAX_OTHER_BYTES;
 
     if (sizeBytes > limit) {
       const maxMb = isVideo ? 50 : 10;
       Alert.alert(
         'File Size Limit Exceeded',
-        `${isVideo ? 'Video' : 'Image/PDF'} must be within ${maxMb} MB.`
+        `${isVideo ? 'Video' : mediaType.toUpperCase()} size (${formatBytesToMb(
+          sizeBytes
+        )}) exceeds the ${maxMb} MB limit.`
       );
-      return;
+      return false;
     }
 
-    setMediaAttachment(file);
+    setMediaAttachment({
+      type: mediaType,
+      name:
+        file.name ||
+        (mediaType === 'video'
+          ? 'trade_video.mp4'
+          : mediaType === 'pdf'
+          ? 'trade_document.pdf'
+          : 'trade_photo.jpg'),
+      sizeBytes,
+      uri: file.uri || '',
+      duration: file.duration || (mediaType === 'video' ? 'Video' : undefined),
+    });
+    return true;
   };
 
-  const handleAttachSampleOrPicker = async (type) => {
+  const pickFromDevice = async (type) => {
+    // 1. Custom parent hook if provided
     if (typeof onPickMedia === 'function') {
-      const picked = await onPickMedia(type);
-      validateAndAttachMedia(picked);
+      const customResult = await onPickMedia(type);
+      if (customResult) {
+        validateAndAttachMedia(customResult);
+      }
       return;
     }
 
-    // Safe local attachment preview when external picker hook isn't wired yet
-    if (type === 'video') {
-      validateAndAttachMedia({
-        type: 'video',
-        name: 'Shipment_Inspection_Clip.mp4',
-        sizeBytes: 18 * 1024 * 1024, // 18 MB (under 50 MB limit)
-        duration: '0:35',
-        uri: '',
-      });
-    } else if (type === 'image') {
-      validateAndAttachMedia({
-        type: 'image',
-        name: 'Cargo_Lot_Photo.jpg',
-        sizeBytes: 2.4 * 1024 * 1024, // 2.4 MB (under 10 MB limit)
-        uri: '',
-      });
-    } else if (type === 'pdf') {
-      validateAndAttachMedia({
-        type: 'pdf',
-        name: 'Trade_Specification_Sheet.pdf',
-        sizeBytes: 1.5 * 1024 * 1024, // 1.5 MB (under 10 MB limit)
-        uri: '',
-      });
+    // 2. PDF via expo-document-picker if available
+    if (type === 'pdf') {
+      const DocPicker = safeRequire('expo-document-picker');
+      if (DocPicker && typeof DocPicker.getDocumentAsync === 'function') {
+        const res = await DocPicker.getDocumentAsync({
+          type: 'application/pdf',
+          copyToCacheDirectory: true,
+          multiple: false,
+        });
+
+        if (res?.canceled) return;
+        const asset = Array.isArray(res?.assets) ? res.assets[0] : res;
+        if (asset) {
+          validateAndAttachMedia({
+            type: 'pdf',
+            name: asset.name || 'Trade_Document.pdf',
+            sizeBytes: asset.size || 0,
+            uri: asset.uri || '',
+          });
+        }
+        return;
+      }
+    }
+
+    // 3. Image / Video via expo-image-picker if available
+    if (type === 'image' || type === 'video') {
+      const ImagePicker = safeRequire('expo-image-picker');
+      if (ImagePicker && typeof ImagePicker.launchImageLibraryAsync === 'function') {
+        if (typeof ImagePicker.requestMediaLibraryPermissionsAsync === 'function') {
+          const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (perm && perm.granted === false) {
+            Alert.alert(
+              'Permission Needed',
+              'Please allow gallery/media access in device settings to upload files.'
+            );
+            return;
+          }
+        }
+
+        const mediaTypesOption =
+          ImagePicker.MediaTypeOptions && type === 'video'
+            ? ImagePicker.MediaTypeOptions.Videos
+            : ImagePicker.MediaTypeOptions
+            ? ImagePicker.MediaTypeOptions.Images
+            : type === 'video'
+            ? ['videos']
+            : ['images'];
+
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: mediaTypesOption,
+          allowsEditing: false,
+          quality: 0.85,
+        });
+
+        if (res?.canceled) return;
+        const asset = Array.isArray(res?.assets) ? res.assets[0] : res;
+        if (asset) {
+          const durationSec = asset.duration ? Math.round(asset.duration / 1000) : null;
+          const durationLabel =
+            type === 'video' && durationSec
+              ? `${Math.floor(durationSec / 60)}:${String(durationSec % 60).padStart(2, '0')}`
+              : type === 'video'
+              ? 'Video'
+              : undefined;
+
+          validateAndAttachMedia({
+            type,
+            name:
+              asset.fileName ||
+              (type === 'video' ? 'Shipment_Clip.mp4' : 'Cargo_Photo.jpg'),
+            sizeBytes: asset.fileSize || 0,
+            uri: asset.uri || '',
+            duration: durationLabel,
+          });
+        }
+        return;
+      }
+    }
+
+    // 4. Fallback if native/Expo picker module is not installed in current build
+    Alert.alert(
+      'Device Picker Unavailable',
+      `Install expo-image-picker / expo-document-picker or pass onPickMedia. Attach a sample ${type.toUpperCase()} preview to test post layout?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Attach Sample',
+          onPress: () => {
+            if (type === 'video') {
+              validateAndAttachMedia({
+                type: 'video',
+                name: 'Shipment_Inspection_Clip.mp4',
+                sizeBytes: 18 * 1024 * 1024,
+                duration: '0:35',
+                uri: '',
+              });
+            } else if (type === 'pdf') {
+              validateAndAttachMedia({
+                type: 'pdf',
+                name: 'Trade_Specification_Sheet.pdf',
+                sizeBytes: 1.5 * 1024 * 1024,
+                uri: '',
+              });
+            } else {
+              validateAndAttachMedia({
+                type: 'image',
+                name: 'Cargo_Lot_Photo.jpg',
+                sizeBytes: 2.4 * 1024 * 1024,
+                uri: '',
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleMediaPress = async (type) => {
+    if (pickingMediaType) return;
+    setPickingMediaType(type);
+    try {
+      await pickFromDevice(type);
+    } catch (err) {
+      Alert.alert('Upload Error', err?.message || 'Could not select media from device.');
+    } finally {
+      setPickingMediaType(null);
     }
   };
 
   const handleVoicePress = async () => {
-    setIsListening(true);
-    try {
-      if (typeof onStartVoiceInput === 'function') {
+    if (typeof onStartVoiceInput === 'function') {
+      setIsListening(true);
+      try {
         const spoken = await onStartVoiceInput();
-        if (spoken) {
-          setBody((prev) => (prev ? `${prev} ${spoken}` : spoken));
-          setAiPolishedApplied(false);
+        if (spoken && String(spoken).trim()) {
+          const clean = String(spoken).trim();
+          setBody((prev) => (prev.trim() ? `${prev.trim()} ${clean}` : clean));
         }
-      } else {
-        Alert.alert(
-          'Voice Input Ready',
-          'Aap yahan bol kar jo draft likhna chahte hain woh type ya paste kar sakte hain—aur phir AI Improve daba kar use clean trade post mein badal sakte hain.'
-        );
+      } catch (err) {
+        Alert.alert('Voice Error', err?.message || 'Voice input failed.');
+      } finally {
+        setIsListening(false);
       }
-    } finally {
-      setIsListening(false);
-    }
-  };
-
-  const handleAiImprove = () => {
-    if (!body.trim() && !title.trim() && !commodity.trim()) {
-      Alert.alert('Nothing to Improve', 'Pehle post ka kuch text, commodity ya voice draft daalein.');
       return;
     }
 
-    const { polishedTitle, polishedBody } = polishTradePostDraft({
-      postType,
-      title,
-      body,
-      commodity,
-      portRoute,
-      quantity,
-    });
+    const SpeechModule = safeRequire('expo-speech-recognition');
+    const ExpoSpeechRecognitionModule = SpeechModule?.ExpoSpeechRecognitionModule;
+    const useSpeechEvent = SpeechModule?.useSpeechEvent;
 
-    setTitle(polishedTitle);
-    setBody(polishedBody);
-    setAiPolishedApplied(true);
+    if (
+      ExpoSpeechRecognitionModule &&
+      typeof ExpoSpeechRecognitionModule.requestPermissionsAsync === 'function' &&
+      typeof ExpoSpeechRecognitionModule.start === 'function' &&
+      typeof useSpeechEvent !== 'function'
+    ) {
+      try {
+        const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+        if (perm && perm.granted === false) {
+          Alert.alert('Microphone Permission', 'Allow microphone access to use voice input.');
+          return;
+        }
+        setVoiceTranscript('');
+        setVoiceModalVisible(true);
+        setIsListening(true);
+        ExpoSpeechRecognitionModule.start({
+          lang: 'hi-IN',
+          interimResults: true,
+        });
+        return;
+      } catch (e) {
+        // Fall through to manual dictation modal
+      }
+    }
+
+    setVoiceTranscript('');
+    setVoiceModalVisible(true);
+  };
+
+  const handleApplyVoiceText = (mode = 'append') => {
+    const clean = (voiceTranscript || '').trim();
+    if (!clean) {
+      setVoiceModalVisible(false);
+      setIsListening(false);
+      return;
+    }
+
+    if (mode === 'replace') {
+      setBody(clean);
+    } else {
+      setBody((prev) => (prev.trim() ? `${prev.trim()} ${clean}` : clean));
+    }
+
+    setVoiceTranscript('');
+    setVoiceModalVisible(false);
+    setIsListening(false);
+  };
+
+  const handleAskSetuAi = () => {
+    const contextPayload = {
+      screenName: 'CreatePostScreen',
+      type: 'post_draft',
+      title: title.trim() || `${commodity.trim() || postType} Draft`,
+      summary: [
+        `Type: ${postType}`,
+        commodity.trim() ? `Commodity: ${commodity.trim()}` : '',
+        quantity.trim() ? `Qty: ${quantity.trim()}` : '',
+        portRoute.trim() ? `Route/Port: ${portRoute.trim()}` : '',
+        body.trim() ? `Current Notes: ${body.trim().slice(0, 140)}` : '',
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    };
+
+    if (typeof onOpenAiCopilot === 'function') {
+      onOpenAiCopilot(contextPayload);
+    } else {
+      Alert.alert(
+        'SETU AI Co-Pilot',
+        'Open SETU AI Co-Pilot from the floating trigger to draft or refine your trade post.'
+      );
+    }
   };
 
   const handlePublish = () => {
@@ -181,8 +383,9 @@ export default function CreatePostScreen({
           ? {
               type: 'pdf',
               fileName: mediaAttachment.name,
-              fileSize: `${((mediaAttachment.sizeBytes || 0) / (1024 * 1024)).toFixed(1)} MB · PDF`,
+              fileSize: `${formatBytesToMb(mediaAttachment.sizeBytes)} · PDF`,
               url: mediaAttachment.uri || '',
+              uri: mediaAttachment.uri || '',
             }
           : mediaAttachment.type === 'video'
           ? {
@@ -190,6 +393,7 @@ export default function CreatePostScreen({
               thumbnail: '',
               duration: mediaAttachment.duration || 'Video',
               url: mediaAttachment.uri || '',
+              uri: mediaAttachment.uri || '',
             }
           : {
               type: 'image',
@@ -249,10 +453,7 @@ export default function CreatePostScreen({
           placeholder="e.g., 500 MT IR64 Rice available for export"
           placeholderTextColor="#64748B"
           value={title}
-          onChangeText={(val) => {
-            setTitle(val);
-            setAiPolishedApplied(false);
-          }}
+          onChangeText={setTitle}
         />
 
         {/* Quick Trade Specs */}
@@ -288,7 +489,7 @@ export default function CreatePostScreen({
           onChangeText={setPortRoute}
         />
 
-        {/* Main Post Body + Voice & AI Improve */}
+        {/* Main Post Body + Voice & SETU AI Co-Pilot */}
         <View style={styles.bodyHeaderRow}>
           <Text style={styles.label}>Post Details</Text>
           <View style={styles.aiToolsRow}>
@@ -298,54 +499,54 @@ export default function CreatePostScreen({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.aiImproveBtn} onPress={handleAiImprove}>
-              <Text style={styles.aiImproveTxt}>✨ AI Improve</Text>
+            <TouchableOpacity style={styles.copilotBtn} onPress={handleAskSetuAi}>
+              <Text style={styles.copilotBtnTxt}>SETU AI</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Write specs, packing, pricing terms, or paste voice notes..."
+          placeholder="Write specs, packing, pricing terms, or use Voice / SETU AI..."
           placeholderTextColor="#64748B"
           multiline
           numberOfLines={5}
           textAlignVertical="top"
           value={body}
-          onChangeText={(val) => {
-            setBody(val);
-            setAiPolishedApplied(false);
-          }}
+          onChangeText={setBody}
         />
 
-        {aiPolishedApplied ? (
-          <Text style={styles.aiStatusNote}>
-            AI Improve applied — review and edit freely before posting.
-          </Text>
-        ) : null}
-
         {/* Media Attachment Section (Max 50MB Video, Max 10MB Image/PDF) */}
-        <Text style={styles.label}>Attach Media (Video ≤ 50 MB · Image/PDF ≤ 10 MB)</Text>
+        <Text style={styles.label}>Upload from Device (Video ≤ 50 MB · Image/PDF ≤ 10 MB)</Text>
         <View style={styles.mediaBtnRow}>
           <TouchableOpacity
             style={styles.mediaBtn}
-            onPress={() => handleAttachSampleOrPicker('image')}
+            disabled={Boolean(pickingMediaType)}
+            onPress={() => handleMediaPress('image')}
           >
-            <Text style={styles.mediaBtnTxt}>+ Image</Text>
+            <Text style={styles.mediaBtnTxt}>
+              {pickingMediaType === 'image' ? 'Selecting...' : '+ Image'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.mediaBtn}
-            onPress={() => handleAttachSampleOrPicker('video')}
+            disabled={Boolean(pickingMediaType)}
+            onPress={() => handleMediaPress('video')}
           >
-            <Text style={styles.mediaBtnTxt}>+ Video</Text>
+            <Text style={styles.mediaBtnTxt}>
+              {pickingMediaType === 'video' ? 'Selecting...' : '+ Video'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.mediaBtn}
-            onPress={() => handleAttachSampleOrPicker('pdf')}
+            disabled={Boolean(pickingMediaType)}
+            onPress={() => handleMediaPress('pdf')}
           >
-            <Text style={styles.mediaBtnTxt}>+ PDF</Text>
+            <Text style={styles.mediaBtnTxt}>
+              {pickingMediaType === 'pdf' ? 'Selecting...' : '+ PDF'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -356,8 +557,7 @@ export default function CreatePostScreen({
                 {mediaAttachment.name}
               </Text>
               <Text style={styles.attachedMeta}>
-                {mediaAttachment.type.toUpperCase()} ·{' '}
-                {((mediaAttachment.sizeBytes || 0) / (1024 * 1024)).toFixed(1)} MB
+                {mediaAttachment.type.toUpperCase()} · {formatBytesToMb(mediaAttachment.sizeBytes)}
               </Text>
             </View>
             <TouchableOpacity onPress={() => setMediaAttachment(null)}>
@@ -366,6 +566,64 @@ export default function CreatePostScreen({
           </View>
         ) : null}
       </ScrollView>
+
+      {/* Voice Dictation / Input Modal */}
+      <Modal
+        visible={voiceModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setVoiceModalVisible(false);
+          setIsListening(false);
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Voice Input · Post Details</Text>
+            <Text style={styles.modalSub}>
+              Tap the keyboard mic to dictate in Hindi/English or paste spoken notes below.
+            </Text>
+
+            <TextInput
+              style={[styles.input, styles.voiceInput]}
+              placeholder="Speak or type your trade post notes here..."
+              placeholderTextColor="#64748B"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              value={voiceTranscript}
+              onChangeText={setVoiceTranscript}
+              autoFocus
+            />
+
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => {
+                  setVoiceModalVisible(false);
+                  setIsListening(false);
+                }}
+              >
+                <Text style={styles.modalCancelTxt}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalSecondaryBtn}
+                onPress={() => handleApplyVoiceText('replace')}
+              >
+                <Text style={styles.modalSecondaryTxt}>Replace</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalPrimaryBtn}
+                onPress={() => handleApplyVoiceText('append')}
+              >
+                <Text style={styles.modalPrimaryTxt}>Add to Post</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -442,7 +700,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   voiceBtnTxt: { color: '#E2E8F0', fontSize: 11, fontWeight: '700' },
-  aiImproveBtn: {
+  copilotBtn: {
     backgroundColor: 'rgba(20, 184, 166, 0.16)',
     borderWidth: 1,
     borderColor: '#14B8A6',
@@ -450,9 +708,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
   },
-  aiImproveTxt: { color: '#2DD4BF', fontSize: 11, fontWeight: '800' },
+  copilotBtnTxt: { color: '#2DD4BF', fontSize: 11, fontWeight: '800' },
   textArea: { minHeight: 125 },
-  aiStatusNote: { color: '#2DD4BF', fontSize: 11, marginTop: 5 },
   mediaBtnRow: { flexDirection: 'row', gap: 8 },
   mediaBtn: {
     flex: 1,
@@ -478,5 +735,51 @@ const styles = StyleSheet.create({
   attachedName: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   attachedMeta: { color: '#94A3B8', fontSize: 11, marginTop: 2 },
   removeTxt: { color: '#F87171', fontSize: 12, fontWeight: '700', marginLeft: 10 },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.68)',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  modalCard: {
+    backgroundColor: '#0D1B2A',
+    borderWidth: 1,
+    borderColor: '#253952',
+    borderRadius: 14,
+    padding: 16,
+  },
+  modalTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  modalSub: { color: '#94A3B8', fontSize: 12, marginTop: 4, marginBottom: 10, lineHeight: 17 },
+  voiceInput: { minHeight: 100 },
+  modalBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 12,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  modalCancelTxt: { color: '#94A3B8', fontSize: 12, fontWeight: '700' },
+  modalSecondaryBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#16263A',
+    borderWidth: 1,
+    borderColor: '#253952',
+  },
+  modalSecondaryTxt: { color: '#E2E8F0', fontSize: 12, fontWeight: '700' },
+  modalPrimaryBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#0D9488',
+  },
+  modalPrimaryTxt: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
 });
-      
