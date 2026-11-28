@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,16 +15,63 @@ import {
   BackHandler,
   Image,
   Platform,
+  useColorScheme,
 } from 'react-native';
 import SplashScreen from './src/screens/SplashScreen';
 import GlobalLogisticsHubScreen from './src/GlobalLogisticsHub';
 import ServiceHubScreen from './src/screens/ServiceHubScreen';
 import MarketPulseScreen from './src/screens/MarketPulseScreen';
 import CreatePostScreen from './src/screens/CreatePostScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import SetuAiCopilotScreen, { SetuAiFloatingTrigger } from './src/screens/SetuAiCopilotScreen';
 import { fetchEximNews } from './src/services/eximNewsService';
 import { translateText } from './src/services/translationService';
 
-const TS_LOGO = require('./1795099375380.png');
+function safeRequireAsset(modulePath) {
+  try {
+    // eslint-disable-next-line global-require
+    return require(modulePath);
+  } catch (e) {
+    return null;
+  }
+}
+
+const TS_LOGO = safeRequireAsset('./1795099375380.png');
+const COPILOT_CAPSULE_IMG = safeRequireAsset('./IMG_20261128_171321.png');
+const COPILOT_SQUARE_IMG = safeRequireAsset('./IMG_20261128_171240.png');
+const BOTTOM_NAV_IMG = safeRequireAsset('./IMG_20261128_171448.png');
+
+/**
+ * Common search/voice matcher usable across all search bars/engines:
+ * - Matches full phrase or individual words when >= 3 letters or >= 3 words are entered.
+ */
+export function smartSearchMatch(rawQuery = '', targetText = '') {
+  const q = String(rawQuery || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+  if (!q) return true;
+
+  const hay = String(targetText || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+  if (!hay) return false;
+
+  if (hay.includes(q)) return true;
+
+  const words = q.split(' ').filter((w) => w.length >= 2);
+  if (words.length >= 3) {
+    return words.every((w) => hay.includes(w));
+  }
+
+  if (q.length >= 3) {
+    return words.length > 0 ? words.every((w) => hay.includes(w)) : hay.includes(q);
+  }
+
+  return hay.includes(q);
+}
+
+const POST_TYPE_FILTERS = ['All', 'Sell Offer', 'Buy Requirement', 'Logistics', 'Sponsored'];
 
 const EXIM_RELEVANCE_KEYWORDS = [
   'export',
@@ -212,8 +259,9 @@ function extractHashtags(text = '') {
 }
 
 export default function App() {
+  const systemScheme = useColorScheme();
   const [showSplash, setShowSplash] = useState(true);
-  const [theme, setTheme] = useState('dark');
+  const [themeMode, setThemeMode] = useState('Dark');
 
   // Auth & Role Onboarding
   const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -222,15 +270,27 @@ export default function App() {
   const [userRole, setUserRole] = useState('Exporter & Trader');
   const [loginMobile, setLoginMobile] = useState('+91 98261 00000');
 
-  // Navigation
+  // Navigation & Built-in Filters
   const [activeTab, setActiveTab] = useState('feed');
   const [homeSubTab, setHomeSubTab] = useState('feed');
+  const [selectedPostType, setSelectedPostType] = useState('All');
   const [activeHashtag, setActiveHashtag] = useState('');
   const [tabHistory, setTabHistory] = useState(['feed']);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Full-screen CreatePostScreen state
+  // Voice Search modal state
+  const [voiceSearchVisible, setVoiceSearchVisible] = useState(false);
+  const [voiceSearchDraft, setVoiceSearchDraft] = useState('');
+
+  // Full-screen CreatePostScreen & SettingsScreen state
   const [showCreatePostScreen, setShowCreatePostScreen] = useState(false);
+  const [showSettingsScreen, setShowSettingsScreen] = useState(false);
+
+  // SETU AI Co-Pilot state
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [copilotFloatingWindow, setCopilotFloatingWindow] = useState(true);
+  const [copilotContext, setCopilotContext] = useState(null);
+  const [appliedDraftForCreate, setAppliedDraftForCreate] = useState(null);
 
   // See more expansion per post id
   const [expandedPosts, setExpandedPosts] = useState({});
@@ -265,7 +325,10 @@ export default function App() {
   const [adDesc, setAdDesc] = useState('');
   const [adBudget, setAdBudget] = useState(299);
 
-  const isDark = theme === 'dark';
+  const isDark =
+    themeMode === 'System' ? systemScheme !== 'light' : themeMode === 'Dark';
+  const themeString = isDark ? 'dark' : 'light';
+
   const T = {
     bg: isDark ? '#060D12' : '#F3F5F8',
     card: isDark ? '#0B161E' : '#FFFFFF',
@@ -276,6 +339,42 @@ export default function App() {
     accent: '#0D9488',
     gold: '#C9B89A',
   };
+
+  const currentScreenContext = useMemo(() => {
+    if (showCreatePostScreen) {
+      return {
+        screenName: 'CreatePostScreen',
+        title: 'Create Trade Post',
+        summary: 'Drafting trade offer, requirement, or logistics update.',
+      };
+    }
+    if (activeTab === 'mandi') {
+      return {
+        screenName: 'MarketPulseScreen',
+        title: 'Market Pulse',
+        summary: `Live commodity & USD/INR reference (₹${usdInr}).`,
+      };
+    }
+    if (activeTab === 'logistics') {
+      return {
+        screenName: 'GlobalLogisticsHubScreen',
+        title: 'Global Logistics Hub',
+        summary: 'Freight corridors, ports, and container movement.',
+      };
+    }
+    if (activeTab === 'services') {
+      return {
+        screenName: 'ServiceHubScreen',
+        title: 'Service Hub',
+        summary: `Trade tools & Setuu Vault balance (₹${vaultBalance}).`,
+      };
+    }
+    return {
+      screenName: 'TradeFeed',
+      title: homeSubTab === 'news' ? 'EXIM News' : 'Trade Feed',
+      summary: activeHashtag ? `Filtered by ${activeHashtag}` : 'Active trade posts & offers.',
+    };
+  }, [showCreatePostScreen, activeTab, usdInr, vaultBalance, homeSubTab, activeHashtag]);
 
   useEffect(() => {
     let mounted = true;
@@ -313,6 +412,18 @@ export default function App() {
 
   useEffect(() => {
     const handler = () => {
+      if (voiceSearchVisible) {
+        setVoiceSearchVisible(false);
+        return true;
+      }
+      if (copilotOpen) {
+        setCopilotOpen(false);
+        return true;
+      }
+      if (showSettingsScreen) {
+        setShowSettingsScreen(false);
+        return true;
+      }
       if (showCreatePostScreen) {
         setShowCreatePostScreen(false);
         return true;
@@ -337,6 +448,10 @@ export default function App() {
         setActiveHashtag('');
         return true;
       }
+      if (selectedPostType !== 'All') {
+        setSelectedPostType('All');
+        return true;
+      }
       if (tabHistory.length > 1) {
         const next = tabHistory.slice(0, -1);
         setTabHistory(next);
@@ -352,12 +467,16 @@ export default function App() {
     const sub = BackHandler.addEventListener('hardwareBackPress', handler);
     return () => sub.remove();
   }, [
+    voiceSearchVisible,
+    copilotOpen,
+    showSettingsScreen,
     showCreatePostScreen,
     selectedNews,
     commentPost,
     modal,
     drawerOpen,
     activeHashtag,
+    selectedPostType,
     tabHistory,
     activeTab,
   ]);
@@ -365,6 +484,17 @@ export default function App() {
   const switchTab = (t) => {
     setActiveTab(t);
     setTabHistory((prev) => (prev[prev.length - 1] === t ? prev : [...prev, t]));
+  };
+
+  const openCopilotWithContext = (ctxPayload = null) => {
+    setCopilotContext(ctxPayload || currentScreenContext);
+    setCopilotOpen(true);
+  };
+
+  const handleApplyDraftFromCopilot = (payload) => {
+    if (!payload) return;
+    setAppliedDraftForCreate(payload);
+    setCopilotOpen(false);
   };
 
   const shareText = (title, body) =>
@@ -496,38 +626,105 @@ export default function App() {
     return null;
   };
 
+  const renderGlobalCopilotOverlay = () => {
+    if (!isLoggedIn || showSplash) return null;
+
+    const useCompactSquare = activeTab === 'mandi' || activeTab === 'logistics';
+
+    return (
+      <>
+        {!copilotOpen ? (
+          <SetuAiFloatingTrigger
+            isDark={isDark}
+            compactSquare={useCompactSquare}
+            capsuleSource={COPILOT_CAPSULE_IMG}
+            squareSource={COPILOT_SQUARE_IMG}
+            onPress={() => openCopilotWithContext(currentScreenContext)}
+          />
+        ) : null}
+
+        {copilotOpen ? (
+          <SetuAiCopilotScreen
+            isDark={isDark}
+            floatingWindow={copilotFloatingWindow}
+            currentContext={copilotContext || currentScreenContext}
+            onClose={() => setCopilotOpen(false)}
+            onToggleExpand={() => setCopilotFloatingWindow((prev) => !prev)}
+            onApplyDraftToScreen={handleApplyDraftFromCopilot}
+          />
+        ) : null}
+      </>
+    );
+  };
+
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
+  if (showSettingsScreen) {
+    return (
+      <View style={{ flex: 1, backgroundColor: T.bg }}>
+        <SettingsScreen
+          isDark={isDark}
+          themeMode={themeMode}
+          onChangeThemeMode={(nextMode) => setThemeMode(nextMode)}
+          onClose={() => setShowSettingsScreen(false)}
+          onOpenAiCopilot={() => {
+            setShowSettingsScreen(false);
+            openCopilotWithContext({
+              screenName: 'SettingsScreen',
+              title: 'Settings & Preferences',
+              summary: `Theme: ${themeMode}`,
+            });
+          }}
+          onSignOut={() => {
+            setShowSettingsScreen(false);
+            setIsLoggedIn(false);
+          }}
+        />
+        {renderGlobalCopilotOverlay()}
+      </View>
+    );
+  }
+
   if (showCreatePostScreen) {
     return (
-      <CreatePostScreen
-        onClose={() => setShowCreatePostScreen(false)}
-        onPublishPost={(newPost) => {
-          setPosts((prev) => [
-            {
-              ...newPost,
-              initials: (userName || 'TS')
-                .split(' ')
-                .map((w) => w[0])
-                .join('')
-                .slice(0, 2)
-                .toUpperCase(),
-              trader_name: userName,
-              trader_role: `${userCompany} • Just now`,
-              qty: newPost.qty || 'Bulk / Lot',
-              port: newPost.port || 'EXIM / Domestic',
-              price: newPost.price || 'Best Quote',
-              phone: '+919826100000',
-              comments: [],
-            },
-            ...prev,
-          ]);
-          setHomeSubTab('feed');
-          setActiveTab('feed');
-        }}
-      />
+      <View style={{ flex: 1, backgroundColor: '#07121E' }}>
+        <CreatePostScreen
+          onClose={() => {
+            setShowCreatePostScreen(false);
+            setAppliedDraftForCreate(null);
+          }}
+          onOpenAiCopilot={(ctxPayload) => openCopilotWithContext(ctxPayload)}
+          appliedDraft={appliedDraftForCreate}
+          onConsumedAppliedDraft={() => setAppliedDraftForCreate(null)}
+          onPublishPost={(newPost) => {
+            setPosts((prev) => [
+              {
+                ...newPost,
+                initials: (userName || 'TS')
+                  .split(' ')
+                  .map((w) => w[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase(),
+                trader_name: userName,
+                trader_role: `${userCompany} • Just now`,
+                qty: newPost.qty || 'Bulk / Lot',
+                port: newPost.port || 'EXIM / Domestic',
+                price: newPost.price || 'Best Quote',
+                phone: '+919826100000',
+                comments: [],
+              },
+              ...prev,
+            ]);
+            setAppliedDraftForCreate(null);
+            setHomeSubTab('feed');
+            setActiveTab('feed');
+          }}
+        />
+        {renderGlobalCopilotOverlay()}
+      </View>
     );
   }
 
@@ -536,7 +733,9 @@ export default function App() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#060D12', justifyContent: 'center', padding: 20 }}>
         <StatusBar barStyle="light-content" backgroundColor="#060D12" />
         <View style={{ alignItems: 'center', marginBottom: 24 }}>
-          <Image source={TS_LOGO} style={{ width: 84, height: 84, borderRadius: 42, marginBottom: 12 }} />
+          {TS_LOGO ? (
+            <Image source={TS_LOGO} style={{ width: 84, height: 84, borderRadius: 42, marginBottom: 12 }} />
+          ) : null}
           <Text style={{ color: '#FFF', fontSize: 22, fontWeight: '900' }}>Trade SETUU</Text>
           <Text style={{ color: '#14B8A6', fontSize: 12, fontWeight: '700' }}>
             Global Trade & Logistics Ecosystem
@@ -556,24 +755,25 @@ export default function App() {
   }
 
   const visiblePosts = posts.filter((p) => {
-    const combined = `${p.title} ${p.desc || ''} ${p.trader_name} ${p.port || ''} ${p.post_type || ''}`.toLowerCase();
-    const okTag = !activeHashtag || combined.includes(activeHashtag.toLowerCase());
-    const okSearch = !searchQuery.trim() || combined.includes(searchQuery.trim().toLowerCase());
-    return okTag && okSearch;
+    const okType = selectedPostType === 'All' || p.post_type === selectedPostType;
+    const combined = `${p.title} ${p.desc || ''} ${p.trader_name} ${p.port || ''} ${p.post_type || ''}`;
+    const okTag = !activeHashtag || smartSearchMatch(activeHashtag, combined);
+    const okSearch = !searchQuery.trim() || smartSearchMatch(searchQuery, combined);
+    return okType && okTag && okSearch;
   });
 
   const visibleNews = newsList.filter((n) => {
     if (!searchQuery.trim()) return true;
-    return `${n.title} ${n.summary} ${n.source}`.toLowerCase().includes(searchQuery.trim().toLowerCase());
+    return smartSearchMatch(searchQuery, `${n.title} ${n.summary} ${n.source}`);
   });
 
   const showTopGlobalHeader = activeTab !== 'mandi' && activeTab !== 'logistics';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: T.bg, paddingTop: Platform.OS === 'android' ? 4 : 0 }}>
-      <StatusBar barStyle="light-content" backgroundColor="#060D12" />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor="#060D12" />
 
-      {/* TOP HEADER */}
+      {/* CLEAN TOP HEADER + COMPLETE SEARCH BAR WITH VOICE & OPTIONS */}
       {showTopGlobalHeader && (
         <View style={hdr.bar}>
           <TouchableOpacity
@@ -582,32 +782,48 @@ export default function App() {
             style={hdr.brandBtn}
           >
             <View style={hdr.logoRing}>
-              <Image
-                source={TS_LOGO}
-                style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
-              />
+              {TS_LOGO ? (
+                <Image
+                  source={TS_LOGO}
+                  style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+                />
+              ) : null}
             </View>
             <View style={hdr.brandTextCol}>
               <Text style={hdr.brandTitle} numberOfLines={1}>
                 Trade <Text style={hdr.brandAccent}>SETUU</Text>
               </Text>
               <Text style={hdr.brandSub} numberOfLines={1}>
-                Global Trade Network
+                EXIM & Logistics
               </Text>
             </View>
           </TouchableOpacity>
-
-          <View style={hdr.divider} />
 
           <View style={hdr.searchWrap}>
             <Text style={hdr.searchIcon}>🔍</Text>
             <TextInput
               style={hdr.searchInput}
-              placeholder="Search rice, maize, ports..."
+              placeholder="Search rice, maize, ports, FOB..."
               placeholderTextColor="#94A3B8"
               value={searchQuery}
               onChangeText={setSearchQuery}
+              returnKeyType="search"
             />
+            {searchQuery.length > 0 ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={hdr.clearBtn}>
+                <Text style={hdr.clearBtnTxt}>✕</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setVoiceSearchDraft(searchQuery);
+                setVoiceSearchVisible(true);
+              }}
+              style={hdr.micBtn}
+            >
+              <Text style={hdr.micTxt}>🎙</Text>
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
@@ -635,14 +851,14 @@ export default function App() {
           <TouchableOpacity
             activeOpacity={0.85}
             style={hdr.iconBtn}
-            onPress={() => setModal('settings')}
+            onPress={() => setShowSettingsScreen(true)}
           >
             <Text style={hdr.iconGlyph}>⚙️</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* TAB 1: TWO TOP TOGGLES ONLY (Trade Feed | EXIM News) */}
+      {/* TAB 1: Trade Feed | EXIM News + Built-in Filters */}
       {activeTab === 'feed' && (
         <View style={{ flex: 1 }}>
           <View style={[styles.twoToggleBar, { backgroundColor: T.card, borderBottomColor: T.border }]}>
@@ -667,6 +883,32 @@ export default function App() {
             </TouchableOpacity>
           </View>
 
+          {/* Built-in Filter Strip */}
+          {homeSubTab === 'feed' && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterStrip}
+              style={{ backgroundColor: T.bg, borderBottomWidth: 1, borderBottomColor: T.border }}
+            >
+              {POST_TYPE_FILTERS.map((flt) => {
+                const active = selectedPostType === flt;
+                return (
+                  <TouchableOpacity
+                    key={flt}
+                    activeOpacity={0.85}
+                    onPress={() => setSelectedPostType(flt)}
+                    style={[styles.filterChip, active && styles.filterChipActive]}
+                  >
+                    <Text style={[styles.filterChipTxt, active && styles.filterChipTxtActive]}>
+                      {flt === 'All' ? 'All Posts' : flt}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+
           {activeHashtag ? (
             <View style={styles.activeTagBanner}>
               <Text style={styles.activeTagBannerTxt}>
@@ -679,7 +921,7 @@ export default function App() {
           ) : null}
 
           {homeSubTab === 'news' ? (
-            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 105 }}>
               {visibleNews.map((n) => (
                 <TouchableOpacity
                   key={n.id}
@@ -714,7 +956,7 @@ export default function App() {
               ))}
             </ScrollView>
           ) : (
-            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 105 }}>
               {visiblePosts.length === 0 ? (
                 <View style={[styles.spaciousCard, { backgroundColor: T.card, borderColor: T.border, alignItems: 'center' }]}>
                   <Text style={{ color: T.text, fontSize: 15, fontWeight: '800' }}>
@@ -725,6 +967,7 @@ export default function App() {
                     onPress={() => {
                       setActiveHashtag('');
                       setSearchQuery('');
+                      setSelectedPostType('All');
                     }}
                   >
                     <Text style={styles.mBtnTxt}>Reset Filters</Text>
@@ -907,7 +1150,7 @@ export default function App() {
       {/* TAB 2: MARKET PULSE */}
       {activeTab === 'mandi' && (
         <MarketPulseScreen
-          theme={theme}
+          theme={themeString}
           onBackToApp={() => switchTab('feed')}
         />
       )}
@@ -915,7 +1158,7 @@ export default function App() {
       {/* TAB 4: GLOBAL LOGISTICS HUB */}
       {activeTab === 'logistics' && (
         <GlobalLogisticsHubScreen
-          theme={theme}
+          theme={themeString}
           onExitHub={() => switchTab('feed')}
         />
       )}
@@ -923,7 +1166,7 @@ export default function App() {
       {/* TAB 5: SERVICE HUB */}
       {activeTab === 'services' && (
         <ServiceHubScreen
-          theme={theme}
+          theme={themeString}
           isPaid={isPaid}
           vaultBalance={vaultBalance}
           onDeductVault={(amt) => setVaultBalance((v) => Math.max(0, v - amt))}
@@ -932,84 +1175,127 @@ export default function App() {
         />
       )}
 
-      {/* BOTTOM BAR */}
+      {/* BOTTOM NAVIGATION WITH UPLOADED REFERENCE IMAGE + 5 EXACT LABELS */}
       <View style={styles.bottomDockOuter}>
-        <View style={styles.bottomDock}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={[styles.navItem, activeTab === 'feed' && styles.navItemActive]}
-            onPress={() => switchTab('feed')}
-          >
-            <Text style={[styles.navIcon, activeTab === 'feed' && styles.navIconActive]}>
-              ❖
-            </Text>
-            <Text
-              style={[styles.navLbl, activeTab === 'feed' && styles.navLblActive]}
-              numberOfLines={1}
-            >
-              Trade Feed
-            </Text>
-          </TouchableOpacity>
+        <View style={styles.bottomDockFrame}>
+          {BOTTOM_NAV_IMG ? (
+            <Image
+              source={BOTTOM_NAV_IMG}
+              resizeMode="cover"
+              style={styles.bottomDockBgImage}
+            />
+          ) : null}
 
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={[styles.navItem, activeTab === 'mandi' && styles.navItemActive]}
-            onPress={() => switchTab('mandi')}
-          >
-            <Text style={[styles.navIcon, activeTab === 'mandi' && styles.navIconActive]}>
-              📈
-            </Text>
-            <Text
-              style={[styles.navLbl, activeTab === 'mandi' && styles.navLblActive]}
-              numberOfLines={1}
+          <View style={styles.bottomDockOverlay}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.navSlot, activeTab === 'feed' && styles.navSlotActive]}
+              onPress={() => switchTab('feed')}
             >
-              Market Pulse
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[styles.navLbl, activeTab === 'feed' && styles.navLblActive]}
+                numberOfLines={1}
+              >
+                Trade Feed
+              </Text>
+            </TouchableOpacity>
 
-          <View style={styles.centerCreateWrap}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.navSlot, activeTab === 'mandi' && styles.navSlotActive]}
+              onPress={() => switchTab('mandi')}
+            >
+              <Text
+                style={[styles.navLbl, activeTab === 'mandi' && styles.navLblActive]}
+                numberOfLines={1}
+              >
+                Market Pulse
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.centerPlus}
+              style={styles.centerCreateSlot}
               onPress={() => setShowCreatePostScreen(true)}
             >
-              <Text style={styles.centerPlusTxt}>+</Text>
+              <View style={styles.centerPlusCircle}>
+                <Text style={styles.centerPlusTxt}>+</Text>
+              </View>
+              <Text style={styles.centerLbl} numberOfLines={1}>
+                Create
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.centerLbl} numberOfLines={1}>
-              Create
-            </Text>
-          </View>
 
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={[styles.navItem, activeTab === 'logistics' && styles.navItemActive]}
-            onPress={() => switchTab('logistics')}
-          >
-            <Text style={[styles.logisticsIcon, activeTab === 'logistics' && styles.navIconActive]}>
-              🌐
-            </Text>
-            <Text style={[styles.navLblTwoLine, activeTab === 'logistics' && styles.navLblActive]}>
-              {'Global\nLogistics Hub'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={[styles.navItem, activeTab === 'services' && styles.navItemActive]}
-            onPress={() => switchTab('services')}
-          >
-            <Text style={[styles.serviceHubIcon, activeTab === 'services' && styles.navIconActive]}>
-              ⊞
-            </Text>
-            <Text
-              style={[styles.navLbl, activeTab === 'services' && styles.navLblActive]}
-              numberOfLines={1}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.navSlot, activeTab === 'logistics' && styles.navSlotActive]}
+              onPress={() => switchTab('logistics')}
             >
-              Service Hub
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[styles.navLblTwoLine, activeTab === 'logistics' && styles.navLblActive]}
+                numberOfLines={2}
+              >
+                {'Global\nLogistics Hub'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.navSlot, activeTab === 'services' && styles.navSlotActive]}
+              onPress={() => switchTab('services')}
+            >
+              <Text
+                style={[styles.navLbl, activeTab === 'services' && styles.navLblActive]}
+                numberOfLines={1}
+              >
+                Service Hub
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
+
+      {/* VOICE / DICTATION SEARCH MODAL */}
+      <Modal
+        visible={voiceSearchVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVoiceSearchVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.mHead}>Voice / Smart Search</Text>
+            <Text style={{ color: '#94A3B8', fontSize: 12, marginBottom: 8 }}>
+              Bol kar ya keyboard mic se 3+ letters/words bolen — commodity, port ya post turant filter hoga.
+            </Text>
+            <TextInput
+              style={[styles.mInp, { minHeight: 72 }]}
+              placeholder="e.g., parboiled rice jnpt or yellow maize..."
+              placeholderTextColor="#64748B"
+              value={voiceSearchDraft}
+              onChangeText={setVoiceSearchDraft}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.readerSecondaryBtn, { flex: 1, alignItems: 'center' }]}
+                onPress={() => setVoiceSearchVisible(false)}
+              >
+                <Text style={{ color: '#E2E8F0', fontSize: 12.5, fontWeight: '800' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.mBtn}
+                onPress={() => {
+                  setSearchQuery(voiceSearchDraft.trim());
+                  setVoiceSearchVisible(false);
+                }}
+              >
+                <Text style={styles.mBtnTxt}>Search Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* FULL IN-APP NEWS READER MODAL */}
       <Modal visible={!!selectedNews} transparent animationType="slide">
@@ -1062,7 +1348,9 @@ export default function App() {
           <ScrollView style={styles.drawerPanel} contentContainerStyle={{ paddingBottom: 35 }}>
             <View style={styles.rowBetween}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image source={TS_LOGO} style={{ width: 42, height: 42, borderRadius: 21, marginRight: 10 }} />
+                {TS_LOGO ? (
+                  <Image source={TS_LOGO} style={{ width: 42, height: 42, borderRadius: 21, marginRight: 10 }} />
+                ) : null}
                 <View>
                   <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '900' }}>{userName}</Text>
                   <Text style={{ color: '#14B8A6', fontSize: 11, fontWeight: '700' }}>
@@ -1106,6 +1394,7 @@ export default function App() {
                 onPress={() => {
                   setDrawerOpen(false);
                   if (m.id === 'logistics') switchTab('logistics');
+                  else if (m.id === 'settings') setShowSettingsScreen(true);
                   else if (m.id === 'logout') setIsLoggedIn(false);
                   else if (m.id === 'custom_ad')
                     Alert.alert('Custom Ad Manager', 'Available with Paid Subscription (Coming Soon).');
@@ -1266,7 +1555,10 @@ export default function App() {
               {modal === 'settings' && (
                 <View>
                   <Text style={styles.mHead}>Theme & Language</Text>
-                  <TouchableOpacity style={styles.mBtn} onPress={() => setTheme(isDark ? 'light' : 'dark')}>
+                  <TouchableOpacity
+                    style={styles.mBtn}
+                    onPress={() => setThemeMode(isDark ? 'Light' : 'Dark')}
+                  >
                     <Text style={styles.mBtnTxt}>
                       {isDark ? '🌤️ Switch to Clean Light Mode' : '🌙 Switch to Dark Mode'}
                     </Text>
@@ -1340,6 +1632,9 @@ export default function App() {
           </View>
         </View>
       </Modal>
+
+      {/* GLOBAL MOVABLE SETU AI CO-PILOT TRIGGER & FLOATING WINDOW */}
+      {renderGlobalCopilotOverlay()}
     </SafeAreaView>
   );
 }
@@ -1357,12 +1652,13 @@ const hdr = StyleSheet.create({
   brandBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    maxWidth: 128,
+    maxWidth: 120,
+    marginRight: 6,
   },
   logoRing: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1.8,
     borderColor: '#14B8A6',
     overflow: 'hidden',
@@ -1374,7 +1670,7 @@ const hdr = StyleSheet.create({
   },
   brandTitle: {
     color: '#F8FAFC',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '900',
     letterSpacing: 0.2,
   },
@@ -1387,26 +1683,20 @@ const hdr = StyleSheet.create({
     fontWeight: '600',
     marginTop: 1,
   },
-  divider: {
-    width: 1,
-    height: 24,
-    backgroundColor: '#1E333E',
-    marginHorizontal: 7,
-  },
   searchWrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0C1821',
     borderRadius: 18,
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     height: 34,
     borderWidth: 1,
     borderColor: '#1B3442',
   },
   searchIcon: {
     fontSize: 11,
-    marginRight: 5,
+    marginRight: 4,
     opacity: 0.85,
   },
   searchInput: {
@@ -1415,20 +1705,34 @@ const hdr = StyleSheet.create({
     fontSize: 11.5,
     paddingVertical: 0,
   },
+  clearBtn: {
+    paddingHorizontal: 4,
+  },
+  clearBtnTxt: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  micBtn: {
+    paddingLeft: 4,
+  },
+  micTxt: {
+    fontSize: 12,
+  },
   iconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 31,
+    height: 31,
+    borderRadius: 15.5,
     backgroundColor: '#0B1720',
     borderWidth: 1,
     borderColor: '#1B3A46',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 5,
+    marginLeft: 4,
     position: 'relative',
   },
   iconGlyph: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: '#E2E8F0',
   },
   badge: {
@@ -1481,6 +1785,32 @@ const styles = StyleSheet.create({
   },
   twoToggleTxtActive: {
     color: '#FFFFFF',
+  },
+  filterStrip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 7,
+  },
+  filterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: '#0D1B26',
+    borderWidth: 1,
+    borderColor: '#1B3442',
+  },
+  filterChipActive: {
+    backgroundColor: 'rgba(13, 148, 136, 0.3)',
+    borderColor: '#2DD4BF',
+  },
+  filterChipTxt: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  filterChipTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   activeTagBanner: {
     flexDirection: 'row',
@@ -1650,103 +1980,106 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Bottom Dock
+  // Bottom Navigation with Reference Image + 5 Labels
   bottomDockOuter: {
     backgroundColor: '#050B10',
     paddingHorizontal: 8,
     paddingTop: 4,
     paddingBottom: Platform.OS === 'ios' ? 14 : 8,
   },
-  bottomDock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#07141C',
+  bottomDockFrame: {
+    position: 'relative',
+    height: 66,
     borderRadius: 24,
-    paddingVertical: 5,
-    paddingHorizontal: 5,
+    overflow: 'hidden',
+    backgroundColor: '#07141C',
     borderWidth: 1,
-    borderColor: '#153440',
-    elevation: 12,
+    borderColor: '#163844',
+    justifyContent: 'flex-end',
   },
-  navItem: {
+  bottomDockBgImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    transform: [{ scale: 1.06 }],
+  },
+  bottomDockOverlay: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: '100%',
+    paddingHorizontal: 4,
+    paddingBottom: 5,
+    backgroundColor: 'rgba(5, 13, 19, 0.32)',
+  },
+  navSlot: {
     flex: 1,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 7,
+    justifyContent: 'flex-end',
+    paddingBottom: 3,
     paddingHorizontal: 2,
-    borderRadius: 18,
-    minHeight: 56,
   },
-  navItemActive: {
-    backgroundColor: 'rgba(13, 148, 136, 0.34)',
-    borderWidth: 1.4,
-    borderColor: '#2DD4BF',
-  },
-  navIcon: {
-    fontSize: 16,
-    color: '#94A3B8',
-    marginBottom: 2,
-  },
-  logisticsIcon: {
-    fontSize: 21,
-    color: '#94A3B8',
-    marginBottom: 1,
-  },
-  serviceHubIcon: {
-    fontSize: 20,
-    color: '#94A3B8',
-    marginBottom: 1,
-  },
-  navIconActive: {
-    color: '#5EEAD4',
+  navSlotActive: {
+    backgroundColor: 'rgba(32, 191, 174, 0.16)',
+    borderBottomWidth: 2,
+    borderBottomColor: '#2DD4BF',
   },
   navLbl: {
-    color: '#CBD5E1',
-    fontSize: 10,
-    fontWeight: '700',
+    color: '#E2E8F0',
+    fontSize: 9.5,
+    fontWeight: '800',
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   navLblTwoLine: {
-    color: '#CBD5E1',
-    fontSize: 9.5,
-    fontWeight: '700',
-    lineHeight: 11.5,
+    color: '#E2E8F0',
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 10.5,
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   navLblActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
+    color: '#5EEAD4',
   },
-  centerCreateWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  centerCreateSlot: {
     width: 64,
-    marginTop: -22,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 3,
   },
-  centerPlus: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#0D9488',
+  centerPlusCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(13, 148, 136, 0.25)',
+    borderWidth: 1.5,
+    borderColor: '#5EEAD4',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#2DD4BF',
-    elevation: 14,
+    marginBottom: 2,
   },
   centerPlusTxt: {
     color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '400',
-    lineHeight: 30,
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 22,
   },
   centerLbl: {
-    color: '#E2E8F0',
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 3,
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '800',
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 
   // In-App Full News Reader
