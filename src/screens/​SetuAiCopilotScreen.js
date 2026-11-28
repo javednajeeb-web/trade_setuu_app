@@ -14,25 +14,15 @@ import {
   Keyboard,
   PanResponder,
   Dimensions,
-  Clipboard,
   Alert,
   BackHandler,
   StyleSheet,
   Platform,
 } from 'react-native';
 
-function safeRequireImage(modulePath) {
-  try {
-    // eslint-disable-next-line global-require
-    return require(modulePath);
-  } catch (e) {
-    return null;
-  }
-}
-
-const COPILOT_CAPSULE_ASSET = safeRequireImage('../../IMG_20261128_171321.png');
-const COPILOT_SQUARE_ASSET = safeRequireImage('../../IMG_20261128_171240.png');
-const COPILOT_MINI_ASSET = safeRequireImage('../../IMG_20261128_171404.png');
+const COPILOT_CAPSULE_ASSET = require('../../IMG_20261128_171321.png');
+const COPILOT_SQUARE_ASSET = require('../../IMG_20261128_171240.png');
+const COPILOT_MINI_ASSET = require('../../IMG_20261128_171404.png');
 
 const QUICK_PROMPTS = [
   {
@@ -139,7 +129,6 @@ export function SetuAiFloatingTrigger({
   const btnW = compactSquare ? 46 : 148;
   const btnH = 46;
 
-  // Default: right side, just above bottom nav
   const defaultX = Math.max(12, winW - btnW - 14);
   const defaultY = Math.max(60, winH - btnH - 96);
 
@@ -165,6 +154,26 @@ export function SetuAiFloatingTrigger({
     offsetRef.current = { x: clampedX, y: clampedY };
     pan.setValue({ x: clampedX, y: clampedY });
   }, [winW, winH, btnW, btnH, pan]);
+
+  const triggerPulseAndOpen = () => {
+    pulseAnim.setValue(0);
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(pressScale, { toValue: 0.94, duration: 85, useNativeDriver: true }),
+        Animated.spring(pressScale, { toValue: 1, friction: 5, tension: 180, useNativeDriver: true }),
+      ]),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    if (typeof onPress === 'function') {
+      onPress();
+    }
+  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -194,26 +203,6 @@ export function SetuAiFloatingTrigger({
       },
     })
   ).current;
-
-  const triggerPulseAndOpen = () => {
-    pulseAnim.setValue(0);
-    Animated.parallel([
-      Animated.sequence([
-        Animated.timing(pressScale, { toValue: 0.94, duration: 85, useNativeDriver: true }),
-        Animated.spring(pressScale, { toValue: 1, friction: 5, tension: 180, useNativeDriver: true }),
-      ]),
-      Animated.timing(pulseAnim, {
-        toValue: 1,
-        duration: 400,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    if (typeof onPress === 'function') {
-      onPress();
-    }
-  };
 
   if (keyboardVisible) return null;
 
@@ -271,35 +260,14 @@ export function SetuAiFloatingTrigger({
           },
         ]}
       >
-        {activeSource ? (
-          <Image
-            source={activeSource}
-            resizeMode="cover"
-            style={[
-              styles.assetImage,
-              compactSquare ? styles.squareImage : styles.capsuleImage,
-            ]}
-          />
-        ) : (
-          <View style={styles.fallbackInner}>
-            <View style={[styles.syncOrb, { backgroundColor: accent }]}>
-              <View style={styles.syncOrbDot} />
-            </View>
-            {!compactSquare ? (
-              <View>
-                <Text
-                  style={[styles.fallbackTitle, { color: isDark ? '#E7EDF2' : '#183238' }]}
-                  numberOfLines={1}
-                >
-                  SETU AI
-                </Text>
-                <Text style={[styles.fallbackSub, { color: accent }]} numberOfLines={1}>
-                  Co-Pilot
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        )}
+        <Image
+          source={activeSource}
+          resizeMode="cover"
+          style={[
+            styles.assetImage,
+            compactSquare ? styles.squareImage : styles.capsuleImage,
+          ]}
+        />
       </View>
     </Animated.View>
   );
@@ -433,8 +401,8 @@ export default function SetuAiCopilotScreen({
   };
 
   const handleCopy = (txt) => {
-    Clipboard.setString(txt || '');
-    Alert.alert('Copied', 'Draft copied to clipboard.');
+    if (!txt) return;
+    Alert.alert('Draft Ready', 'Select or use "Use Draft (OK)" to apply directly to your screen.');
   };
 
   const handleUseDraft = (draftText) => {
@@ -457,7 +425,6 @@ export default function SetuAiCopilotScreen({
 
   const innerContent = (
     <>
-      {/* Draggable / Top Header */}
       <View
         {...(floatingWindow ? headerPanResponder.panHandlers : {})}
         style={[styles.topBar, { borderBottomColor: C.border, backgroundColor: C.card }]}
@@ -627,7 +594,7 @@ export default function SetuAiCopilotScreen({
                       style={[styles.smallBtnOutline, { borderColor: C.border }]}
                     >
                       <Text style={{ color: C.text, fontSize: 11.5, fontWeight: '700' }}>
-                        Copy
+                        Preview
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -638,7 +605,6 @@ export default function SetuAiCopilotScreen({
         })}
       </ScrollView>
 
-      {/* Bottom Prompt Input */}
       <View style={[styles.composerBar, { backgroundColor: C.card, borderTopColor: C.border }]}>
         <TextInput
           value={inputText}
@@ -732,36 +698,6 @@ const styles = StyleSheet.create({
   squareImage: {
     transform: [{ scale: 1.08 }],
   },
-  fallbackInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    gap: 8,
-  },
-  syncOrb: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  syncOrbDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FFFFFF',
-  },
-  fallbackTitle: {
-    fontSize: 11.5,
-    fontWeight: '900',
-    lineHeight: 13,
-  },
-  fallbackSub: {
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 12,
-  },
-
   floatingWindowBox: {
     position: 'absolute',
     top: 0,
