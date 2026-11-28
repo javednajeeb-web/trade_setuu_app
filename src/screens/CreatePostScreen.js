@@ -18,11 +18,28 @@ const POST_TYPES = ['Sell Offer', 'Buy Requirement', 'Available Stock', 'Logisti
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
 const MAX_OTHER_BYTES = 10 * 1024 * 1024; // 10 MB (Image / PDF)
 
-function safeRequire(moduleName) {
+function getDocumentPicker() {
   try {
-    // Dynamic require wrapped in try/catch for optional Expo/RN packages
     // eslint-disable-next-line global-require
-    return require(moduleName);
+    return require('expo-document-picker');
+  } catch (e) {
+    return null;
+  }
+}
+
+function getImagePicker() {
+  try {
+    // eslint-disable-next-line global-require
+    return require('expo-image-picker');
+  } catch (e) {
+    return null;
+  }
+}
+
+function getSpeechRecognition() {
+  try {
+    // eslint-disable-next-line global-require
+    return require('expo-speech-recognition');
   } catch (e) {
     return null;
   }
@@ -37,11 +54,11 @@ function formatBytesToMb(bytes) {
 export default function CreatePostScreen({
   onClose,
   onPublishPost,
-  onPickMedia, // Optional hook: async (mediaType) => { type, name, sizeBytes, uri, duration }
-  onStartVoiceInput, // Optional hook: async () => spokenString
-  onOpenAiCopilot, // Optional hook: (contextPayload) => void
-  appliedDraft, // Optional draft payload from SETU AI Co-Pilot
-  onConsumedAppliedDraft, // Optional callback after consuming appliedDraft
+  onPickMedia,
+  onStartVoiceInput,
+  onOpenAiCopilot,
+  appliedDraft,
+  onConsumedAppliedDraft,
 }) {
   const [postType, setPostType] = useState('Sell Offer');
   const [title, setTitle] = useState('');
@@ -53,7 +70,6 @@ export default function CreatePostScreen({
   const [mediaAttachment, setMediaAttachment] = useState(null);
   const [pickingMediaType, setPickingMediaType] = useState(null);
 
-  // Voice input state & modal
   const [isListening, setIsListening] = useState(false);
   const [voiceModalVisible, setVoiceModalVisible] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState('');
@@ -125,7 +141,6 @@ export default function CreatePostScreen({
   };
 
   const pickFromDevice = async (type) => {
-    // 1. Custom parent hook if provided
     if (typeof onPickMedia === 'function') {
       const customResult = await onPickMedia(type);
       if (customResult) {
@@ -134,9 +149,8 @@ export default function CreatePostScreen({
       return;
     }
 
-    // 2. PDF via expo-document-picker if available
     if (type === 'pdf') {
-      const DocPicker = safeRequire('expo-document-picker');
+      const DocPicker = getDocumentPicker();
       if (DocPicker && typeof DocPicker.getDocumentAsync === 'function') {
         const res = await DocPicker.getDocumentAsync({
           type: 'application/pdf',
@@ -158,9 +172,8 @@ export default function CreatePostScreen({
       }
     }
 
-    // 3. Image / Video via expo-image-picker if available
     if (type === 'image' || type === 'video') {
-      const ImagePicker = safeRequire('expo-image-picker');
+      const ImagePicker = getImagePicker();
       if (ImagePicker && typeof ImagePicker.launchImageLibraryAsync === 'function') {
         if (typeof ImagePicker.requestMediaLibraryPermissionsAsync === 'function') {
           const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -213,10 +226,9 @@ export default function CreatePostScreen({
       }
     }
 
-    // 4. Fallback if native/Expo picker module is not installed in current build
     Alert.alert(
       'Device Picker Unavailable',
-      `Install expo-image-picker / expo-document-picker or pass onPickMedia. Attach a sample ${type.toUpperCase()} preview to test post layout?`,
+      `Attach a sample ${type.toUpperCase()} preview to test post layout?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -280,15 +292,13 @@ export default function CreatePostScreen({
       return;
     }
 
-    const SpeechModule = safeRequire('expo-speech-recognition');
+    const SpeechModule = getSpeechRecognition();
     const ExpoSpeechRecognitionModule = SpeechModule?.ExpoSpeechRecognitionModule;
-    const useSpeechEvent = SpeechModule?.useSpeechEvent;
 
     if (
       ExpoSpeechRecognitionModule &&
       typeof ExpoSpeechRecognitionModule.requestPermissionsAsync === 'function' &&
-      typeof ExpoSpeechRecognitionModule.start === 'function' &&
-      typeof useSpeechEvent !== 'function'
+      typeof ExpoSpeechRecognitionModule.start === 'function'
     ) {
       try {
         const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
@@ -305,7 +315,7 @@ export default function CreatePostScreen({
         });
         return;
       } catch (e) {
-        // Fall through to manual dictation modal
+        // Fallback to manual dictation modal
       }
     }
 
@@ -413,7 +423,6 @@ export default function CreatePostScreen({
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Top Full-Screen Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={onClose} style={styles.topBtn}>
           <Text style={styles.cancelTxt}>✕ Close</Text>
@@ -427,7 +436,6 @@ export default function CreatePostScreen({
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {/* Post Type Selection */}
         <Text style={styles.label}>Post Type</Text>
         <View style={styles.chipRow}>
           {POST_TYPES.map((type) => {
@@ -446,7 +454,6 @@ export default function CreatePostScreen({
           })}
         </View>
 
-        {/* Headline */}
         <Text style={styles.label}>Headline</Text>
         <TextInput
           style={styles.input}
@@ -456,7 +463,6 @@ export default function CreatePostScreen({
           onChangeText={setTitle}
         />
 
-        {/* Quick Trade Specs */}
         <View style={styles.rowGap}>
           <View style={styles.halfCol}>
             <Text style={styles.label}>Commodity</Text>
@@ -489,7 +495,6 @@ export default function CreatePostScreen({
           onChangeText={setPortRoute}
         />
 
-        {/* Main Post Body + Voice & SETU AI Co-Pilot */}
         <View style={styles.bodyHeaderRow}>
           <Text style={styles.label}>Post Details</Text>
           <View style={styles.aiToolsRow}>
@@ -516,7 +521,6 @@ export default function CreatePostScreen({
           onChangeText={setBody}
         />
 
-        {/* Media Attachment Section (Max 50MB Video, Max 10MB Image/PDF) */}
         <Text style={styles.label}>Upload from Device (Video ≤ 50 MB · Image/PDF ≤ 10 MB)</Text>
         <View style={styles.mediaBtnRow}>
           <TouchableOpacity
@@ -567,7 +571,6 @@ export default function CreatePostScreen({
         ) : null}
       </ScrollView>
 
-      {/* Voice Dictation / Input Modal */}
       <Modal
         visible={voiceModalVisible}
         transparent
