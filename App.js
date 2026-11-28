@@ -27,46 +27,10 @@ import SetuAiCopilotScreen, { SetuAiFloatingTrigger } from './src/screens/SetuAi
 import { fetchEximNews } from './src/services/eximNewsService';
 import { translateText } from './src/services/translationService';
 
-function getLogoAsset() {
-  try {
-    // eslint-disable-next-line global-require
-    return require('./1795099375380.png');
-  } catch (e) {
-    return null;
-  }
-}
-
-function getCopilotCapsuleAsset() {
-  try {
-    // eslint-disable-next-line global-require
-    return require('./IMG_20261128_171321.png');
-  } catch (e) {
-    return null;
-  }
-}
-
-function getCopilotSquareAsset() {
-  try {
-    // eslint-disable-next-line global-require
-    return require('./IMG_20261128_171240.png');
-  } catch (e) {
-    return null;
-  }
-}
-
-function getBottomNavAsset() {
-  try {
-    // eslint-disable-next-line global-require
-    return require('./IMG_20261128_171448.png');
-  } catch (e) {
-    return null;
-  }
-}
-
-const TS_LOGO = getLogoAsset();
-const COPILOT_CAPSULE_IMG = getCopilotCapsuleAsset();
-const COPILOT_SQUARE_IMG = getCopilotSquareAsset();
-const BOTTOM_NAV_IMG = getBottomNavAsset();
+const TS_LOGO = require('./1795099375380.png');
+const COPILOT_CAPSULE_IMG = require('./IMG_20261128_171321.png');
+const COPILOT_SQUARE_IMG = require('./IMG_20261128_171240.png');
+const BOTTOM_NAV_IMG = require('./IMG_20261128_171448.png');
 
 /**
  * Common search/voice matcher usable across all search bars/engines:
@@ -760,9 +724,7 @@ export default function App() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#060D12', justifyContent: 'center', padding: 20 }}>
         <StatusBar barStyle="light-content" backgroundColor="#060D12" />
         <View style={{ alignItems: 'center', marginBottom: 24 }}>
-          {TS_LOGO ? (
-            <Image source={TS_LOGO} style={{ width: 84, height: 84, borderRadius: 42, marginBottom: 12 }} />
-          ) : null}
+          <Image source={TS_LOGO} style={{ width: 84, height: 84, borderRadius: 42, marginBottom: 12 }} />
           <Text style={{ color: '#FFF', fontSize: 22, fontWeight: '900' }}>Trade SETUU</Text>
           <Text style={{ color: '#14B8A6', fontSize: 12, fontWeight: '700' }}>
             Global Trade & Logistics Ecosystem
@@ -809,12 +771,10 @@ export default function App() {
             style={hdr.brandBtn}
           >
             <View style={hdr.logoRing}>
-              {TS_LOGO ? (
-                <Image
-                  source={TS_LOGO}
-                  style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
-                />
-              ) : null}
+              <Image
+                source={TS_LOGO}
+                style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+              />
             </View>
             <View style={hdr.brandTextCol}>
               <Text style={hdr.brandTitle} numberOfLines={1}>
@@ -910,7 +870,6 @@ export default function App() {
             </TouchableOpacity>
           </View>
 
-          {/* Built-in Filter Strip */}
           {homeSubTab === 'feed' && (
             <ScrollView
               horizontal
@@ -1205,13 +1164,11 @@ export default function App() {
       {/* BOTTOM NAVIGATION WITH UPLOADED REFERENCE IMAGE + 5 EXACT LABELS */}
       <View style={styles.bottomDockOuter}>
         <View style={styles.bottomDockFrame}>
-          {BOTTOM_NAV_IMG ? (
-            <Image
-              source={BOTTOM_NAV_IMG}
-              resizeMode="cover"
-              style={styles.bottomDockBgImage}
-            />
-          ) : null}
+          <Image
+            source={BOTTOM_NAV_IMG}
+            resizeMode="cover"
+            style={styles.bottomDockBgImage}
+          />
 
           <View style={styles.bottomDockOverlay}>
             <TouchableOpacity
@@ -1375,9 +1332,7 @@ export default function App() {
           <ScrollView style={styles.drawerPanel} contentContainerStyle={{ paddingBottom: 35 }}>
             <View style={styles.rowBetween}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {TS_LOGO ? (
-                  <Image source={TS_LOGO} style={{ width: 42, height: 42, borderRadius: 21, marginRight: 10 }} />
-                ) : null}
+                <Image source={TS_LOGO} style={{ width: 42, height: 42, borderRadius: 21, marginRight: 10 }} />
                 <View>
                   <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '900' }}>{userName}</Text>
                   <Text style={{ color: '#14B8A6', fontSize: 11, fontWeight: '700' }}>
